@@ -5,6 +5,7 @@ async function main() {
     { label: "demo-high", query: { demo: "high" } },
     { label: "demo-mid", query: { demo: "mid" } },
     { label: "demo-low", query: { demo: "low" } },
+    { label: "live-shanghai", query: { city: "shanghai" } },
     { label: "live-la", query: { city: "la" } },
   ];
 
