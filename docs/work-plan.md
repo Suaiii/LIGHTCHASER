@@ -10,11 +10,13 @@
 - Added five Shanghai POI recommendations and kept Los Angeles as a backup preset.
 - Added fallback behavior when live weather fetch fails.
 - Wrote handoff documentation for Role A and general README notes.
+- Added a frontend API usage guide for Role A.
+- Added Role B technical notes and roadshow Q&A.
 - Verified the API locally with `npm run test:api`.
 
 ## In Progress
 
-- Align the demo data and city preset around Shanghai as the primary judging scenario.
+- Continue Role B polish after the frontend starts integration.
 - Keep the live-weather path and `demo=high|mid|low` fallback ready for frontend integration.
 
 ## Next Recommended Steps
@@ -29,7 +31,6 @@
 
 - Confirm whether `city=beijing` is needed after the Shanghai demo is stable.
 - Decide whether to expose scoring component details to the frontend for debugging.
-- Draft a short technical Q&A covering data source, scoring logic, and fallback strategy.
 - Add deployment notes if the judging flow requires a live URL.
 
 ## Risks
