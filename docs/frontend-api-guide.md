@@ -35,6 +35,14 @@ GET /api/sunset?demo=low
 GET /api/sunset?city=shanghai
 ```
 
+Acceptance criteria for frontend integration:
+
+- `demo=high` renders a complete card without loading placeholders.
+- `demo=mid` and `demo=low` update score, copy, and color state without layout shifts.
+- `city=shanghai` renders live data with `meta.city = "Shanghai"`.
+- The card never reads from `meta.debug`.
+- If live mode fails in a deployed environment, the demo controls still work.
+
 ## Query Params
 
 | Param | Example | Meaning |

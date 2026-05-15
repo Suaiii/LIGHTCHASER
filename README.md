@@ -35,3 +35,8 @@ npm run test:api
 See [docs/role-b-handoff.md](/E:/aNB/Hackson/LIGHTCHASER/docs/role-b-handoff.md) for the Role B handoff details.
 
 Frontend integration details are in [docs/frontend-api-guide.md](/E:/aNB/Hackson/LIGHTCHASER/docs/frontend-api-guide.md).
+
+Deployment and roadshow notes:
+
+- [docs/deployment-runbook.md](/E:/aNB/Hackson/LIGHTCHASER/docs/deployment-runbook.md)
+- [docs/roadshow-tech-script.md](/E:/aNB/Hackson/LIGHTCHASER/docs/roadshow-tech-script.md)

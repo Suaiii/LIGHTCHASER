@@ -83,7 +83,7 @@ Frontend should depend on the public fields documented in `docs/frontend-api-gui
 
 ## Remaining Role B Work
 
-- Add Vercel deployment notes if needed.
-- Add Beijing or more Shanghai POIs if the story expands.
-- Tune scoring weights after one or two real Shanghai weather checks.
-- Prepare a shorter spoken answer for the final roadshow.
+- Keep `docs/deployment-runbook.md` aligned with the final deployment URL.
+- Tune scoring weights after one or two real Shanghai weather checks if needed.
+- Add Beijing or more Shanghai POIs only if the core Shanghai demo is already stable.
+- Use `docs/roadshow-tech-script.md` for the spoken roadshow answer.
