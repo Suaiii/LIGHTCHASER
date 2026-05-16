@@ -19,6 +19,20 @@ This branch adds the initial Role B data layer:
 ```bash
 npm install
 npm run test:api
+npm run dev:preview
+```
+
+Open the integrated frontend and backend preview:
+
+```text
+http://127.0.0.1:5174/
+```
+
+The same local server also handles:
+
+```text
+http://127.0.0.1:5174/api/sunset?city=shanghai
+http://127.0.0.1:5174/api/sunset?demo=high
 ```
 
 ## API Examples
@@ -33,3 +47,12 @@ npm run test:api
 ```
 
 See [docs/role-b-handoff.md](/E:/aNB/Hackson/LIGHTCHASER/docs/role-b-handoff.md) for the Role B handoff details.
+
+Frontend integration details are in [docs/frontend-api-guide.md](/E:/aNB/Hackson/LIGHTCHASER/docs/frontend-api-guide.md).
+
+The current frontend prototype lives in [public/追·光.html](/E:/aNB/Hackson/LIGHTCHASER/public/追·光.html) and loads the React/Babel JSX files in [public/](/E:/aNB/Hackson/LIGHTCHASER/public). Local video assets are under [public/assets/videos](/E:/aNB/Hackson/LIGHTCHASER/public/assets/videos).
+
+Deployment and roadshow notes:
+
+- [docs/deployment-runbook.md](/E:/aNB/Hackson/LIGHTCHASER/docs/deployment-runbook.md)
+- [docs/roadshow-tech-script.md](/E:/aNB/Hackson/LIGHTCHASER/docs/roadshow-tech-script.md)

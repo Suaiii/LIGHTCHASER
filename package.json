@@ -4,6 +4,7 @@
   "private": true,
   "description": "Role B data and sunset recommendation layer for LIGHTCHASER",
   "scripts": {
+    "dev:preview": "node scripts/dev-preview.js",
     "test:api": "node scripts/test-sunset.js"
   },
   "dependencies": {
