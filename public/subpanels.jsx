@@ -442,14 +442,41 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
 function SceneCommunity({ sunsetPayload }) {
   const score = sunsetPayload?.score || 87;
   const spot = sunsetPayload?.recommendation?.spot || "附近开阔水岸";
-  // 昨天的笔记 — 6 张
+  const [activeVideo, setActiveVideo] = useState(null);
   const notes = [
-    { skyT: 0.80, score: Math.min(99, score + 4), date: "昨天",   author: "城南旧光", note: `${spot} 刚到峰值就开始烧了` },
-    { skyT: 0.62, score: Math.max(55, score - 8), date: "10.15", author: "西风掠云", note: "等了 40 分钟值得" },
-    { skyT: 0.92, score: Math.min(96, score + 1), date: "10.14", author: "晚走的人", note: "蓝调比想象的久" },
-    { skyT: 0.50, score: 62, date: "10.13", author: "陈小溪",  note: "金光段最舒服" },
-    { skyT: 0.78, score: 88, date: "10.11", author: "夜灯",    note: "拍人也好看" },
-    { skyT: 0.45, score: 55, date: "10.10", author: "k_walks", note: "云不够厚" },
+    {
+      skyT: 0.80,
+      score: Math.min(99, score + 4),
+      date: "昨天",
+      author: "静安寺追光",
+      note: "静安寺晚霞封面，点开看现场视频",
+      imageSrc: "/assets/jingansi/cover.png",
+      videoSrc: "/assets/jingansi/video1-h264.mp4",
+    },
+    {
+      skyT: 0.62,
+      score: Math.max(55, score - 8),
+      date: "10.15",
+      author: "西风掠云",
+      note: "等了 40 分钟值得",
+      imageSrc: "/assets/jingansi/fig6.jpeg",
+    },
+    {
+      skyT: 0.92,
+      score: Math.min(96, score + 1),
+      date: "10.14",
+      author: "晚走的人",
+      note: "图2 · 蓝调比想象的久",
+      imageSrc: "/assets/jingansi/fig2.jpeg",
+    },
+    {
+      skyT: 0.50,
+      score: 62,
+      date: "10.13",
+      author: "陈小溪",
+      note: "图4 · 金光段最舒服",
+      imageSrc: "/assets/jingansi/fig4.jpeg",
+    },
   ];
 
   const comments = [
@@ -467,7 +494,6 @@ function SceneCommunity({ sunsetPayload }) {
         position: "absolute", inset: 0, padding: "100px 16px 110px",
         display: "flex", flexDirection: "column", gap: 12, zIndex: 2,
       }}>
-        {/* 顶部 */}
         <div>
           <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: 1.4, marginBottom: 4 }}>
             COMMUNITY&nbsp;·&nbsp;NEARBY
@@ -478,7 +504,6 @@ function SceneCommunity({ sunsetPayload }) {
           </div>
         </div>
 
-        {/* 当下追光者计数 */}
         <div style={{
           padding: "11px 14px",
           background: "linear-gradient(135deg, rgba(255,138,61,0.15), rgba(200,72,88,0.12))",
@@ -500,16 +525,18 @@ function SceneCommunity({ sunsetPayload }) {
           </div>
         </div>
 
-        {/* 笔记网格 */}
         <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {notes.map((n, i) => (
-              <NoteCard key={i} {...n} />
+              <NoteCard
+                key={i}
+                {...n}
+                onOpenVideo={n.videoSrc ? () => setActiveVideo(n.videoSrc) : undefined}
+              />
             ))}
           </div>
         </div>
 
-        {/* 漂浮短评 */}
         <div style={{
           padding: "10px 12px",
           background: "rgba(20, 14, 22, 0.55)",
@@ -534,7 +561,6 @@ function SceneCommunity({ sunsetPayload }) {
           ))}
         </div>
 
-        {/* 筛选条件 */}
         <div style={{
           fontSize: 10, color: "rgba(255,255,255,0.45)",
           fontFamily: "var(--font-mono)",
@@ -550,18 +576,34 @@ function SceneCommunity({ sunsetPayload }) {
           50%      { transform: scale(1.5); opacity: 0.5; }
         }
       `}</style>
+      {activeVideo && (
+        <CommunityVideoPlayer
+          src={activeVideo}
+          poster="/assets/jingansi/cover.png"
+          onClose={() => setActiveVideo(null)}
+        />
+      )}
     </div>
   );
 }
 
-function NoteCard({ skyT, score, date, author, note }) {
-  return (
-    <div style={{
-      borderRadius: 12, overflow: "hidden",
-      background: "#1a1018",
-      border: "1px solid rgba(255,255,255,0.06)",
-    }}>
-      <div style={{ position: "relative", aspectRatio: "4/5" }}>
+function NoteCard({ skyT, score, date, author, note, imageSrc, videoSrc, onOpenVideo }) {
+  const media = (
+    <div style={{ position: "relative", aspectRatio: "4/5", overflow: "hidden" }}>
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={note}
+          draggable={false}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      ) : (
         <div style={{
           position: "absolute", inset: 0,
           background: `linear-gradient(180deg,
@@ -569,32 +611,92 @@ function NoteCard({ skyT, score, date, author, note }) {
             ${rgb(skyColor(skyT))} 50%,
             ${rgb(skyColor(Math.min(1, skyT + 0.15)))} 100%)`,
         }} />
-        {/* 小天际线 */}
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, opacity: 0.95 }}>
-          <CitySilhouette height={50} color="#08080c" />
-        </div>
-        {/* 评分胶囊 */}
-        <div style={{
-          position: "absolute", top: 6, right: 6,
-          padding: "2px 7px",
-          background: "rgba(0,0,0,0.55)",
-          backdropFilter: "blur(8px)",
-          borderRadius: 6,
-          fontSize: 10, fontWeight: 700,
-          color: score >= 80 ? "#ffd49a" : score >= 60 ? "#fff" : "rgba(255,255,255,0.65)",
-          fontFamily: "var(--font-mono)",
-        }}>
-          {score}<span style={{ fontSize: 8, opacity: 0.6 }}>/100</span>
-        </div>
-        {/* 太阳 */}
+      )}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "linear-gradient(180deg, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.45) 100%)",
+        pointerEvents: "none",
+      }} />
+      {!imageSrc && (
+        <>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, opacity: 0.95 }}>
+            <CitySilhouette height={50} color="#08080c" />
+          </div>
+          <div style={{
+            position: "absolute",
+            left: `${30 + skyT * 30}%`, top: `${40 - skyT * 10}%`,
+            width: 22, height: 22, borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(255,240,200,0.9), transparent 70%)",
+            filter: "blur(1px)",
+          }} />
+        </>
+      )}
+      {videoSrc && (
         <div style={{
           position: "absolute",
-          left: `${30 + skyT * 30}%`, top: `${40 - skyT * 10}%`,
-          width: 22, height: 22, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,240,200,0.9), transparent 70%)",
-          filter: "blur(1px)",
-        }} />
+          left: 8,
+          bottom: 8,
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          background: "rgba(0,0,0,0.58)",
+          border: "1px solid rgba(255,255,255,0.56)",
+          backdropFilter: "blur(10px)",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+        }}>
+          <span style={{
+            display: "block",
+            width: 0,
+            height: 0,
+            marginLeft: 3,
+            borderTop: "6px solid transparent",
+            borderBottom: "6px solid transparent",
+            borderLeft: "10px solid #fff",
+          }} />
+        </div>
+      )}
+      <div style={{
+        position: "absolute", top: 6, right: 6,
+        padding: "2px 7px",
+        background: "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(8px)",
+        borderRadius: 6,
+        fontSize: 10, fontWeight: 700,
+        color: score >= 80 ? "#ffd49a" : score >= 60 ? "#fff" : "rgba(255,255,255,0.65)",
+        fontFamily: "var(--font-mono)",
+      }}>
+        {score}<span style={{ fontSize: 8, opacity: 0.6 }}>/100</span>
       </div>
+    </div>
+  );
+
+  return (
+    <div style={{
+      borderRadius: 12, overflow: "hidden",
+      background: "#1a1018",
+      border: "1px solid rgba(255,255,255,0.06)",
+    }}>
+      {videoSrc ? (
+        <button
+          type="button"
+          onClick={onOpenVideo}
+          aria-label="播放静安寺视频"
+          style={{
+            display: "block",
+            width: "100%",
+            padding: 0,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            font: "inherit",
+            color: "inherit",
+            textAlign: "left",
+          }}>
+          {media}
+        </button>
+      ) : media}
       <div style={{ padding: "7px 9px 8px" }}>
         <div style={{
           fontSize: 11, color: "#fff", fontWeight: 500, lineHeight: 1.35,
@@ -616,12 +718,71 @@ function NoteCard({ skyT, score, date, author, note }) {
   );
 }
 
+function CommunityVideoPlayer({ src, poster, onClose }) {
+  return (
+    <div
+      data-swipe-lock="true"
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 20,
+        background: "rgba(0,0,0,0.92)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        padding: "82px 14px 104px",
+      }}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="关闭视频"
+        style={{
+          position: "absolute",
+          top: 86,
+          right: 18,
+          zIndex: 2,
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          border: "1px solid rgba(255,255,255,0.28)",
+          background: "rgba(0,0,0,0.52)",
+          color: "#fff",
+          fontSize: 24,
+          lineHeight: "30px",
+          fontFamily: "Arial, sans-serif",
+          cursor: "pointer",
+        }}>
+        ×
+      </button>
+      <video
+        src={src}
+        poster={poster}
+        controls
+        autoPlay
+        playsInline
+        style={{
+          width: "100%",
+          maxHeight: "100%",
+          borderRadius: 16,
+          background: "#000",
+          boxShadow: "0 18px 48px rgba(0,0,0,0.55)",
+        }}
+      />
+    </div>
+  );
+}
+
 // ============================================
 // 副屏 3 — 快速拍摄 / 一键发布
 // ============================================
-function SceneQuickShoot({ sunsetPayload }) {
+function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
   const [selectedTitle, setSelectedTitle] = useState(0);
   const [recording, setRecording] = useState(false);
+  const [publishProgress, setPublishProgress] = useState(0);
   const score = sunsetPayload?.score || 87;
   const peak = sunsetPayload?.peakTime || "18:15";
   const duration = sunsetPayload?.peakDuration || 14;
@@ -632,7 +793,6 @@ function SceneQuickShoot({ sunsetPayload }) {
     "锁住天空高光，再微微降低曝光",
   ];
 
-  // 预生成的笔记标题候选
   const titles = [
     "今晚的光",
     `西天烧了 ${duration} 分钟`,
@@ -644,239 +804,409 @@ function SceneQuickShoot({ sunsetPayload }) {
   function tapShutter() {
     setRecording(true);
     window.GuangbaoHooks?.captureShot(titles[selectedTitle]);
-    setTimeout(() => setRecording(false), 600);
+    setTimeout(() => {
+      setRecording(false);
+      window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: true }));
+    }, 220);
   }
 
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {/* 模拟实时取景器：用一个真实感更强的晚霞渐变 */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: `
-          linear-gradient(180deg,
-            ${rgb(skyColor(0.30))} 0%,
-            ${rgb(skyColor(0.55))} 35%,
-            ${rgb(skyColor(0.72))} 60%,
-            ${rgb(skyColor(0.85))} 78%,
-            #1a0d18 100%)
-        `,
-      }} />
-      {/* 落日 */}
-      <div style={{
-        position: "absolute", left: "58%", top: "44%", transform: "translate(-50%, -50%)",
-        width: 130, height: 130, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,245,220,1) 0%, rgba(255,210,150,0.7) 35%, rgba(255,170,110,0) 75%)",
-        filter: "blur(2px)",
-      }} />
-      {/* 天际线 */}
-      <div style={{ position: "absolute", bottom: 250, left: 0, right: 0 }}>
-        <CitySilhouette height={220} color="#0d0a0f" />
-      </div>
-
-      {/* 取景器 overlay */}
-      <ViewfinderOverlay recording={recording} />
-
-      {/* 顶部：当前光线评估 */}
-      <div style={{
-        position: "absolute", top: 100, left: 16, right: 16, zIndex: 3,
-        display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-      }}>
-        <div>
-          <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: 1.4, marginBottom: 4 }}>
-            VIEWFINDER&nbsp;·&nbsp;LIVE
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
-            刚好的光
-          </div>
-        </div>
-        <div style={{
-          padding: "8px 11px",
-          background: "rgba(0,0,0,0.45)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 12,
-          textAlign: "right",
-        }}>
-          <div className="mono" style={{ fontSize: 8.5, color: "rgba(255,255,255,0.6)", letterSpacing: 1 }}>
-            CURRENT
-          </div>
-          <div className="num" style={{
-            fontFamily: "var(--font-display)", fontStyle: "italic",
-            fontSize: 28, fontWeight: 500, color: "#ffd49a", lineHeight: 1,
-          }}>{score}</div>
-        </div>
-      </div>
-
-      {/* 右侧：拍摄参数建议 */}
-      <div style={{
-        position: "absolute", right: 16, top: 200, zIndex: 3,
-        display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end",
-      }}>
-        {[
-          ["ISO", score >= 80 ? "200" : "400"],
-          ["快门", score >= 80 ? "1/160" : "1/100"],
-          ["光圈", "f/4"],
-          ["白平衡", score >= 80 ? "5600K" : "5200K"],
-        ].map((p, i) => (
-          <div key={i} className="mono" style={{
-            padding: "3px 8px",
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(8px)",
-            borderRadius: 6,
-            fontSize: 10, color: "rgba(255,255,255,0.9)",
-            letterSpacing: 0.5,
-          }}>
-            <span style={{ opacity: 0.55 }}>{p[0]}</span> · <span style={{ color: "#ffd49a", fontWeight: 600 }}>{p[1]}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* 底部：标题候选 + 快门 */}
-      <div style={{
-        position: "absolute", left: 0, right: 0, bottom: 80, zIndex: 4,
-        padding: "0 14px",
-      }}>
-        {/* 标题芯片 */}
-        <div style={{
-          marginBottom: 14,
-          padding: "10px 12px",
-          background: "rgba(10, 6, 14, 0.6)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 14,
-        }}>
+      {publishedVideoMode ? (
+        <>
+          <PublishedVideoScene
+            src="/assets/jingansi/video2.mp4"
+            onProgress={setPublishProgress}
+          />
           <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8,
+            position: "absolute", left: 0, right: 0, bottom: 82, zIndex: 10,
+            padding: "0 14px",
           }}>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: 1 }}>
-              一键标题 · 选一个直接发
-            </div>
-            <div style={{ fontSize: 9, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>
-              AI 准备好了 ↻
+            <ShootAssistPanel
+              titles={titles}
+              selectedTitle={selectedTitle}
+              setSelectedTitle={setSelectedTitle}
+              tips={tips}
+              transparent
+            />
+            <div style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: 14,
+            }}>
+              <PublishProgressButton
+                progress={publishProgress}
+                onClick={() => window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: false }))}
+              />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
-            {titles.map((tt, i) => (
-              <button key={i}
-                onClick={() => setSelectedTitle(i)}
-                style={{
-                  flexShrink: 0,
-                  padding: "8px 12px",
-                  background: i === selectedTitle ? "var(--accent)" : "rgba(255,255,255,0.08)",
-                  color: i === selectedTitle ? "#1a0e08" : "#fff",
-                  border: "1px solid " + (i === selectedTitle ? "transparent" : "rgba(255,255,255,0.10)"),
-                  borderRadius: 99,
-                  fontSize: 12, fontWeight: i === selectedTitle ? 700 : 500,
-                  fontFamily: "inherit",
-                  whiteSpace: "nowrap",
-                  cursor: "pointer",
-                }}>
-                {tt}
-              </button>
+        </>
+      ) : (
+        <>
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: 'url("/assets/jingansi/fig3.jpeg")',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }} />
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(180deg, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.02) 42%, rgba(0,0,0,0.52) 100%)",
+            pointerEvents: "none",
+          }} />
+
+          <ViewfinderOverlay recording={recording} />
+
+          <div style={{
+            position: "absolute", top: 100, left: 16, right: 16, zIndex: 3,
+            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          }}>
+            <div>
+              <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: 1.4, marginBottom: 4 }}>
+                VIEWFINDER&nbsp;·&nbsp;LIVE
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
+                刚好的光
+              </div>
+            </div>
+            <div style={{
+              padding: "8px 11px",
+              background: "rgba(0,0,0,0.45)",
+              backdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 12,
+              textAlign: "right",
+            }}>
+              <div className="mono" style={{ fontSize: 8.5, color: "rgba(255,255,255,0.6)", letterSpacing: 1 }}>
+                CURRENT
+              </div>
+              <div className="num" style={{
+                fontFamily: "var(--font-display)", fontStyle: "italic",
+                fontSize: 28, fontWeight: 500, color: "#ffd49a", lineHeight: 1,
+              }}>{score}</div>
+            </div>
+          </div>
+
+          <div style={{
+            position: "absolute", right: 16, top: 200, zIndex: 3,
+            display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end",
+          }}>
+            {[
+              ["ISO", score >= 80 ? "200" : "400"],
+              ["快门", score >= 80 ? "1/160" : "1/100"],
+              ["光圈", "f/4"],
+              ["白平衡", score >= 80 ? "5600K" : "5200K"],
+            ].map((p, i) => (
+              <div key={i} className="mono" style={{
+                padding: "3px 8px",
+                background: "rgba(0,0,0,0.5)",
+                backdropFilter: "blur(8px)",
+                borderRadius: 6,
+                fontSize: 10, color: "rgba(255,255,255,0.9)",
+                letterSpacing: 0.5,
+              }}>
+                <span style={{ opacity: 0.55 }}>{p[0]}</span> · <span style={{ color: "#ffd49a", fontWeight: 600 }}>{p[1]}</span>
+              </div>
             ))}
           </div>
-        </div>
 
-        <div style={{
-          marginBottom: 12,
-          padding: "10px 12px",
-          background: "rgba(10, 6, 14, 0.48)",
-          backdropFilter: "blur(18px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 14,
-        }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginBottom: 7 }}>
-            后端拍摄建议 · B 接口
-          </div>
-          {tips.slice(0, 3).map((tip, i) => (
-            <div key={i} style={{
-              display: "flex",
-              gap: 8,
-              fontSize: 11,
-              color: "rgba(255,255,255,0.86)",
-              lineHeight: 1.45,
-              paddingTop: i ? 5 : 0,
-            }}>
-              <span className="mono" style={{ color: "#ffd49a" }}>{String(i + 1).padStart(2, "0")}</span>
-              <span>{tip}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* 快门 + 辅助按钮 */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 8px",
-        }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 14,
-            background: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            display: "grid", placeItems: "center",
-            color: "#fff", fontSize: 18,
-            backdropFilter: "blur(10px)",
-          }}>▦</div>
-
-          {/* 快门 */}
-          <button onClick={tapShutter} style={{
-            width: 76, height: 76, borderRadius: "50%",
-            background: "transparent",
-            border: "3px solid rgba(255,255,255,0.85)",
-            display: "grid", placeItems: "center",
-            cursor: "pointer",
-            position: "relative",
+            position: "absolute", left: 0, right: 0, bottom: 80, zIndex: 4,
+            padding: "0 14px",
           }}>
+            <ShootAssistPanel
+              titles={titles}
+              selectedTitle={selectedTitle}
+              setSelectedTitle={setSelectedTitle}
+              tips={tips}
+            />
+
             <div style={{
-              width: 60, height: 60, borderRadius: recording ? 12 : "50%",
-              background: recording ? "var(--warn)" : "#fff",
-              transition: "all 0.25s cubic-bezier(.7,0,.3,1)",
-              boxShadow: "0 0 24px rgba(255,255,255,0.4)",
-            }} />
-            {recording && (
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "0 8px",
+            }}>
               <div style={{
-                position: "absolute", inset: -8, borderRadius: "50%",
-                border: "2px solid var(--warn)",
-                animation: "shutter-ring 0.6s ease-out",
-              }} />
-            )}
-          </button>
+                width: 44, height: 44, borderRadius: 14,
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                display: "grid", placeItems: "center",
+                color: "#fff", fontSize: 18,
+                backdropFilter: "blur(10px)",
+              }}>▦</div>
 
-          <div style={{
-            width: 44, height: 44, borderRadius: 14,
-            background: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            display: "grid", placeItems: "center",
-            color: "#fff", fontSize: 18,
-            backdropFilter: "blur(10px)",
-          }}>⟳</div>
-        </div>
+              <button type="button" aria-label="播放成片视频" onClick={tapShutter} style={{
+                width: 76, height: 76, borderRadius: "50%",
+                background: "transparent",
+                border: "3px solid rgba(255,255,255,0.85)",
+                display: "grid", placeItems: "center",
+                cursor: "pointer",
+                position: "relative",
+              }}>
+                <div style={{
+                  width: 60, height: 60, borderRadius: recording ? 12 : "50%",
+                  background: recording ? "var(--warn)" : "#fff",
+                  transition: "all 0.25s cubic-bezier(.7,0,.3,1)",
+                  boxShadow: "0 0 24px rgba(255,255,255,0.4)",
+                }} />
+                {recording && (
+                  <div style={{
+                    position: "absolute", inset: -8, borderRadius: "50%",
+                    border: "2px solid var(--warn)",
+                    animation: "shutter-ring 0.6s ease-out",
+                  }} />
+                )}
+              </button>
 
-        <div style={{
-          marginTop: 10, textAlign: "center",
-          fontSize: 10.5, color: "rgba(255,255,255,0.55)",
-          letterSpacing: 1,
-        }}>
-          拍完直接发 · 标题已准备好
-        </div>
-      </div>
+              <div style={{
+                width: 44, height: 44, borderRadius: 14,
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                display: "grid", placeItems: "center",
+                color: "#fff", fontSize: 18,
+                backdropFilter: "blur(10px)",
+              }}>⟳</div>
+            </div>
 
-      <style>{`
-        @keyframes shutter-ring {
-          0%   { transform: scale(1);    opacity: 0.9; }
-          100% { transform: scale(1.35); opacity: 0;   }
-        }
-      `}</style>
+            <div style={{
+              marginTop: 10, textAlign: "center",
+              fontSize: 10.5, color: "rgba(255,255,255,0.55)",
+              letterSpacing: 1,
+            }}>
+              拍完直接发 · 标题已准备好
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes shutter-ring {
+              0%   { transform: scale(1);    opacity: 0.9; }
+              100% { transform: scale(1.35); opacity: 0;   }
+            }
+          `}</style>
+        </>
+      )}
     </div>
   );
 }
 
-// 取景器叠加层
+function PublishedVideoScene({ src, onProgress }) {
+  return (
+    <div
+      data-swipe-lock="true"
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 9,
+        background: "#000",
+        overflow: "hidden",
+      }}>
+      <video
+        src={src}
+        autoPlay
+        muted
+        playsInline
+        controls={false}
+        onLoadedMetadata={(e) => {
+          const video = e.currentTarget;
+          onProgress?.(video.duration ? video.currentTime / video.duration : 0);
+        }}
+        onTimeUpdate={(e) => {
+          const video = e.currentTarget;
+          onProgress?.(video.duration ? Math.min(1, video.currentTime / video.duration) : 0);
+        }}
+        onEnded={() => onProgress?.(1)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          background: "#000",
+        }}
+      />
+      <div style={{
+        position: "absolute",
+        inset: "92px 0 96px",
+        pointerEvents: "none",
+        background: "linear-gradient(180deg, rgba(0,0,0,0.28), transparent 18%, transparent 76%, rgba(0,0,0,0.44))",
+      }} />
+    </div>
+  );
+}
+
+function PublishProgressButton({ progress = 0, onClick }) {
+  const clamped = Math.max(0, Math.min(1, progress));
+  const radius = 39;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - clamped);
+
+  return (
+    <button
+      type="button"
+      aria-label="播放成片视频"
+      onClick={onClick}
+      style={{
+        width: 86,
+        height: 86,
+        borderRadius: "50%",
+        border: "none",
+        background: "transparent",
+        display: "grid",
+        placeItems: "center",
+        position: "relative",
+        padding: 0,
+        cursor: "pointer",
+      }}>
+      <svg
+        viewBox="0 0 92 92"
+        width="92"
+        height="92"
+        style={{
+          position: "absolute",
+          inset: -3,
+          transform: "rotate(-90deg)",
+          filter: "drop-shadow(0 0 8px rgba(255, 96, 112, 0.22))",
+        }}>
+        <circle
+          cx="46"
+          cy="46"
+          r={radius}
+          fill="none"
+          stroke="rgba(255, 150, 158, 0.22)"
+          strokeWidth="4"
+        />
+        <circle
+          cx="46"
+          cy="46"
+          r={radius}
+          fill="none"
+          stroke="rgba(255, 112, 126, 0.72)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          style={{ transition: "stroke-dashoffset 0.18s linear" }}
+        />
+      </svg>
+      <div style={{
+        width: 60,
+        height: 60,
+        borderRadius: "50%",
+        background: "rgba(255,255,255,0.94)",
+        boxShadow: "0 0 24px rgba(255,255,255,0.34)",
+      }} />
+    </button>
+  );
+}
+
+function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, transparent = false }) {
+  const panelStyle = transparent
+    ? {
+        marginBottom: 8,
+        padding: "0 2px",
+        background: "transparent",
+        border: "none",
+        borderRadius: 0,
+      }
+    : {
+        marginBottom: 14,
+        padding: "10px 12px",
+        background: "rgba(10, 6, 14, 0.6)",
+        backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 14,
+      };
+
+  const tipsStyle = transparent
+    ? {
+        marginBottom: 0,
+        padding: "0 2px",
+        background: "transparent",
+        border: "none",
+        borderRadius: 0,
+      }
+    : {
+        marginBottom: 12,
+        padding: "10px 12px",
+        background: "rgba(10, 6, 14, 0.48)",
+        backdropFilter: "blur(18px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 14,
+      };
+
+  return (
+    <>
+      <div style={panelStyle}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8,
+          textShadow: transparent ? "0 1px 5px rgba(0,0,0,0.8)" : "none",
+        }}>
+          <div style={{ fontSize: 10, color: transparent ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.55)", letterSpacing: 1 }}>
+            一键标题 · 选一个直接发
+          </div>
+          <div style={{ fontSize: 9, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>
+            AI 准备好了 ↻
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+          {titles.map((tt, i) => (
+            <button key={i}
+              onClick={() => setSelectedTitle(i)}
+              style={{
+                flexShrink: 0,
+                padding: "8px 12px",
+                background: transparent
+                  ? (i === selectedTitle ? "var(--accent)" : "transparent")
+                  : (i === selectedTitle ? "var(--accent)" : "rgba(255,255,255,0.08)"),
+                color: i === selectedTitle ? "#1a0e08" : "#fff",
+                border: transparent
+                  ? "1px solid " + (i === selectedTitle ? "transparent" : "rgba(255,255,255,0.42)")
+                  : "1px solid " + (i === selectedTitle ? "transparent" : "rgba(255,255,255,0.10)"),
+                borderRadius: 99,
+                fontSize: 12, fontWeight: i === selectedTitle ? 700 : 500,
+                fontFamily: "inherit",
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                textShadow: transparent && i !== selectedTitle ? "0 1px 5px rgba(0,0,0,0.9)" : "none",
+              }}>
+              {tt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={tipsStyle}>
+        <div style={{
+          fontSize: 10,
+          color: transparent ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.55)",
+          letterSpacing: 1,
+          marginBottom: 7,
+          textShadow: transparent ? "0 1px 5px rgba(0,0,0,0.85)" : "none",
+        }}>
+          后端拍摄建议 · B 接口
+        </div>
+        {tips.slice(0, 3).map((tip, i) => (
+          <div key={i} style={{
+            display: "flex",
+            gap: 8,
+            fontSize: 11,
+            color: "rgba(255,255,255,0.9)",
+            lineHeight: 1.45,
+            paddingTop: i ? 5 : 0,
+            textShadow: transparent ? "0 1px 5px rgba(0,0,0,0.85)" : "none",
+          }}>
+            <span className="mono" style={{ color: "#ffd49a" }}>{String(i + 1).padStart(2, "0")}</span>
+            <span>{tip}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function ViewfinderOverlay({ recording }) {
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}>
-      {/* 四角对焦框 */}
       <svg viewBox="0 0 402 874" width="100%" height="100%" preserveAspectRatio="none">
-        {/* 网格 (3x3) */}
         {[1, 2].map(i => (
           <line key={"v"+i} x1={i*134} y1="100" x2={i*134} y2="774"
             stroke="rgba(255,255,255,0.18)" strokeWidth="0.5" strokeDasharray="2 4" />
@@ -885,7 +1215,6 @@ function ViewfinderOverlay({ recording }) {
           <line key={"h"+i} x1="20" y1={100 + i*225} x2="382" y2={100 + i*225}
             stroke="rgba(255,255,255,0.18)" strokeWidth="0.5" strokeDasharray="2 4" />
         ))}
-        {/* 中央对焦框 */}
         {[
           ["M 170 380 L 170 400 L 190 400", ""],
           ["M 232 400 L 252 400 L 252 380", ""],
@@ -896,7 +1225,6 @@ function ViewfinderOverlay({ recording }) {
         ))}
       </svg>
 
-      {/* 录制红框 */}
       {recording && (
         <div style={{
           position: "absolute", inset: 4,

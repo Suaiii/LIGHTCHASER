@@ -19,6 +19,7 @@ function SwipeFeed({ feed, index, setIndex }) {
   const H = 874;
 
   function onDown(e) {
+    if (e.target?.closest?.("[data-swipe-lock='true']")) return;
     const p = e.touches ? e.touches[0] : e;
     drag.current = { on: true, x0: p.clientX, y0: p.clientY, dx: 0, dy: 0, locked: null };
   }
@@ -149,12 +150,6 @@ function SceneMorningVlog() {
         `,
       }} />
       </VideoBackdrop>
-      <div style={{
-        position: "absolute", left: "30%", top: "38%",
-        width: 100, height: 100, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,245,220,1) 0%, rgba(255,200,140,0.5) 45%, transparent 75%)",
-        filter: "blur(2px)",
-      }} />
       <div style={{ position: "absolute", bottom: 120, left: 0, right: 0, opacity: 0.92 }}>
         <CitySilhouette height={280} color="#180a18" />
       </div>
@@ -398,6 +393,7 @@ function useRouteData(sunsetPayload) {
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
   const [index, setIndex] = useState({ row: 1, col: 0 }); // 默认停在晚霞卡片
+  const [publishedVideoMode, setPublishedVideoMode] = useState(false);
   const [, force] = useState(0);
   const {
     payload: sunsetPayload,
@@ -434,7 +430,7 @@ function App() {
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
       () => <SceneRoute sunsetPayload={sunsetPayload} routeData={routeData} routeLoading={routeLoading} />,
       () => <SceneCommunity sunsetPayload={sunsetPayload} />,
-      () => <SceneQuickShoot sunsetPayload={sunsetPayload} />,
+      () => <SceneQuickShoot sunsetPayload={sunsetPayload} publishedVideoMode={publishedVideoMode} />,
     ],
     // Row 2: 蓝调时刻视频
     [() => <SceneNextVideo />],
@@ -454,6 +450,20 @@ function App() {
     window.addEventListener("guangbao:swipeVideo", h);
     return () => window.removeEventListener("guangbao:swipeVideo", h);
   }, [index.row, feed.length]);
+
+  useEffect(() => {
+    function h(e) {
+      setPublishedVideoMode(Boolean(e.detail));
+    }
+    window.addEventListener("guangbao:publishedVideo", h);
+    return () => window.removeEventListener("guangbao:publishedVideo", h);
+  }, []);
+
+  useEffect(() => {
+    if (index.row !== 1 || index.col !== 3) {
+      setPublishedVideoMode(false);
+    }
+  }, [index.row, index.col]);
 
   const cur = feed[index.row];
   const inSunset = index.row === 1;
@@ -482,7 +492,7 @@ function App() {
             )}
 
             {/* 右侧动作栏（只在视频条目） */}
-            {t.showChrome && showActionRail && (
+            {t.showChrome && !publishedVideoMode && showActionRail && (
               <ActionRail
                 likes={index.row === 0 ? "24.1w" : index.row === 2 ? "11.8w" : "8.6w"}
                 comments={index.row === 0 ? 3812 : index.row === 2 ? 1803 : 920}
@@ -493,10 +503,10 @@ function App() {
             )}
 
             {/* 底部导航 */}
-            {t.showChrome && <BottomNav />}
+            {t.showChrome && !publishedVideoMode && <BottomNav />}
 
             {/* 行 / 列指示器 */}
-            <FeedIndicators feed={feed} index={index} />
+            {!publishedVideoMode && <FeedIndicators feed={feed} index={index} />}
 
             {/* 上下滑动 hint — 仅在 sunset 卡片封面显示，且仅前 6 秒 */}
             {inSunset && index.col === 0 && <ScrollHint />}
