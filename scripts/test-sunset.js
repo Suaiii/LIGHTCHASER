@@ -49,6 +49,12 @@ async function main() {
   const scenarios = [
     { label: "default-shanghai", query: {}, expectedCity: "Shanghai" },
     { label: "demo-high", query: { demo: "high" } },
+    {
+      label: "demo-high-jinshan-gps",
+      query: { demo: "high", lat: "30.7109", lng: "121.3456" },
+      expectedSpotIncludes: "金山",
+      forbiddenReasonTerms: ["苏州河乍浦路桥", "桥面能吃到"],
+    },
     { label: "demo-mid", query: { demo: "mid" } },
     { label: "demo-low", query: { demo: "low" } },
     { label: "live-shanghai", query: { city: "shanghai" } },
@@ -67,6 +73,13 @@ async function main() {
       assert(
         payload.meta.city === scenario.expectedCity,
         `${scenario.label}: expected city ${scenario.expectedCity}, got ${payload.meta.city}`
+      );
+    }
+
+    if (scenario.expectedSpotIncludes) {
+      assert(
+        payload.recommendation.spot.includes(scenario.expectedSpotIncludes),
+        `${scenario.label}: expected spot to include ${scenario.expectedSpotIncludes}, got ${payload.recommendation.spot}`
       );
     }
 

@@ -390,7 +390,7 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, loading = 
   const golden = getTimelineColorAt(sunsetPayload, 0.50, 0.50);  // 橘
   const violet = getTimelineColorAt(sunsetPayload, 0.92, 0.92);  // 紫
   const current = hexToRgbTuple(sunsetPayload?.currentSkyColor, burst);
-  const spot = recommendation.spot || "苏州河乍浦路桥";
+  const spot = recommendation.spot || "附近开阔水岸";
   const distanceText = recommendation.distance || "步行 16 分钟";
   const distanceKm = displayKmFromDistance(distanceText);
   const cityLabel = sunsetPayload?.meta?.city === "Los Angeles" ? "洛杉矶" : "上海";

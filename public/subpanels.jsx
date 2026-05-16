@@ -18,7 +18,7 @@ if (typeof window !== "undefined" && !window.GuangbaoHooks) {
     openNavigation: (spot) => {
       console.log("[GuangbaoHooks.openNavigation]", spot);
       const name = typeof spot === "string" ? spot : spot?.name;
-      const keyword = encodeURIComponent(`${name || "苏州河乍浦路桥"} 上海`);
+      const keyword = encodeURIComponent(`${name || "附近开阔水岸"} 上海`);
       window.open(`https://uri.amap.com/search?keyword=${keyword}&city=上海&view=map`, "_blank", "noopener,noreferrer");
     },
     swipeVideoNext: () => {
@@ -133,7 +133,7 @@ function routePoint(start, end, t) {
 
 function buildNavigationGeometry(sunsetPayload, fallbackSpot) {
   const user = sunsetPayload?.meta?.coordinates || { lat: 31.2304, lng: 121.4737 };
-  const poi = sunsetPayload?.recommendation?.coordinates || { lat: 31.2456, lng: 121.4895 };
+  const poi = sunsetPayload?.recommendation?.coordinates || { lat: 30.7109005, lng: 121.3455949 };
   const midA = {
     lat: lerp(user.lat, poi.lat, 0.32) + 0.0022,
     lng: lerp(user.lng, poi.lng, 0.32) - 0.0014,
@@ -155,7 +155,7 @@ function SceneRoute({ sunsetPayload }) {
   const [t, setT] = useState(0.78);
   useExternalLightT(setT);
   const recommendation = sunsetPayload?.recommendation || {};
-  const spot = recommendation.spot || "苏州河乍浦路桥";
+  const spot = recommendation.spot || "附近开阔水岸";
   const direction = recommendation.direction || "西";
   const distanceText = recommendation.distance || "步行 16 分钟";
   const walkMinutes = minutesFromDistance(distanceText);
@@ -572,7 +572,7 @@ function ShadowTimeScrubber({ t, setT, anchors, lightCss }) {
 // ============================================
 function SceneCommunity({ sunsetPayload }) {
   const score = sunsetPayload?.score || 87;
-  const spot = sunsetPayload?.recommendation?.spot || "苏州河乍浦路桥";
+  const spot = sunsetPayload?.recommendation?.spot || "附近开阔水岸";
   // 昨天的笔记 — 6 张
   const notes = [
     { skyT: 0.80, score: Math.min(99, score + 4), date: "昨天",   author: "城南旧光", note: `${spot} 刚到峰值就开始烧了` },
@@ -756,7 +756,7 @@ function SceneQuickShoot({ sunsetPayload }) {
   const score = sunsetPayload?.score || 87;
   const peak = sunsetPayload?.peakTime || "18:15";
   const duration = sunsetPayload?.peakDuration || 14;
-  const spot = sunsetPayload?.recommendation?.spot || "苏州河乍浦路桥";
+  const spot = sunsetPayload?.recommendation?.spot || "附近开阔水岸";
   const tips = sunsetPayload?.shootingTips?.length ? sunsetPayload.shootingTips : [
     "把河面留在画面下三分之一",
     "等一个人物或车辆剪影经过",
