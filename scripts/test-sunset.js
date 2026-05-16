@@ -1,4 +1,5 @@
 const { buildSunsetPayload } = require("../lib/sunset-service");
+const { buildRoutePayload } = require("../lib/route-service");
 
 const REQUIRED_TOP_LEVEL_FIELDS = [
   "score",
@@ -8,6 +9,7 @@ const REQUIRED_TOP_LEVEL_FIELDS = [
   "currentSkyColor",
   "timelineColors",
   "recommendation",
+  "nearbySpots",
   "shootingTips",
   "meta",
 ];
@@ -33,17 +35,38 @@ function assertPayloadShape(label, payload) {
   assert(payload.timelineColors.length >= 8, `${label}: timelineColors should have at least 8 colors`);
   assert(Array.isArray(payload.shootingTips), `${label}: shootingTips must be an array`);
   assert(payload.shootingTips.length === 3, `${label}: expected exactly 3 shootingTips`);
+  assert(Array.isArray(payload.nearbySpots), `${label}: nearbySpots must be an array`);
+  assert(payload.nearbySpots.length >= 1, `${label}: expected at least 1 nearby spot`);
   assert(typeof payload.recommendation.spot === "string", `${label}: missing recommendation.spot`);
   assert(typeof payload.recommendation.distance === "string", `${label}: missing recommendation.distance`);
   assert(typeof payload.recommendation.reason === "string", `${label}: missing recommendation.reason`);
+  assert(typeof payload.recommendation.coordinates?.lat === "number", `${label}: missing recommendation.coordinates.lat`);
+  assert(typeof payload.recommendation.coordinates?.lng === "number", `${label}: missing recommendation.coordinates.lng`);
   assert(typeof payload.meta.source === "string", `${label}: missing meta.source`);
   assert(typeof payload.meta.city === "string", `${label}: missing meta.city`);
+  assert(typeof payload.meta.sun?.current?.azimuthDeg === "number", `${label}: missing current sun azimuth`);
+  assert(typeof payload.meta.sun?.current?.altitudeDeg === "number", `${label}: missing current sun altitude`);
+  assert(typeof payload.meta.sun?.peak?.azimuthDeg === "number", `${label}: missing peak sun azimuth`);
+}
+
+function assertRouteShape(label, payload) {
+  assert(["osrm-foot", "fallback-straight-line"].includes(payload.source), `${label}: unexpected route source`);
+  assert(Array.isArray(payload.geometry), `${label}: geometry must be an array`);
+  assert(payload.geometry.length >= 2, `${label}: geometry should have at least 2 points`);
+  assert(typeof payload.geometry[0].lat === "number", `${label}: geometry point missing lat`);
+  assert(typeof payload.geometry[0].lng === "number", `${label}: geometry point missing lng`);
 }
 
 async function main() {
   const scenarios = [
     { label: "default-shanghai", query: {}, expectedCity: "Shanghai" },
     { label: "demo-high", query: { demo: "high" } },
+    {
+      label: "demo-high-jinshan-gps",
+      query: { demo: "high", lat: "30.7109", lng: "121.3456" },
+      expectedSpotIncludes: "金山",
+      forbiddenReasonTerms: ["苏州河乍浦路桥", "桥面能吃到"],
+    },
     { label: "demo-mid", query: { demo: "mid" } },
     { label: "demo-low", query: { demo: "low" } },
     { label: "live-shanghai", query: { city: "shanghai" } },
@@ -65,6 +88,13 @@ async function main() {
       );
     }
 
+    if (scenario.expectedSpotIncludes) {
+      assert(
+        payload.recommendation.spot.includes(scenario.expectedSpotIncludes),
+        `${scenario.label}: expected spot to include ${scenario.expectedSpotIncludes}, got ${payload.recommendation.spot}`
+      );
+    }
+
     if (scenario.forbiddenReasonTerms) {
       for (const term of scenario.forbiddenReasonTerms) {
         assert(
@@ -83,6 +113,7 @@ async function main() {
           peakTime: payload.peakTime,
           source: payload.meta.source,
           city: payload.meta.city,
+          sun: payload.meta.sun,
           recommendation: payload.recommendation,
         },
         null,
@@ -90,6 +121,33 @@ async function main() {
       )
     );
   }
+
+  const route = await buildRoutePayload({
+    startLat: "30.7200",
+    startLng: "121.3430",
+    endLat: "30.7109005",
+    endLng: "121.3455949",
+  });
+  assertRouteShape("route-jinshan", route);
+  if (route.source === "osrm-foot") {
+    assert(route.geometry.length > 2, "route-jinshan: OSRM route should not be a straight two-point line");
+    assert(route.distanceMeters > 200 && route.distanceMeters < 5000, "route-jinshan: distance should be plausible");
+    assert(route.durationSeconds > 60 && route.durationSeconds < 1800, "route-jinshan: duration should be plausible");
+  }
+
+  console.log("=== route-jinshan ===");
+  console.log(
+    JSON.stringify(
+      {
+        source: route.source,
+        distanceMeters: route.distanceMeters,
+        durationSeconds: route.durationSeconds,
+        geometryPoints: route.geometry.length,
+      },
+      null,
+      2
+    )
+  );
 }
 
 main().catch((error) => {

@@ -185,6 +185,10 @@ const DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 const DEMO_SCENARIOS = ["high", "mid", "low"];
+const JINSHAN_FALLBACK_COORDINATES = {
+  latitude: 30.7200,
+  longitude: 121.3430,
+};
 
 const FALLBACK_SUNSET_PAYLOAD = {
   score: 87,
@@ -194,21 +198,33 @@ const FALLBACK_SUNSET_PAYLOAD = {
   currentSkyColor: "#C84858",
   timelineColors: ["#3A4A6B", "#53607B", "#7A6A61", "#A87557", "#C98557", "#E0A060", "#D96C5B", "#B54F60", "#7A436B", "#5A3870"],
   recommendation: {
-    direction: "西",
-    spot: "苏州河乍浦路桥",
+    direction: "西南",
+    spot: "金山城市沙滩",
     distance: "步行 16 分钟",
-    reason: "现在出发刚好，桥面能吃到晚霞最亮的 10 分钟",
+    coordinates: {
+      lat: 30.7109005,
+      lng: 121.3455949,
+    },
+    reason: "海面足够开阔，低云被晚霞染色时会在水面上拉出很长的反光带",
   },
   shootingTips: [
-    "站到桥的北侧栏杆边，把苏州河留在画面下三分之一",
-    "等一艘游船或一个骑车的人经过，让剪影压住天空",
-    "先锁住江面反光，再把镜头微微抬到建筑边线",
+    "站到岸线或栏杆边，把水面留在画面下三分之一",
+    "等一艘船、骑车的人或行人经过，让剪影压住天空",
+    "先锁住水面反光，再把镜头微微抬到树线或建筑边缘",
   ],
   meta: {
     source: "frontend-fallback",
     city: "Shanghai",
+    coordinates: {
+      lat: 30.72,
+      lng: 121.343,
+    },
     goldenHourStart: "17:30",
     sunsetTime: "18:02",
+    sun: {
+      current: { altitudeDeg: 8.4, azimuthDeg: 270.2 },
+      peak: { altitudeDeg: 2.6, azimuthDeg: 279.6 },
+    },
   },
 };
 
@@ -239,6 +255,7 @@ function getScenarioFallback(scenario) {
 }
 
 function useSunsetData(scenario) {
+  const lastGpsRef = useRef(null);
   const [state, setState] = useState({
     payload: FALLBACK_SUNSET_PAYLOAD,
     loading: true,
@@ -261,19 +278,28 @@ function useSunsetData(scenario) {
       }));
 
       try {
-        let endpoint = `/api/sunset?demo=${encodeURIComponent(scenario)}`;
+        let gps = lastGpsRef.current;
 
-        if (!isDemo) {
-          try {
-            const position = await getPositionOnce();
-            const { latitude, longitude } = position.coords;
-            endpoint = `/api/sunset?lat=${encodeURIComponent(latitude)}&lng=${encodeURIComponent(longitude)}`;
-          } catch (geoError) {
-            console.info("[LIGHTCHASER] GPS unavailable, falling back to Shanghai.", geoError.message);
-            endpoint = "/api/sunset?city=shanghai";
-          }
+        try {
+          const position = await getPositionOnce({ timeout: isDemo ? 3000 : 4500 });
+          gps = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          lastGpsRef.current = gps;
+        } catch (geoError) {
+          gps = JINSHAN_FALLBACK_COORDINATES;
+          console.info("[LIGHTCHASER] GPS unavailable, using Jinshan demo fallback.", geoError.message);
         }
 
+        const params = new URLSearchParams();
+        if (isDemo) {
+          params.set("demo", scenario);
+        }
+        params.set("lat", gps.latitude);
+        params.set("lng", gps.longitude);
+
+        const endpoint = `/api/sunset?${params.toString()}`;
         const response = await fetch(endpoint);
         if (!response.ok) {
           throw new Error(`sunset_api_${response.status}`);
@@ -285,7 +311,7 @@ function useSunsetData(scenario) {
             payload,
             loading: false,
             error: null,
-            mode: isDemo ? `demo-${scenario}` : (endpoint.includes("lat=") ? "gps" : "shanghai"),
+            mode: isDemo ? `demo-${scenario}-gps` : (gps === JINSHAN_FALLBACK_COORDINATES ? "jinshan-fallback" : "gps"),
           });
         }
       } catch (error) {
@@ -310,6 +336,65 @@ function useSunsetData(scenario) {
   return state;
 }
 
+function useRouteData(sunsetPayload) {
+  const requestIdRef = useRef(0);
+  const [state, setState] = useState({
+    route: null,
+    loading: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    const start = sunsetPayload?.meta?.coordinates;
+    const end = sunsetPayload?.recommendation?.coordinates;
+    if (!start || !end) {
+      setState({ route: null, loading: false, error: null });
+      return;
+    }
+
+    let cancelled = false;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    async function loadRoute() {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      try {
+        const params = new URLSearchParams({
+          startLat: start.lat,
+          startLng: start.lng,
+          endLat: end.lat,
+          endLng: end.lng,
+        });
+        const response = await fetch(`/api/route?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`route_api_${response.status}`);
+        }
+        const route = await response.json();
+        if (!cancelled && requestId === requestIdRef.current) {
+          setState({ route, loading: false, error: null });
+        }
+      } catch (error) {
+        console.warn("[LIGHTCHASER] Route API failed, map will use endpoint fallback.", error);
+        if (!cancelled && requestId === requestIdRef.current) {
+          setState({ route: null, loading: false, error });
+        }
+      }
+    }
+
+    loadRoute();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    sunsetPayload?.meta?.coordinates?.lat,
+    sunsetPayload?.meta?.coordinates?.lng,
+    sunsetPayload?.recommendation?.coordinates?.lat,
+    sunsetPayload?.recommendation?.coordinates?.lng,
+  ]);
+
+  return state;
+}
+
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
   const [index, setIndex] = useState({ row: 1, col: 0 }); // 默认停在晚霞卡片
@@ -320,6 +405,10 @@ function App() {
     error: sunsetError,
     mode: sunsetMode,
   } = useSunsetData(t.scenario);
+  const {
+    route: routeData,
+    loading: routeLoading,
+  } = useRouteData(sunsetPayload);
 
   // accent color
   useEffect(() => {
@@ -342,8 +431,8 @@ function App() {
     [() => <SceneVlog score={score} sunsetPayload={sunsetPayload} />],
     // Row 1: 追·光卡片（4 子页）— 封面 → 路线 → 社区 → 拍摄
     [
-      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} loading={sunsetLoading} mode={sunsetMode} />,
-      () => <SceneRoute sunsetPayload={sunsetPayload} />,
+      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
+      () => <SceneRoute sunsetPayload={sunsetPayload} routeData={routeData} routeLoading={routeLoading} />,
       () => <SceneCommunity sunsetPayload={sunsetPayload} />,
       () => <SceneQuickShoot sunsetPayload={sunsetPayload} />,
     ],

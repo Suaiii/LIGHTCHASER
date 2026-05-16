@@ -383,14 +383,50 @@ function SceneLoading({ progress = 0 }) {
 //   - 大号衬线中文标语 + 评分徽章
 //   - 底部机位卡：距离 + 峰值时刻 + 左滑提示
 // ─────────────────────────────────────────
-function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, loading = false, mode = "live" }) {
+function MiniRouteThumbnail({ routeData, sunsetPayload }) {
+  const start = sunsetPayload?.meta?.coordinates;
+  const end = sunsetPayload?.recommendation?.coordinates;
+  const points = routeData?.geometry?.length ? routeData.geometry : [start, end].filter(Boolean);
+  const validPoints = points.filter((point) => typeof point?.lat === "number" && typeof point?.lng === "number");
+
+  if (validPoints.length < 2) {
+    return <span style={{ fontSize: 22, color: "#fff" }}>◎</span>;
+  }
+
+  const lats = validPoints.map((point) => point.lat);
+  const lngs = validPoints.map((point) => point.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const latSpan = Math.max(maxLat - minLat, 0.0001);
+  const lngSpan = Math.max(maxLng - minLng, 0.0001);
+  const project = (point) => {
+    const x = 10 + ((point.lng - minLng) / lngSpan) * 40;
+    const y = 50 - ((point.lat - minLat) / latSpan) * 40;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  };
+  const path = validPoints.map(project).join(" ");
+
+  return (
+    <svg data-route-thumbnail="true" viewBox="0 0 60 60" width="50" height="50" aria-label="路线缩略图">
+      <rect width="60" height="60" rx="14" fill="rgba(255,255,255,0.08)" />
+      <path d="M 8 16 L 54 10 M 6 42 L 50 34 M 22 6 L 18 54 M 42 8 L 38 56" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
+      <polyline points={path} fill="none" stroke="#67e8f9" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={project(validPoints[0]).split(",")[0]} cy={project(validPoints[0]).split(",")[1]} r="5" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+      <circle cx={project(validPoints[validPoints.length - 1]).split(",")[0]} cy={project(validPoints[validPoints.length - 1]).split(",")[1]} r="5" fill="#ff5a5a" stroke="#1b0d12" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData, loading = false, mode = "live" }) {
   const info = { ...scoreInfo(score), label: sunsetPayload?.scoreLabel || scoreInfo(score).label };
   const recommendation = sunsetPayload?.recommendation || {};
   const burst = getTimelineColorAt(sunsetPayload, 0.78, 0.78);   // 峰值红
   const golden = getTimelineColorAt(sunsetPayload, 0.50, 0.50);  // 橘
   const violet = getTimelineColorAt(sunsetPayload, 0.92, 0.92);  // 紫
   const current = hexToRgbTuple(sunsetPayload?.currentSkyColor, burst);
-  const spot = recommendation.spot || "苏州河乍浦路桥";
+  const spot = recommendation.spot || "附近开阔水岸";
   const distanceText = recommendation.distance || "步行 16 分钟";
   const distanceKm = displayKmFromDistance(distanceText);
   const cityLabel = sunsetPayload?.meta?.city === "Los Angeles" ? "洛杉矶" : "上海";
@@ -557,11 +593,13 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, loading = 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 50, height: 50, borderRadius: 14,
-            background: `linear-gradient(135deg, ${rgb(burst)}, ${rgb(violet)})`,
+            background: "rgba(255,255,255,0.08)",
             display: "grid", placeItems: "center",
-            fontSize: 22, color: "#fff",
+            overflow: "hidden",
             boxShadow: `0 4px 16px ${rgb(burst)}66`,
-          }}>◎</div>
+          }}>
+            <MiniRouteThumbnail routeData={routeData} sunsetPayload={sunsetPayload} />
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
               {spot} · {recommendation.direction || "西"}望机位
