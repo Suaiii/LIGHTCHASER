@@ -110,6 +110,37 @@ function VideoBackdrop({ src, children, overlay = "linear-gradient(to bottom, rg
   );
 }
 
+function VlogFallbackScene() {
+  return (
+    <>
+      <div style={{
+        position: "absolute", inset: 0,
+        background: `
+          linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%),
+          linear-gradient(to bottom, ${rgb(skyColor(0.3))} 0%, ${rgb(skyColor(0.55))} 45%, ${rgb(skyColor(0.7))} 70%, #1a1820 100%)
+        `,
+      }} />
+      <div style={{
+        position: "absolute", left: "20%", top: "32%",
+        width: 96, height: 96, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,230,180,0.95) 0%, rgba(255,200,140,0.4) 40%, transparent 70%)",
+        filter: "blur(3px)",
+      }} />
+      <div style={{ position: "absolute", bottom: 120, left: 0, right: 0, opacity: 0.85 }}>
+        <CitySilhouette height={260} />
+      </div>
+      <div style={{
+        position: "absolute", right: 40, bottom: 200, width: 4, height: 220,
+        background: "#0a0a0d",
+      }} />
+      <div style={{
+        position: "absolute", right: 24, bottom: 408, width: 38, height: 14,
+        background: "#0a0a0d", borderRadius: 2,
+      }} />
+    </>
+  );
+}
+
 // time helpers — slider 0..1 maps to 17:00 → 18:30 (90min)
 function tToClock(t) {
   const totalMin = 17 * 60 + Math.round(t * 90);
@@ -247,36 +278,9 @@ function SceneVlog({ score = 87, sunsetPayload }) {
   const info = scoreInfo(score);
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {/* 视频占位 — 模拟一个街景 vlog */}
-      <VideoBackdrop src="/assets/videos/13ac5f4ae5c18d1dfab9416da38b03b9.mp4">
-      <div style={{
-        position: "absolute", inset: 0,
-        background: `
-          linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%),
-          linear-gradient(to bottom, ${rgb(skyColor(0.3))} 0%, ${rgb(skyColor(0.55))} 45%, ${rgb(skyColor(0.7))} 70%, #1a1820 100%)
-        `,
-      }} />
+      <VideoBackdrop src="/assets/videos/d2e53f3bad4d95ca349f8a8d39ca3c43.mp4">
+        <VlogFallbackScene />
       </VideoBackdrop>
-      {/* 太阳 */}
-      <div style={{
-        position: "absolute", left: "20%", top: "32%",
-        width: 96, height: 96, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,230,180,0.95) 0%, rgba(255,200,140,0.4) 40%, transparent 70%)",
-        filter: "blur(3px)",
-      }} />
-      {/* 城市轮廓 */}
-      <div style={{ position: "absolute", bottom: 120, left: 0, right: 0, opacity: 0.85 }}>
-        <CitySilhouette height={260} />
-      </div>
-      {/* 前景：一根路灯 */}
-      <div style={{
-        position: "absolute", right: 40, bottom: 200, width: 4, height: 220,
-        background: "#0a0a0d",
-      }} />
-      <div style={{
-        position: "absolute", right: 24, bottom: 408, width: 38, height: 14,
-        background: "#0a0a0d", borderRadius: 2,
-      }} />
 
       {/* 抖音号 + 来源 */}
       <div style={{
