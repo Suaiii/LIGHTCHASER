@@ -36,8 +36,13 @@ function assertPayloadShape(label, payload) {
   assert(typeof payload.recommendation.spot === "string", `${label}: missing recommendation.spot`);
   assert(typeof payload.recommendation.distance === "string", `${label}: missing recommendation.distance`);
   assert(typeof payload.recommendation.reason === "string", `${label}: missing recommendation.reason`);
+  assert(typeof payload.recommendation.coordinates?.lat === "number", `${label}: missing recommendation.coordinates.lat`);
+  assert(typeof payload.recommendation.coordinates?.lng === "number", `${label}: missing recommendation.coordinates.lng`);
   assert(typeof payload.meta.source === "string", `${label}: missing meta.source`);
   assert(typeof payload.meta.city === "string", `${label}: missing meta.city`);
+  assert(typeof payload.meta.sun?.current?.azimuthDeg === "number", `${label}: missing current sun azimuth`);
+  assert(typeof payload.meta.sun?.current?.altitudeDeg === "number", `${label}: missing current sun altitude`);
+  assert(typeof payload.meta.sun?.peak?.azimuthDeg === "number", `${label}: missing peak sun azimuth`);
 }
 
 async function main() {
@@ -83,6 +88,7 @@ async function main() {
           peakTime: payload.peakTime,
           source: payload.meta.source,
           city: payload.meta.city,
+          sun: payload.meta.sun,
           recommendation: payload.recommendation,
         },
         null,
