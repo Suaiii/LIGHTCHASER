@@ -84,15 +84,35 @@ function getTimelineColorAt(payload, ratio, fallbackRatio = ratio) {
 
 function VideoBackdrop({ src, children, overlay = "linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%)" }) {
   const [failed, setFailed] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const videoRef = useRef(null);
+
+  function togglePlayback(e) {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video || failed) return;
+    if (video.paused) {
+      video.play();
+      setPaused(false);
+    } else {
+      video.pause();
+      setPaused(true);
+    }
+  }
+
   return (
     <>
       {!failed && (
         <video
+          ref={videoRef}
           src={src}
           autoPlay
           muted
           loop
           playsInline
+          onClick={togglePlayback}
+          onPlay={() => setPaused(false)}
+          onPause={() => setPaused(true)}
           onError={() => setFailed(true)}
           style={{
             position: "absolute",
@@ -101,11 +121,44 @@ function VideoBackdrop({ src, children, overlay = "linear-gradient(to bottom, rg
             height: "100%",
             objectFit: "cover",
             opacity: 0.82,
+            cursor: "pointer",
           }}
         />
       )}
       {failed && children}
       <div style={{ position: "absolute", inset: 0, background: overlay, pointerEvents: "none" }} />
+      {!failed && paused && (
+        <button
+          type="button"
+          aria-label="播放视频"
+          onClick={togglePlayback}
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 74,
+            height: 74,
+            borderRadius: "50%",
+            border: "1px solid rgba(255,255,255,0.44)",
+            background: "rgba(0,0,0,0.35)",
+            backdropFilter: "blur(10px)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 5,
+            cursor: "pointer",
+          }}>
+          <span style={{
+            display: "block",
+            width: 0,
+            height: 0,
+            marginLeft: 5,
+            borderTop: "12px solid transparent",
+            borderBottom: "12px solid transparent",
+            borderLeft: "20px solid rgba(255,255,255,0.94)",
+          }} />
+        </button>
+      )}
     </>
   );
 }
@@ -126,9 +179,6 @@ function VlogFallbackScene() {
         background: "radial-gradient(circle, rgba(255,230,180,0.95) 0%, rgba(255,200,140,0.4) 40%, transparent 70%)",
         filter: "blur(3px)",
       }} />
-      <div style={{ position: "absolute", bottom: 120, left: 0, right: 0, opacity: 0.85 }}>
-        <CitySilhouette height={260} />
-      </div>
       <div style={{
         position: "absolute", right: 40, bottom: 200, width: 4, height: 220,
         background: "#0a0a0d",
@@ -567,11 +617,6 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData,
         </div>
       </div>
 
-      {/* 中段：天际线剪影 */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 240, zIndex: 2 }}>
-        <CitySilhouette height={260} color="#100815" opacity={0.32} />
-      </div>
-
       {/* 倒映水面：很薄的渐变带 */}
       <div style={{
         position: "absolute", left: 0, right: 0, bottom: 200, height: 50, zIndex: 2,
@@ -739,11 +784,6 @@ function SceneTimeSlider({ sunsetPayload }) {
         filter: "blur(2px)",
         transition: "left 0.1s linear, top 0.1s linear",
       }} />
-
-      {/* 远景城市 */}
-      <div style={{ position: "absolute", bottom: 280, left: 0, right: 0, opacity: 0.9 }}>
-        <CitySilhouette height={180} />
-      </div>
 
       {/* 顶部 hud */}
       <div style={{
@@ -1053,30 +1093,6 @@ function SceneNextVideo() {
         `,
       }} />
       </VideoBackdrop>
-      {/* 月亮 */}
-      <div style={{
-        position: "absolute", right: "20%", top: "22%",
-        width: 56, height: 56, borderRadius: "50%",
-        background: "radial-gradient(circle, #f0e6d2 0%, rgba(240,230,210,0.3) 60%, transparent 80%)",
-        filter: "blur(1px)",
-      }} />
-      {/* 城市 */}
-      <div style={{ position: "absolute", bottom: 140, left: 0, right: 0 }}>
-        <CitySilhouette height={300} />
-      </div>
-      {/* 灯光点 */}
-      {Array.from({ length: 14 }).map((_, i) => (
-        <div key={i} style={{
-          position: "absolute",
-          left: `${(i * 137) % 95 + 2}%`,
-          bottom: `${140 + (i * 23) % 180}px`,
-          width: 2, height: 2,
-          background: "#ffd49a",
-          boxShadow: "0 0 6px #ffd49a",
-          opacity: 0.7,
-        }} />
-      ))}
-
       {/* 视频信息 */}
       <div style={{ position: "absolute", left: 0, right: 80, bottom: 100, padding: "0 18px" }}>
         <div style={{ fontWeight: 700, fontSize: 16, color: "#fff", marginBottom: 4 }}>
