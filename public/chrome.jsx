@@ -79,11 +79,14 @@ function ActionRail({ likes = "12.4w", comments = 3812, shares = "1.8w", saves =
       <div style={{ position: "relative", width: 46, height: 46 }}>
         <div style={{
           width: 46, height: 46, borderRadius: "50%",
-          background: avatar || "linear-gradient(135deg, #ff8a3d, #c84858)",
+          background: avatar
+            ? `center / cover no-repeat url("${avatar}")`
+            : "linear-gradient(135deg, #ff8a3d, #c84858)",
           border: "2px solid rgba(255,255,255,0.9)",
           display: "grid", placeItems: "center",
           fontSize: 18, color: "#fff", fontWeight: 700,
-        }}>追</div>
+          overflow: "hidden",
+        }}>{avatar ? null : "追"}</div>
         <div style={{
           position: "absolute",
           bottom: -8, left: "50%", transform: "translateX(-50%)",

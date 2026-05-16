@@ -399,6 +399,7 @@ function App() {
                 comments={index.row === 0 ? 3812 : index.row === 2 ? 1803 : 920}
                 shares={index.row === 0 ? "1.8w" : index.row === 2 ? "2.4w" : "0.6w"}
                 saves={index.row === 0 ? "6.4w" : index.row === 2 ? "1.2w" : "1.0w"}
+                avatar="/assets/uploads/avatar-duck.jpg"
               />
             )}
 

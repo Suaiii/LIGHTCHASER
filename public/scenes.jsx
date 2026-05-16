@@ -397,26 +397,48 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, loading = 
 
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        backgroundImage: 'url("/assets/uploads/jingansi-card-bg.jpeg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        transform: "scale(1.02)",
+        filter: "saturate(1.02) contrast(1.02) brightness(0.54)",
+      }} />
+
       {/* 背景：分层晚霞渐变 */}
       <div style={{
         position: "absolute", inset: 0,
         background: `
           linear-gradient(180deg,
-            ${rgb(getTimelineColorAt(sunsetPayload, 0.20, 0.20))} 0%,
-            ${rgb(getTimelineColorAt(sunsetPayload, 0.45, 0.45))} 30%,
-            ${rgb(getTimelineColorAt(sunsetPayload, 0.65, 0.65))} 55%,
-            ${rgb(burst)} 72%,
-            ${rgb(getTimelineColorAt(sunsetPayload, 0.90, 0.90))} 88%,
-            #1a0d18 100%)
+            rgba(8, 10, 18, 0.78) 0%,
+            rgba(15, 14, 24, 0.34) 18%,
+            rgba(28, 18, 24, 0.12) 42%,
+            rgba(40, 18, 28, 0.24) 64%,
+            rgba(16, 8, 18, 0.78) 100%)
         `,
+      }} />
+
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        background: `
+          radial-gradient(circle at 68% 30%, ${rgb(golden)}44 0%, transparent 26%),
+          radial-gradient(circle at 72% 58%, ${rgb(burst)}26 0%, transparent 32%),
+          linear-gradient(180deg, transparent 0%, rgba(8, 6, 12, 0.18) 62%, rgba(8, 6, 12, 0.55) 100%)
+        `,
+        mixBlendMode: "screen",
+        opacity: 0.92,
       }} />
 
       {/* 顶部光晕 */}
       <div style={{
         position: "absolute", left: "55%", top: "32%", transform: "translate(-50%, -50%)",
         width: 360, height: 360, borderRadius: "50%",
-        background: `radial-gradient(circle, ${rgb(golden)}aa 0%, ${rgb(burst)}66 35%, transparent 65%)`,
+        background: `radial-gradient(circle, ${rgb(golden)}55 0%, ${rgb(burst)}28 35%, transparent 65%)`,
         filter: "blur(8px)",
+        opacity: 0.68,
       }} />
 
       {/* 太阳：落到天际线上方 */}
@@ -424,12 +446,13 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, loading = 
         position: "absolute", left: "57%", top: 360, transform: "translateX(-50%)",
         width: 110, height: 110, borderRadius: "50%",
         background: `radial-gradient(circle,
-          rgba(255,245,220,1) 0%,
-          rgba(255,210,150,0.95) 25%,
-          rgba(255,170,110,0.7) 50%,
+          rgba(255,245,220,0.58) 0%,
+          rgba(255,210,150,0.45) 25%,
+          rgba(255,170,110,0.18) 50%,
           rgba(255,140,90,0) 75%)`,
         filter: "blur(1.5px)",
         zIndex: 1,
+        opacity: 0.52,
       }} />
 
       {/* 大号衬线标语 — 左侧 */}
@@ -510,7 +533,7 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, loading = 
 
       {/* 中段：天际线剪影 */}
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 240, zIndex: 2 }}>
-        <CitySilhouette height={260} color="#180a18" />
+        <CitySilhouette height={260} color="#100815" opacity={0.32} />
       </div>
 
       {/* 倒映水面：很薄的渐变带 */}
