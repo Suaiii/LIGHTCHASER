@@ -1,35 +1,49 @@
-# LIGHTCHASER 角色 B 交接说明
+# LIGHTCHASER Role B Handoff
 
-## 已交付内容
+## Delivered
 
 - `api/sunset.js`
-  - Vercel 风格的 serverless 接口。
+  - Vercel-style serverless endpoint.
 - `lib/sunset-service.js`
-  - 真实天气拉取、SunCalc 时刻计算、评分、fallback 组装都在这里。
+  - Live weather fetch, SunCalc timing, scoring, and fallback payload assembly.
 - `lib/demo-data.js`
-  - `high / mid / low` 三套预生成卡片数据风格。
+  - Three polished demo profiles: `high`, `mid`, and `low`.
 - `lib/poi.js`
-  - 洛杉矶 5 个硬编码机位和最近机位推荐。
+  - Shanghai-first city preset with five local POIs, plus Los Angeles as a backup preset.
 - `scripts/test-sunset.js`
-  - 本地快速验收脚本。
+  - Local validation script for demo and live scenarios.
+- `docs/work-plan.md`
+  - Current work checklist and next-step plan.
 
-## 接口
+## API
 
 `GET /api/sunset`
 
-支持的 query：
+Supported query params:
 
 - `lat`
 - `lng`
-- `city=la`
+- `city=shanghai|la`
 - `demo=high|mid|low`
 
-默认行为：
+Default behavior:
 
-- 不传 `demo` 时，走 Open-Meteo 实时数据。
-- 实时拉取失败时，自动 fallback 到 `demo=high`，保证路演不空白。
+- No query params defaults to Shanghai.
+- No `demo` param uses Open-Meteo live data.
+- If live fetch fails, the API falls back to `demo=high` so the demo card stays usable.
 
-返回结构：
+Example requests:
+
+```bash
+/api/sunset
+/api/sunset?city=shanghai
+/api/sunset?lat=31.2304&lng=121.4737
+/api/sunset?demo=high
+/api/sunset?demo=mid
+/api/sunset?demo=low
+```
+
+## Response Shape
 
 ```json
 {
@@ -41,36 +55,35 @@
   "timelineColors": ["#3A4A6B", "#53607B", "#7A6A61"],
   "recommendation": {
     "direction": "西",
-    "spot": "Echo Park 高地",
+    "spot": "北外滩滨江",
     "distance": "步行 12 分钟",
     "reason": "正好能卡住晚霞最亮的 10 分钟"
   },
   "shootingTips": [
-    "站在高处边缘，给天空留出三分之二画面",
-    "等一辆车或一个路人经过，再按快门",
-    "优先拍反光和剪影，不要把主体顶满画面"
+    "沿着江边栏杆站，给天空留出三分之二画面",
+    "等一艘船或一个骑车的人经过，再按快门",
+    "优先拍江面反光和建筑剪影，不要把主体顶满画面"
   ],
   "meta": {}
 }
 ```
 
-## 给 A 的联调建议
+## Frontend Handoff
 
-- A 可以先直接用 `?demo=high` 开发完整卡片 UI。
-- 路演时可以切：
-  - `?demo=high`
-  - `?demo=mid`
-  - `?demo=low`
-- 真数据联调时，只要把前端请求改成 `/api/sunset?lat=34.078&lng=-118.260` 即可。
+- Use `/api/sunset?demo=high` first while building the complete card UI.
+- Use `/api/sunset?demo=mid` and `/api/sunset?demo=low` to test alternate copy and visual states.
+- Switch to `/api/sunset?city=shanghai` for live-data integration.
+- Keep `demo=high|mid|low` available for roadshow fallback and controlled presentation.
 
-## 本地验证
+## Local Validation
 
 ```bash
 npm install
 npm run test:api
 ```
 
-## 当前取舍
+## Current Tradeoffs
 
-- 直接采用 Open-Meteo + SunCalc，跳过 SunsetWX 注册环节，降低 demo 风险。
-- 当前只内置洛杉矶一座城市和 5 个机位，符合分工文档里的精简版本。
+- Open-Meteo + SunCalc replaces SunsetWX to reduce integration risk.
+- Shanghai is the primary demo city because the team is currently in Shanghai.
+- Los Angeles remains available as a backup preset from the earlier product concept.
