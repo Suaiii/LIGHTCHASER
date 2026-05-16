@@ -362,7 +362,22 @@ function useSunsetData(scenario) {
   return state;
 }
 
-function useRouteData(sunsetPayload) {
+function withSelectedDestination(sunsetPayload, destination) {
+  if (!sunsetPayload || !destination?.coordinates) return sunsetPayload;
+  return {
+    ...sunsetPayload,
+    recommendation: {
+      ...sunsetPayload.recommendation,
+      spot: destination.name || sunsetPayload.recommendation?.spot,
+      coordinates: destination.coordinates,
+      direction: destination.direction || sunsetPayload.recommendation?.direction,
+      distance: destination.distance || sunsetPayload.recommendation?.distance,
+      reason: destination.reason || sunsetPayload.recommendation?.reason,
+    },
+  };
+}
+
+function useRouteData(sunsetPayload, destination) {
   const requestIdRef = useRef(0);
   const [state, setState] = useState({
     route: null,
@@ -372,7 +387,7 @@ function useRouteData(sunsetPayload) {
 
   useEffect(() => {
     const start = sunsetPayload?.meta?.coordinates;
-    const end = sunsetPayload?.recommendation?.coordinates;
+    const end = destination?.coordinates || sunsetPayload?.recommendation?.coordinates;
     if (!start || !end) {
       setState({ route: null, loading: false, error: null });
       return;
@@ -414,6 +429,8 @@ function useRouteData(sunsetPayload) {
   }, [
     sunsetPayload?.meta?.coordinates?.lat,
     sunsetPayload?.meta?.coordinates?.lng,
+    destination?.coordinates?.lat,
+    destination?.coordinates?.lng,
     sunsetPayload?.recommendation?.coordinates?.lat,
     sunsetPayload?.recommendation?.coordinates?.lng,
   ]);
@@ -432,10 +449,41 @@ function App() {
     error: sunsetError,
     mode: sunsetMode,
   } = useSunsetData(t.scenario);
+  const [selectedSpotName, setSelectedSpotName] = useState(null);
+  const destinationOptions = sunsetPayload
+    ? [
+        {
+          name: sunsetPayload.recommendation?.spot,
+          coordinates: sunsetPayload.recommendation?.coordinates,
+          direction: sunsetPayload.recommendation?.direction,
+          distance: sunsetPayload.recommendation?.distance,
+          reason: sunsetPayload.recommendation?.reason,
+        },
+        ...(sunsetPayload.nearbySpots || []),
+      ].filter((spot, index, list) =>
+        spot?.name &&
+        spot?.coordinates &&
+        list.findIndex((item) => item?.name === spot.name) === index
+      )
+    : [];
+  const selectedDestination =
+    destinationOptions.find((spot) => spot.name === selectedSpotName) ||
+    destinationOptions[0] ||
+    null;
+  const displayPayload = withSelectedDestination(sunsetPayload, selectedDestination);
+
+  useEffect(() => {
+    setSelectedSpotName(null);
+  }, [
+    sunsetPayload?.meta?.coordinates?.lat,
+    sunsetPayload?.meta?.coordinates?.lng,
+    sunsetPayload?.recommendation?.spot,
+  ]);
+
   const {
     route: routeData,
     loading: routeLoading,
-  } = useRouteData(sunsetPayload);
+  } = useRouteData(sunsetPayload, selectedDestination);
 
   // accent color
   useEffect(() => {
@@ -448,20 +496,20 @@ function App() {
     force(x => x + 1);  // 重渲染所有用到 skyColor 的组件
   }, [t.palette]);
 
-  const score = sunsetPayload?.score ?? (t.scenario === "high" ? 87 : t.scenario === "mid" ? 52 : 25);
-  const peak = sunsetPayload?.peakTime || "18:15";
+  const score = displayPayload?.score ?? (t.scenario === "high" ? 87 : t.scenario === "mid" ? 52 : 25);
+  const peak = displayPayload?.peakTime || "18:15";
 
   // 2D feed 结构
   // 接口：window.GuangbaoHooks.swipeVideoNext() / swipeVideoPrev() 可外部切视频
   const feed = [
     // Row 0: 普通视频
-    [() => <SceneVlog score={score} sunsetPayload={sunsetPayload} />],
+    [() => <SceneVlog score={score} sunsetPayload={displayPayload} />],
     // Row 1: 追·光卡片（4 子页）— 封面 → 路线 → 社区 → 拍摄
     [
-      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
-      () => <SceneRoute sunsetPayload={sunsetPayload} routeData={routeData} routeLoading={routeLoading} />,
-      () => <SceneCommunity sunsetPayload={sunsetPayload} />,
-      () => <SceneQuickShoot sunsetPayload={sunsetPayload} publishedVideoMode={publishedVideoMode} />,
+      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
+      () => <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />,
+      () => <SceneCommunity sunsetPayload={displayPayload} />,
+      () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
     // Row 2: 蓝调时刻视频
     [() => <SceneNextVideo />],

@@ -137,7 +137,7 @@ function buildNavigationGeometry(sunsetPayload, fallbackSpot) {
   };
 }
 
-function SceneRoute({ sunsetPayload, routeData, routeLoading = false }) {
+function SceneRoute({ sunsetPayload, routeData, routeLoading = false, selectedSpotName, onSelectSpot }) {
   const recommendation = sunsetPayload?.recommendation || {};
   const spot = recommendation.spot || "附近开阔水岸";
   const direction = recommendation.direction || "西";
@@ -167,13 +167,15 @@ function SceneRoute({ sunsetPayload, routeData, routeLoading = false }) {
           direction={direction}
           distanceKm={distanceKm}
           departClock={departClock}
+          selectedSpotName={selectedSpotName}
+          onSelectSpot={onSelectSpot}
         />
       </div>
     </div>
   );
 }
 
-function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
+function LeafletMapLayer({ geometry, routeData, nearbySpots = [], selectedSpotName }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const routeLayerRef = useRef(null);
@@ -183,13 +185,16 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
 
     const center = routePoint(geometry.user, geometry.poi, 0.55);
     const map = L.map(containerRef.current, {
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false,
-      dragging: false,
+      dragging: true,
       scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
+      doubleClickZoom: true,
+      touchZoom: true,
+      tap: false,
       keyboard: false,
+      minZoom: 13,
+      maxZoom: 17,
     }).setView([center.lat, center.lng], 14);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -234,13 +239,15 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
       }),
     ];
 
-    nearbySpots.slice(1, 4).forEach((spot) => {
+    nearbySpots.slice(0, 4).forEach((spot) => {
       const lat = spot.coordinates?.lat;
       const lng = spot.coordinates?.lng;
       if (typeof lat !== "number" || typeof lng !== "number") return;
+      const active = spot.name === selectedSpotName || (!selectedSpotName && spot.name === geometry.poi.name);
+      if (active) return;
       layers.push(
         L.circleMarker([lat, lng], {
-          radius: 6,
+          radius: 7,
           color: "#ffd49a",
           weight: 2,
           fillColor: "#ff8a3d",
@@ -256,7 +263,7 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
     const group = L.layerGroup(layers).addTo(map);
 
     routeLayerRef.current = group;
-    map.fitBounds(L.latLngBounds(latLngs), { padding: [58, 42], animate: false });
+    map.fitBounds(L.latLngBounds(latLngs), { padding: [74, 48], animate: true, duration: 0.35, maxZoom: 16 });
   }, [
     geometry.user.lat,
     geometry.user.lng,
@@ -265,11 +272,13 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
     routeData?.source,
     routeData?.geometry?.length,
     nearbySpots.length,
+    selectedSpotName,
   ]);
 
   return (
     <div
       ref={containerRef}
+      data-swipe-lock="true"
       style={{
         position: "absolute",
         inset: 0,
@@ -302,7 +311,7 @@ function StaticMapFallback({ lightCss }) {
   );
 }
 
-function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, direction, distanceKm, departClock }) {
+function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, direction, distanceKm, departClock, selectedSpotName, onSelectSpot }) {
   const peak = sunsetPayload?.peakTime || "18:15";
   const geometry = buildNavigationGeometry(sunsetPayload, spot);
   const sunAzimuth = sunsetPayload?.meta?.sun?.peak?.azimuthDeg;
@@ -314,13 +323,27 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
     : routeData?.source === "osrm-foot"
       ? "真实步行路线"
       : "估算路线";
-  const nearbySpots = sunsetPayload?.nearbySpots || [];
+  const nearbySpots = [
+    {
+      name: sunsetPayload?.recommendation?.spot,
+      coordinates: sunsetPayload?.recommendation?.coordinates,
+      direction: sunsetPayload?.recommendation?.direction,
+      distance: sunsetPayload?.recommendation?.distance,
+      reason: sunsetPayload?.recommendation?.reason,
+    },
+    ...(sunsetPayload?.nearbySpots || []),
+  ].filter((item, index, list) =>
+    item?.name &&
+    item?.coordinates &&
+    list.findIndex((candidate) => candidate?.name === item.name) === index
+  );
 
   return (
     <div
       data-light-shadow-map="navigation"
       data-route-source={routeData?.source || "pending"}
       data-route-points={routeData?.geometry?.length || 0}
+      data-selected-spot={selectedSpotName || spot}
       style={{
       position: "relative",
       flex: 1,
@@ -331,7 +354,7 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
       border: "1px solid rgba(255,138,61,0.26)",
       boxShadow: "inset 0 0 42px rgba(255,138,61,0.08), 0 18px 45px rgba(0,0,0,0.34)",
     }}>
-      {typeof L === "undefined" ? <StaticMapFallback lightCss="#ff8a3d" /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} />}
+      {typeof L === "undefined" ? <StaticMapFallback lightCss="#ff8a3d" /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} selectedSpotName={selectedSpotName || spot} />}
 
       <div className="float-pop" style={{
         position: "absolute", left: 16, right: 16, top: 16, zIndex: 4,
@@ -365,7 +388,7 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         color: "#fff", fontSize: 24,
         "--float-delay": "130ms",
       }}>
-        ◈
+        ＋
       </div>
 
       <div className="float-pop" style={{
@@ -378,7 +401,7 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         "--float-delay": "190ms",
       }}>
         <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,.58)", letterSpacing: 1 }}>SUN {Math.round(sunAzimuth || 0)}° · {routeSourceLabel}</div>
-        <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>附近晚霞点 · {nearbySpots.length || 1} 个</div>
+        <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>双指缩放 · 可切换 {nearbySpots.length || 1} 个目的地</div>
       </div>
 
       <div className="float-pop" style={{
@@ -414,23 +437,30 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
           gap: 8,
           paddingTop: 2,
         }}>
-          {nearbySpots.slice(0, 3).map((item, index) => (
-            <div key={item.name} className="float-pop" style={{
+          {nearbySpots.slice(0, 3).map((item, index) => {
+            const active = item.name === (selectedSpotName || spot);
+            return (
+            <button key={item.name} type="button" data-swipe-lock="true" onClick={() => onSelectSpot?.(item.name)} className="float-pop" style={{
               padding: "8px 9px",
               borderRadius: 13,
-              background: index === 0 ? "rgba(255,138,61,0.16)" : "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,138,61,0.12)",
+              background: active ? "rgba(255,138,61,0.22)" : "rgba(255,255,255,0.07)",
+              border: active ? "1px solid rgba(255,178,111,0.56)" : "1px solid rgba(255,138,61,0.12)",
               minWidth: 0,
+              textAlign: "left",
+              fontFamily: "inherit",
+              cursor: "pointer",
+              boxShadow: active ? "0 8px 20px rgba(255,138,61,0.16)" : "none",
               "--float-delay": `${330 + index * 70}ms`,
             }}>
-              <div style={{ fontSize: 10, color: index === 0 ? "#ffb26f" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {index === 0 ? "推荐" : `备选 ${index + 1}`}
+              <div style={{ fontSize: 10, color: active ? "#ffb26f" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {active ? "当前路线" : `备选 ${index + 1}`}
               </div>
               <div style={{ marginTop: 3, fontSize: 11, color: "#fff", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {item.name}
               </div>
-            </div>
-          ))}
+            </button>
+          );
+          })}
         </div>
       </div>
     </div>
