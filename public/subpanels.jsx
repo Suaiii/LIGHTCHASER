@@ -134,32 +134,22 @@ function routePoint(start, end, t) {
 function buildNavigationGeometry(sunsetPayload, fallbackSpot) {
   const user = sunsetPayload?.meta?.coordinates || { lat: 31.2304, lng: 121.4737 };
   const poi = sunsetPayload?.recommendation?.coordinates || { lat: 30.7109005, lng: 121.3455949 };
-  const midA = {
-    lat: lerp(user.lat, poi.lat, 0.32) + 0.0022,
-    lng: lerp(user.lng, poi.lng, 0.32) - 0.0014,
-  };
-  const midB = {
-    lat: lerp(user.lat, poi.lat, 0.68) - 0.0016,
-    lng: lerp(user.lng, poi.lng, 0.68) + 0.0018,
-  };
   return {
     user,
     poi: { ...poi, name: fallbackSpot },
-    route: [user, midA, midB, poi],
+    route: [user, poi],
   };
 }
 
-function SceneRoute({ sunsetPayload }) {
-  // t: 光的时间（0=现在 17:00, 1=日落后 18:30）
-  // 默认 0.78 = 18:15 峰值
-  const [t, setT] = useState(0.78);
-  useExternalLightT(setT);
+function SceneRoute({ sunsetPayload, routeData, routeLoading = false }) {
   const recommendation = sunsetPayload?.recommendation || {};
   const spot = recommendation.spot || "附近开阔水岸";
   const direction = recommendation.direction || "西";
   const distanceText = recommendation.distance || "步行 16 分钟";
   const walkMinutes = minutesFromDistance(distanceText);
-  const distanceKm = distanceKmFromWalking(distanceText);
+  const distanceKm = routeData?.distanceMeters
+    ? (routeData.distanceMeters / 1000).toFixed(routeData.distanceMeters >= 10000 ? 0 : 1)
+    : distanceKmFromWalking(distanceText);
 
   const peak = minutesFromClock(sunsetPayload?.peakTime, 18 * 60 + 15);
   const departClock = formatClockFromMinutes(peak - walkMinutes - 5);
@@ -174,9 +164,9 @@ function SceneRoute({ sunsetPayload }) {
       }}>
         {/* 地图导航 + 光影叠层 */}
         <LightNavigationMap
-          t={t}
-          setT={setT}
           sunsetPayload={sunsetPayload}
+          routeData={routeData}
+          routeLoading={routeLoading}
           spot={spot}
           direction={direction}
           distanceKm={distanceKm}
@@ -187,30 +177,7 @@ function SceneRoute({ sunsetPayload }) {
   );
 }
 
-function shadowPhase(t) {
-  if (t < 0.35) return "楼缝开始进光";
-  if (t < 0.62) return "江面反光变暖";
-  if (t < 0.78) return "西向立面被点亮";
-  if (t < 0.90) return "峰值前后最稳";
-  return "蓝调接管天空";
-}
-
-function buildShadowAnchors(sunsetPayload) {
-  return [
-    { t: 0.00, label: "现在", time: "现在" },
-    { t: 0.34, label: "黄金", time: sunsetPayload?.meta?.goldenHourStart || "17:30" },
-    { t: 0.62, label: "日落", time: sunsetPayload?.meta?.sunsetTime || "18:02" },
-    { t: 0.78, label: "峰值", time: sunsetPayload?.peakTime || "18:15" },
-    { t: 1.00, label: "蓝调", time: "蓝调" },
-  ];
-}
-
-function clockFromShadowT(t) {
-  const total = 17 * 60 + Math.round(t * 90);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-}
-
-function LeafletMapLayer({ geometry }) {
+function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const routeLayerRef = useRef(null);
@@ -249,8 +216,9 @@ function LeafletMapLayer({ geometry }) {
       routeLayerRef.current.remove();
     }
 
-    const latLngs = geometry.route.map((p) => [p.lat, p.lng]);
-    const group = L.layerGroup([
+    const routePoints = routeData?.geometry?.length >= 2 ? routeData.geometry : geometry.route;
+    const latLngs = routePoints.map((p) => [p.lat, p.lng]);
+    const layers = [
       L.polyline(latLngs, { color: "#22d3ee", weight: 12, opacity: 0.34, lineCap: "round" }),
       L.polyline(latLngs, { color: "#67e8f9", weight: 6, opacity: 0.95, lineCap: "round" }),
       L.circleMarker([geometry.user.lat, geometry.user.lng], {
@@ -268,11 +236,40 @@ function LeafletMapLayer({ geometry }) {
           iconAnchor: [14, 28],
         }),
       }),
-    ]).addTo(map);
+    ];
+
+    nearbySpots.slice(1, 4).forEach((spot) => {
+      const lat = spot.coordinates?.lat;
+      const lng = spot.coordinates?.lng;
+      if (typeof lat !== "number" || typeof lng !== "number") return;
+      layers.push(
+        L.circleMarker([lat, lng], {
+          radius: 6,
+          color: "#ffd49a",
+          weight: 2,
+          fillColor: "#ff8a3d",
+          fillOpacity: 0.74,
+        }).bindTooltip(spot.name, {
+          permanent: false,
+          direction: "top",
+          opacity: 0.9,
+        })
+      );
+    });
+
+    const group = L.layerGroup(layers).addTo(map);
 
     routeLayerRef.current = group;
     map.fitBounds(L.latLngBounds(latLngs), { padding: [58, 42], animate: false });
-  }, [geometry.user.lat, geometry.user.lng, geometry.poi.lat, geometry.poi.lng]);
+  }, [
+    geometry.user.lat,
+    geometry.user.lng,
+    geometry.poi.lat,
+    geometry.poi.lng,
+    routeData?.source,
+    routeData?.geometry?.length,
+    nearbySpots.length,
+  ]);
 
   return <div ref={containerRef} style={{ position: "absolute", inset: 0, zIndex: 0 }} />;
 }
@@ -299,13 +296,13 @@ function StaticMapFallback({ lightCss }) {
   );
 }
 
-function NavigationLightOverlay({ t, lightCss, sunAzimuth }) {
-  const clamped = Math.max(0, Math.min(1, t));
+function NavigationLightOverlay({ phase, lightCss, sunAzimuth }) {
+  const clamped = Math.max(0, Math.min(1, phase));
   const angle = Number.isFinite(sunAzimuth) ? sunAzimuth : 255 + clamped * 18;
-  const glowX = 74 + clamped * 176;
-  const glowY = 104 + clamped * 188;
-  const shadowX = 290 - clamped * 150;
-  const shadowY = 108 + clamped * 236;
+  const glowX = 82 + clamped * 170;
+  const glowY = 96 + clamped * 238;
+  const shadowX = 324 - clamped * 190;
+  const shadowY = 78 + clamped * 272;
 
   return (
     <svg data-light-overlay="true" viewBox="0 0 400 520" width="100%" height="100%" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
@@ -320,43 +317,56 @@ function NavigationLightOverlay({ t, lightCss, sunAzimuth }) {
           <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <rect width="400" height="520" fill="rgba(1,8,18,0.22)" />
-      <ellipse cx={glowX} cy={glowY} rx={120 + clamped * 34} ry={64 + clamped * 20} fill="url(#walkableLight)" transform={`rotate(${angle - 90} ${glowX} ${glowY})`} />
-      <path d={`M ${shadowX} ${shadowY} C ${shadowX - 42} ${shadowY + 42}, ${shadowX - 52} ${shadowY + 116}, ${shadowX - 106} ${shadowY + 170} L 430 540 L 430 80 Z`}
-        fill="url(#backShadow)" opacity="0.82" />
-      {[0, 1, 2, 3].map((i) => (
-        <line key={i}
-          x1={48 + i * 66}
-          y1={82 + i * 28}
-          x2={122 + i * 66}
-          y2={172 + i * 28}
-          stroke={lightCss}
-          strokeWidth="3"
-          strokeLinecap="round"
-          opacity={0.28 + clamped * 0.24}
-          transform={`rotate(${angle - 245} ${120 + i * 44} ${150 + i * 26})`}
-        />
-      ))}
+      <rect width="400" height="520" fill="rgba(1,8,18,0.30)" />
+      <ellipse cx={glowX} cy={glowY} rx={146 + clamped * 38} ry={88 + clamped * 22} fill="url(#walkableLight)" transform={`rotate(${angle - 92} ${glowX} ${glowY})`} />
+      <ellipse cx={glowX + 88} cy={glowY - 62} rx="118" ry="56" fill="url(#walkableLight)" opacity="0.34" transform={`rotate(${angle - 62} ${glowX + 88} ${glowY - 62})`} />
+      <path d={`M ${shadowX} ${shadowY} C ${shadowX - 86} ${shadowY + 48}, ${shadowX - 98} ${shadowY + 170}, ${shadowX - 188} ${shadowY + 242} L 430 560 L 430 40 Z`}
+        fill="url(#backShadow)" opacity="0.78" />
     </svg>
   );
 }
 
-function LightNavigationMap({ t, setT, sunsetPayload, spot, direction, distanceKm, departClock }) {
-  const clamped = Math.max(0, Math.min(1, t));
+function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, direction, distanceKm, departClock }) {
+  const [phase, setPhase] = useState(0.72);
+
+  useEffect(() => {
+    let frameId;
+    const startedAt = performance.now();
+    function tick(now) {
+      const cycle = ((now - startedAt) / 9000) % 1;
+      setPhase(0.5 + Math.sin(cycle * Math.PI * 2) * 0.22);
+      frameId = requestAnimationFrame(tick);
+    }
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  useExternalLightT((value) => setPhase(Math.max(0, Math.min(1, value))));
+  const clamped = Math.max(0, Math.min(1, phase));
   const currentColor = typeof getTimelineColorAt === "function"
     ? getTimelineColorAt(sunsetPayload, clamped, clamped)
     : skyColor(clamped);
   const lightRgb = currentColor.map((v) => Math.round(v));
   const lightCss = rgb(lightRgb);
-  const anchors = buildShadowAnchors(sunsetPayload);
   const peak = sunsetPayload?.peakTime || "18:15";
   const geometry = buildNavigationGeometry(sunsetPayload, spot);
   const sunAzimuth = sunsetPayload?.meta?.sun?.peak?.azimuthDeg;
-  const etaMinutes = minutesFromDistance(sunsetPayload?.recommendation?.distance);
-  const lightAccuracy = Math.round(68 + clamped * 22);
+  const etaMinutes = routeData?.durationSeconds
+    ? Math.max(1, Math.round(routeData.durationSeconds / 60))
+    : minutesFromDistance(sunsetPayload?.recommendation?.distance);
+  const routeSourceLabel = routeLoading
+    ? "路线计算中"
+    : routeData?.source === "osrm-foot"
+      ? "真实步行路线"
+      : "估算路线";
+  const nearbySpots = sunsetPayload?.nearbySpots || [];
 
   return (
-    <div data-light-shadow-map="navigation" style={{
+    <div
+      data-light-shadow-map="navigation"
+      data-route-source={routeData?.source || "pending"}
+      data-route-points={routeData?.geometry?.length || 0}
+      style={{
       position: "relative",
       flex: 1,
       minHeight: 0,
@@ -366,8 +376,8 @@ function LightNavigationMap({ t, setT, sunsetPayload, spot, direction, distanceK
       border: "1px solid rgba(255,255,255,0.12)",
       boxShadow: "inset 0 0 70px rgba(0,0,0,0.34), 0 18px 45px rgba(0,0,0,0.34)",
     }}>
-      {typeof L === "undefined" ? <StaticMapFallback lightCss={lightCss} /> : <LeafletMapLayer geometry={geometry} />}
-      <NavigationLightOverlay t={clamped} lightCss={lightCss} sunAzimuth={sunAzimuth} />
+      {typeof L === "undefined" ? <StaticMapFallback lightCss={lightCss} /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} />}
+      <NavigationLightOverlay phase={clamped} lightCss={lightCss} sunAzimuth={sunAzimuth} />
 
       <div style={{
         position: "absolute", left: 16, right: 16, top: 16, zIndex: 4,
@@ -410,8 +420,8 @@ function LightNavigationMap({ t, setT, sunsetPayload, spot, direction, distanceK
         backdropFilter: "blur(14px)",
         border: "1px solid rgba(255,255,255,0.10)",
       }}>
-        <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,.58)", letterSpacing: 1 }}>SUN {Math.round(sunAzimuth || 0)}° · {lightAccuracy}%</div>
-        <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>光照可见区叠层</div>
+        <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,.58)", letterSpacing: 1 }}>SUN {Math.round(sunAzimuth || 0)}° · {routeSourceLabel}</div>
+        <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>附近晚霞点 · {nearbySpots.length || 1} 个</div>
       </div>
 
       <div style={{
@@ -427,141 +437,42 @@ function LightNavigationMap({ t, setT, sunsetPayload, spot, direction, distanceK
             <div style={{ color: "#fff", fontSize: 25, fontWeight: 800, letterSpacing: -0.5 }}>{etaMinutes} min · {distanceKm} km</div>
             <div style={{ marginTop: 3, color: "rgba(255,255,255,.62)", fontSize: 11 }}>建议 {departClock} 出发 · 峰值 {peak}</div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            {["☷", "⇧", "×"].map((icon) => (
-              <div key={icon} style={{ width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", background: "rgba(255,255,255,0.10)", color: "#fff", fontSize: 20 }}>{icon}</div>
-            ))}
-          </div>
+          <button data-route-go-button="true" onClick={() => window.GuangbaoHooks?.openNavigation({ name: spot })} style={{
+            height: 46,
+            padding: "0 22px",
+            borderRadius: 999,
+            border: "none",
+            background: "#67e8f9",
+            color: "#05202a",
+            fontSize: 15,
+            fontWeight: 900,
+            fontFamily: "inherit",
+            boxShadow: "0 12px 30px rgba(103,232,249,0.26)",
+          }}>➤ 前往</button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <button onClick={() => window.GuangbaoHooks?.openNavigation({ name: spot })} style={navActionButton("#67e8f9", "#05202a")}>▲ Start</button>
-          <button style={navActionButton("#07565c", "#d7ffff")}>☼ 光照</button>
-          <button style={navActionButton("#073f46", "#d7ffff")}>▱ Save</button>
-        </div>
-        <ShadowTimeScrubber t={clamped} setT={setT} anchors={anchors} lightCss={lightCss} />
-      </div>
-    </div>
-  );
-}
-
-function navActionButton(bg, color) {
-  return {
-    height: 42,
-    borderRadius: 999,
-    border: "none",
-    background: bg,
-    color,
-    fontSize: 13,
-    fontWeight: 800,
-    fontFamily: "inherit",
-  };
-}
-
-function ShadowTimeScrubber({ t, setT, anchors, lightCss }) {
-  const trackRef = useRef(null);
-  const dragging = useRef(false);
-
-  function handleDrag(clientX) {
-    const el = trackRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    setT(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
-  }
-
-  function onDown(e) {
-    dragging.current = true;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    handleDrag(x);
-    e.preventDefault?.();
-  }
-
-  function onMove(e) {
-    if (!dragging.current) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    handleDrag(x);
-  }
-
-  function onUp() {
-    dragging.current = false;
-  }
-
-  useEffect(() => {
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("touchend", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("touchend", onUp);
-    };
-  }, []);
-
-  return (
-    <div data-shadow-time-scrubber="true" style={{
-      padding: "8px 10px 8px",
-      borderRadius: 16,
-      background: "rgba(255, 255, 255, 0.07)",
-      backdropFilter: "blur(18px)",
-      border: "1px solid rgba(255,255,255,0.10)",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.64)", letterSpacing: 1 }}>
-          拖动预览街区光影
-        </div>
-        <div className="num" style={{ fontSize: 17, color: "#fff", fontFamily: "var(--font-display)", fontStyle: "italic" }}>
-          {clockFromShadowT(t)}
-        </div>
-      </div>
-      <div
-        ref={trackRef}
-        onPointerDown={onDown}
-        onTouchStart={onDown}
-        style={{
-          position: "relative",
-          height: 20,
-          borderRadius: 999,
-          background: "linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.16))",
-          cursor: "grab",
-          touchAction: "none",
-          overflow: "hidden",
-        }}>
         <div style={{
-          position: "absolute", left: 0, top: 0, bottom: 0,
-          width: `${t * 100}%`,
-          background: `linear-gradient(90deg, rgba(255,255,255,0.10), ${lightCss})`,
-          opacity: 0.85,
-        }} />
-        {anchors.map((a, i) => (
-          <button
-            key={a.label}
-            onClick={() => setT(a.t)}
-            style={{
-              position: "absolute",
-              left: `${a.t * 100}%`,
-              top: 3,
-              transform: "translateX(-50%)",
-              width: Math.abs(a.t - t) < 0.07 ? 18 : 8,
-              height: 14,
-              borderRadius: 99,
-              border: "1px solid rgba(255,255,255,0.55)",
-              background: Math.abs(a.t - t) < 0.07 ? "#fff" : "rgba(255,255,255,0.34)",
-              cursor: "pointer",
-            }}
-            aria-label={a.label}
-          />
-        ))}
-      </div>
-      <div style={{
-        display: "flex", justifyContent: "space-between", marginTop: 6,
-        fontSize: 8.5, color: "rgba(255,255,255,0.56)", fontFamily: "var(--font-mono)",
-      }}>
-        {anchors.map((a) => (
-          <span key={a.label} style={{ color: Math.abs(a.t - t) < 0.07 ? "#fff" : "rgba(255,255,255,0.52)" }}>
-            {a.label}
-          </span>
-        ))}
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8,
+          paddingTop: 2,
+        }}>
+          {nearbySpots.slice(0, 3).map((item, index) => (
+            <div key={item.name} style={{
+              padding: "8px 9px",
+              borderRadius: 13,
+              background: index === 0 ? "rgba(103,232,249,0.12)" : "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              minWidth: 0,
+            }}>
+              <div style={{ fontSize: 10, color: index === 0 ? "#9ff6ff" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {index === 0 ? "推荐" : `备选 ${index + 1}`}
+              </div>
+              <div style={{ marginTop: 3, fontSize: 11, color: "#fff", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {item.name}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

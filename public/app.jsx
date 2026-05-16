@@ -185,6 +185,10 @@ const DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 const DEMO_SCENARIOS = ["high", "mid", "low"];
+const JINSHAN_FALLBACK_COORDINATES = {
+  latitude: 30.7200,
+  longitude: 121.3430,
+};
 
 const FALLBACK_SUNSET_PAYLOAD = {
   score: 87,
@@ -212,8 +216,8 @@ const FALLBACK_SUNSET_PAYLOAD = {
     source: "frontend-fallback",
     city: "Shanghai",
     coordinates: {
-      lat: 30.7109005,
-      lng: 121.3455949,
+      lat: 30.72,
+      lng: 121.343,
     },
     goldenHourStart: "17:30",
     sunsetTime: "18:02",
@@ -284,19 +288,16 @@ function useSunsetData(scenario) {
           };
           lastGpsRef.current = gps;
         } catch (geoError) {
-          console.info("[LIGHTCHASER] GPS unavailable, using Shanghai/default route.", geoError.message);
+          gps = JINSHAN_FALLBACK_COORDINATES;
+          console.info("[LIGHTCHASER] GPS unavailable, using Jinshan demo fallback.", geoError.message);
         }
 
         const params = new URLSearchParams();
         if (isDemo) {
           params.set("demo", scenario);
         }
-        if (gps) {
-          params.set("lat", gps.latitude);
-          params.set("lng", gps.longitude);
-        } else if (!isDemo) {
-          params.set("city", "shanghai");
-        }
+        params.set("lat", gps.latitude);
+        params.set("lng", gps.longitude);
 
         const endpoint = `/api/sunset?${params.toString()}`;
         const response = await fetch(endpoint);
@@ -310,7 +311,7 @@ function useSunsetData(scenario) {
             payload,
             loading: false,
             error: null,
-            mode: isDemo ? `demo-${scenario}${gps ? "-gps" : ""}` : (gps ? "gps" : "shanghai"),
+            mode: isDemo ? `demo-${scenario}-gps` : (gps === JINSHAN_FALLBACK_COORDINATES ? "jinshan-fallback" : "gps"),
           });
         }
       } catch (error) {
@@ -335,6 +336,65 @@ function useSunsetData(scenario) {
   return state;
 }
 
+function useRouteData(sunsetPayload) {
+  const requestIdRef = useRef(0);
+  const [state, setState] = useState({
+    route: null,
+    loading: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    const start = sunsetPayload?.meta?.coordinates;
+    const end = sunsetPayload?.recommendation?.coordinates;
+    if (!start || !end) {
+      setState({ route: null, loading: false, error: null });
+      return;
+    }
+
+    let cancelled = false;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    async function loadRoute() {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      try {
+        const params = new URLSearchParams({
+          startLat: start.lat,
+          startLng: start.lng,
+          endLat: end.lat,
+          endLng: end.lng,
+        });
+        const response = await fetch(`/api/route?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`route_api_${response.status}`);
+        }
+        const route = await response.json();
+        if (!cancelled && requestId === requestIdRef.current) {
+          setState({ route, loading: false, error: null });
+        }
+      } catch (error) {
+        console.warn("[LIGHTCHASER] Route API failed, map will use endpoint fallback.", error);
+        if (!cancelled && requestId === requestIdRef.current) {
+          setState({ route: null, loading: false, error });
+        }
+      }
+    }
+
+    loadRoute();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    sunsetPayload?.meta?.coordinates?.lat,
+    sunsetPayload?.meta?.coordinates?.lng,
+    sunsetPayload?.recommendation?.coordinates?.lat,
+    sunsetPayload?.recommendation?.coordinates?.lng,
+  ]);
+
+  return state;
+}
+
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
   const [index, setIndex] = useState({ row: 1, col: 0 }); // 默认停在晚霞卡片
@@ -345,6 +405,10 @@ function App() {
     error: sunsetError,
     mode: sunsetMode,
   } = useSunsetData(t.scenario);
+  const {
+    route: routeData,
+    loading: routeLoading,
+  } = useRouteData(sunsetPayload);
 
   // accent color
   useEffect(() => {
@@ -367,8 +431,8 @@ function App() {
     [() => <SceneVlog score={score} sunsetPayload={sunsetPayload} />],
     // Row 1: 追·光卡片（4 子页）— 封面 → 路线 → 社区 → 拍摄
     [
-      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} loading={sunsetLoading} mode={sunsetMode} />,
-      () => <SceneRoute sunsetPayload={sunsetPayload} />,
+      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
+      () => <SceneRoute sunsetPayload={sunsetPayload} routeData={routeData} routeLoading={routeLoading} />,
       () => <SceneCommunity sunsetPayload={sunsetPayload} />,
       () => <SceneQuickShoot sunsetPayload={sunsetPayload} />,
     ],

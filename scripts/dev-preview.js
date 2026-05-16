@@ -3,6 +3,7 @@ const http = require("http");
 const path = require("path");
 const { URL } = require("url");
 const { buildSunsetPayload } = require("../lib/sunset-service");
+const { buildRoutePayload } = require("../lib/route-service");
 
 const PORT = Number(process.env.PORT || 5174);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -72,6 +73,20 @@ async function handleRequest(req, res) {
     } catch (error) {
       sendJson(res, 500, {
         error: "sunset_api_failed",
+        message: error.message,
+      });
+    }
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/route") {
+    const query = Object.fromEntries(requestUrl.searchParams.entries());
+    try {
+      const payload = await buildRoutePayload(query);
+      sendJson(res, 200, payload);
+    } catch (error) {
+      sendJson(res, 400, {
+        error: "route_api_failed",
         message: error.message,
       });
     }
