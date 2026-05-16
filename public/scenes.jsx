@@ -179,9 +179,6 @@ function VlogFallbackScene() {
         background: "radial-gradient(circle, rgba(255,230,180,0.95) 0%, rgba(255,200,140,0.4) 40%, transparent 70%)",
         filter: "blur(3px)",
       }} />
-      <div style={{ position: "absolute", bottom: 120, left: 0, right: 0, opacity: 0.85 }}>
-        <CitySilhouette height={260} />
-      </div>
       <div style={{
         position: "absolute", right: 40, bottom: 200, width: 4, height: 220,
         background: "#0a0a0d",
@@ -620,11 +617,6 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData,
         </div>
       </div>
 
-      {/* 中段：天际线剪影 */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 240, zIndex: 2 }}>
-        <CitySilhouette height={260} color="#100815" opacity={0.32} />
-      </div>
-
       {/* 倒映水面：很薄的渐变带 */}
       <div style={{
         position: "absolute", left: 0, right: 0, bottom: 200, height: 50, zIndex: 2,
@@ -792,11 +784,6 @@ function SceneTimeSlider({ sunsetPayload }) {
         filter: "blur(2px)",
         transition: "left 0.1s linear, top 0.1s linear",
       }} />
-
-      {/* 远景城市 */}
-      <div style={{ position: "absolute", bottom: 280, left: 0, right: 0, opacity: 0.9 }}>
-        <CitySilhouette height={180} />
-      </div>
 
       {/* 顶部 hud */}
       <div style={{
@@ -1106,11 +1093,6 @@ function SceneNextVideo() {
         `,
       }} />
       </VideoBackdrop>
-      {/* 城市 */}
-      <div style={{ position: "absolute", bottom: 140, left: 0, right: 0 }}>
-        <CitySilhouette height={300} />
-      </div>
-
       {/* 视频信息 */}
       <div style={{ position: "absolute", left: 0, right: 80, bottom: 100, padding: "0 18px" }}>
         <div style={{ fontWeight: 700, fontSize: 16, color: "#fff", marginBottom: 4 }}>

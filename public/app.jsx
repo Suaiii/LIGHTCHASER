@@ -101,13 +101,44 @@ function SwipeFeed({ feed, index, setIndex }) {
           transform: `translate3d(${-index.col * W + (r === index.row ? off.x : 0)}px, ${(r - index.row) * H + off.y}px, 0)`,
           transition: drag.current.on ? "none" : "transform 0.5s cubic-bezier(.2,.85,.2,1)",
         }}>
-          {row.map((Page, c) => (
-            <div key={c} style={{ position: "relative", width: W, height: H, flexShrink: 0 }}>
+          {row.map((Page, c) => {
+            const active = r === index.row && c === index.col;
+            return (
+            <div
+              key={c}
+              data-feed-card={active ? "active" : "idle"}
+              style={{
+                position: "relative",
+                width: W,
+                height: H,
+                flexShrink: 0,
+                animation: active && !drag.current.on ? "cardFloatIn 560ms cubic-bezier(.2,.85,.2,1)" : "none",
+                transformOrigin: "50% 56%",
+              }}>
               <Page />
             </div>
-          ))}
+          );})}
         </div>
       ))}
+      <style>{`
+        @keyframes cardFloatIn {
+          0% {
+            opacity: 0.72;
+            transform: translate3d(0, 22px, 0) scale(0.985);
+            filter: saturate(0.92);
+          }
+          62% {
+            opacity: 1;
+            transform: translate3d(0, -4px, 0) scale(1.004);
+            filter: saturate(1.04);
+          }
+          100% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+            filter: saturate(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -150,9 +181,6 @@ function SceneMorningVlog() {
         `,
       }} />
       </VideoBackdrop>
-      <div style={{ position: "absolute", bottom: 120, left: 0, right: 0, opacity: 0.92 }}>
-        <CitySilhouette height={280} color="#180a18" />
-      </div>
       <div style={{ position: "absolute", top: 100, left: 16, fontSize: 11, color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-mono)" }}>
         抖音号：morning_chase · 上海·苏州河
       </div>

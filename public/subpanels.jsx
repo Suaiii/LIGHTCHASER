@@ -73,10 +73,6 @@ function NotePhotoBg({ tone = "dusk" }) {
       <div style={{ position: "absolute", inset: 0, background: p.sky }} />
       <div style={{ position: "absolute", inset: 0, background: p.glow, mixBlendMode: "screen" }} />
       <div style={{ position: "absolute", inset: 0, background: p.glow2, mixBlendMode: "screen" }} />
-      {/* 城市剪影 */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, opacity: 0.85 }}>
-        <CitySilhouette height={220} color="#08080c" />
-      </div>
       {/* 颗粒 */}
       <div style={{
         position: "absolute", inset: 0,
@@ -619,9 +615,6 @@ function NoteCard({ skyT, score, date, author, note, imageSrc, videoSrc, onOpenV
       }} />
       {!imageSrc && (
         <>
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, opacity: 0.95 }}>
-            <CitySilhouette height={50} color="#08080c" />
-          </div>
           <div style={{
             position: "absolute",
             left: `${30 + skyT * 30}%`, top: `${40 - skyT * 10}%`,
