@@ -465,6 +465,14 @@ function App() {
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", lineHeight: 1.55, marginBottom: 10 }}>
             上下滑：切视频 · 左右滑：在追·光卡片内
           </div>
+          <TweakButton
+            label="一键路演：3D 光影导航"
+            onClick={() => {
+              setTweak({ scenario: "high", palette: "refined", showChrome: true });
+              setIndex({ row: 1, col: 1 });
+              window.GuangbaoHooks?.setLightT?.(0.78);
+            }}
+          />
           <div style={{ display: "grid", gridTemplateRows: `repeat(${feed.length}, 1fr)`, gap: 6 }}>
             {feed.map((row, r) => (
               <div key={r} style={{ display: "grid", gridTemplateColumns: `60px repeat(${row.length}, 1fr)`, gap: 4 }}>
