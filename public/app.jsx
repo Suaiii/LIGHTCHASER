@@ -99,7 +99,7 @@ function SwipeFeed({ feed, index, setIndex }) {
           width: W * row.length, height: H,
           display: "flex",
           transform: `translate3d(${-index.col * W + (r === index.row ? off.x : 0)}px, ${(r - index.row) * H + off.y}px, 0)`,
-          transition: drag.current.on ? "none" : "transform 0.5s cubic-bezier(.2,.85,.2,1)",
+          transition: drag.current.on ? "none" : "transform 0.42s cubic-bezier(.16,.9,.18,1)",
         }}>
           {row.map((Page, c) => {
             const active = r === index.row && c === index.col;
@@ -112,7 +112,10 @@ function SwipeFeed({ feed, index, setIndex }) {
                 width: W,
                 height: H,
                 flexShrink: 0,
-                animation: active && !drag.current.on ? "cardFloatIn 560ms cubic-bezier(.2,.85,.2,1)" : "none",
+                opacity: active || drag.current.on ? 1 : 0.82,
+                transform: active || drag.current.on ? "scale(1)" : "scale(0.985)",
+                transition: drag.current.on ? "none" : "opacity .28s ease, transform .42s cubic-bezier(.16,.9,.18,1)",
+                animation: active && !drag.current.on ? "cardFloatIn 430ms cubic-bezier(.16,.9,.18,1)" : "none",
                 transformOrigin: "50% 56%",
               }}>
               <Page />
@@ -123,13 +126,13 @@ function SwipeFeed({ feed, index, setIndex }) {
       <style>{`
         @keyframes cardFloatIn {
           0% {
-            opacity: 0.72;
-            transform: translate3d(0, 22px, 0) scale(0.985);
-            filter: saturate(0.92);
+            opacity: 0.86;
+            transform: translate3d(0, 34px, 0) scale(1.018);
+            filter: saturate(0.94) blur(1px);
           }
-          62% {
+          70% {
             opacity: 1;
-            transform: translate3d(0, -4px, 0) scale(1.004);
+            transform: translate3d(0, -5px, 0) scale(1.002);
             filter: saturate(1.04);
           }
           100% {
