@@ -68,6 +68,44 @@
   .num { font-family: var(--font-display); font-feature-settings: "tnum"; letter-spacing: -0.01em; }
   .mono { font-family: var(--font-mono); }
   .hairline { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+  [data-feed-card] .float-pop {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.96);
+    filter: blur(1px) saturate(0.82);
+  }
+
+  [data-feed-card="active"] .float-pop {
+    animation: floatPop 720ms cubic-bezier(.16,.9,.18,1.12) forwards;
+    animation-delay: var(--float-delay, 0ms);
+  }
+
+  @keyframes floatPop {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 28px, 0) scale(0.96);
+      filter: blur(1px) saturate(0.82);
+    }
+    64% {
+      opacity: 1;
+      transform: translate3d(0, -7px, 0) scale(1.025);
+      filter: blur(0) saturate(1.12);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: blur(0) saturate(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-feed-card] .float-pop {
+      opacity: 1;
+      transform: none;
+      filter: none;
+      animation: none !important;
+    }
+  }
 </style>
 
 <!-- Speaker notes — none -->
