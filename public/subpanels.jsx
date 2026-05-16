@@ -219,13 +219,13 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
     const routePoints = routeData?.geometry?.length >= 2 ? routeData.geometry : geometry.route;
     const latLngs = routePoints.map((p) => [p.lat, p.lng]);
     const layers = [
-      L.polyline(latLngs, { color: "#22d3ee", weight: 12, opacity: 0.34, lineCap: "round" }),
-      L.polyline(latLngs, { color: "#67e8f9", weight: 6, opacity: 0.95, lineCap: "round" }),
+      L.polyline(latLngs, { color: "#7a3618", weight: 12, opacity: 0.36, lineCap: "round" }),
+      L.polyline(latLngs, { color: "#ff8a3d", weight: 6, opacity: 0.96, lineCap: "round" }),
       L.circleMarker([geometry.user.lat, geometry.user.lng], {
         radius: 10,
         color: "#fff",
         weight: 3,
-        fillColor: "#3b82f6",
+        fillColor: "#ffb26f",
         fillOpacity: 1,
       }),
       L.marker([geometry.poi.lat, geometry.poi.lng], {
@@ -271,7 +271,17 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
     nearbySpots.length,
   ]);
 
-  return <div ref={containerRef} style={{ position: "absolute", inset: 0, zIndex: 0 }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 0,
+        filter: "brightness(1.55) contrast(0.92) saturate(0.9)",
+      }}
+    />
+  );
 }
 
 function StaticMapFallback({ lightCss }) {
@@ -285,10 +295,10 @@ function StaticMapFallback({ lightCss }) {
       {[68, 142, 218, 294, 372, 444].map((y, i) => (
         <path key={i} d={`M -40 ${y} L 440 ${y - 70}`} stroke="rgba(155,190,206,.26)" strokeWidth="2.4" />
       ))}
-      <path d="M 286 408 C 260 352 230 312 202 274 C 166 228 136 190 106 136" fill="none" stroke="#0e7490" strokeWidth="16" strokeLinecap="round" />
-      <path d="M 286 408 C 260 352 230 312 202 274 C 166 228 136 190 106 136" fill="none" stroke="#67e8f9" strokeWidth="8" strokeLinecap="round" />
+      <path d="M 286 408 C 260 352 230 312 202 274 C 166 228 136 190 106 136" fill="none" stroke="#7a3618" strokeWidth="16" strokeLinecap="round" />
+      <path d="M 286 408 C 260 352 230 312 202 274 C 166 228 136 190 106 136" fill="none" stroke="#ff8a3d" strokeWidth="8" strokeLinecap="round" />
       <circle cx="286" cy="408" r="16" fill="#fff" />
-      <circle cx="286" cy="408" r="10" fill="#3b82f6" />
+      <circle cx="286" cy="408" r="10" fill="#ffb26f" />
       <path d="M 106 108 C 132 108 146 136 128 154 C 118 164 106 184 106 184 C 106 184 94 164 84 154 C 66 136 80 108 106 108 Z" fill="#ff4f4f" stroke="#111" strokeWidth="4" />
       <circle cx="106" cy="134" r="9" fill="#111" />
       <text x="180" y="252" fill={lightCss} fontSize="16" fontWeight="800">LIGHT WINDOW</text>
@@ -296,58 +306,7 @@ function StaticMapFallback({ lightCss }) {
   );
 }
 
-function NavigationLightOverlay({ phase, lightCss, sunAzimuth }) {
-  const clamped = Math.max(0, Math.min(1, phase));
-  const angle = Number.isFinite(sunAzimuth) ? sunAzimuth : 255 + clamped * 18;
-  const glowX = 82 + clamped * 170;
-  const glowY = 96 + clamped * 238;
-  const shadowX = 324 - clamped * 190;
-  const shadowY = 78 + clamped * 272;
-
-  return (
-    <svg data-light-overlay="true" viewBox="0 0 400 520" width="100%" height="100%" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
-      <defs>
-        <radialGradient id="walkableLight" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor={lightCss} stopOpacity="0.72" />
-          <stop offset="52%" stopColor={lightCss} stopOpacity="0.22" />
-          <stop offset="100%" stopColor={lightCss} stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="backShadow" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#030712" stopOpacity="0.64" />
-          <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect width="400" height="520" fill="rgba(1,8,18,0.30)" />
-      <ellipse cx={glowX} cy={glowY} rx={146 + clamped * 38} ry={88 + clamped * 22} fill="url(#walkableLight)" transform={`rotate(${angle - 92} ${glowX} ${glowY})`} />
-      <ellipse cx={glowX + 88} cy={glowY - 62} rx="118" ry="56" fill="url(#walkableLight)" opacity="0.34" transform={`rotate(${angle - 62} ${glowX + 88} ${glowY - 62})`} />
-      <path d={`M ${shadowX} ${shadowY} C ${shadowX - 86} ${shadowY + 48}, ${shadowX - 98} ${shadowY + 170}, ${shadowX - 188} ${shadowY + 242} L 430 560 L 430 40 Z`}
-        fill="url(#backShadow)" opacity="0.78" />
-    </svg>
-  );
-}
-
 function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, direction, distanceKm, departClock }) {
-  const [phase, setPhase] = useState(0.72);
-
-  useEffect(() => {
-    let frameId;
-    const startedAt = performance.now();
-    function tick(now) {
-      const cycle = ((now - startedAt) / 9000) % 1;
-      setPhase(0.5 + Math.sin(cycle * Math.PI * 2) * 0.22);
-      frameId = requestAnimationFrame(tick);
-    }
-    frameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
-  useExternalLightT((value) => setPhase(Math.max(0, Math.min(1, value))));
-  const clamped = Math.max(0, Math.min(1, phase));
-  const currentColor = typeof getTimelineColorAt === "function"
-    ? getTimelineColorAt(sunsetPayload, clamped, clamped)
-    : skyColor(clamped);
-  const lightRgb = currentColor.map((v) => Math.round(v));
-  const lightCss = rgb(lightRgb);
   const peak = sunsetPayload?.peakTime || "18:15";
   const geometry = buildNavigationGeometry(sunsetPayload, spot);
   const sunAzimuth = sunsetPayload?.meta?.sun?.peak?.azimuthDeg;
@@ -372,12 +331,11 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
       minHeight: 0,
       borderRadius: 20,
       overflow: "hidden",
-      background: "#052b36",
-      border: "1px solid rgba(255,255,255,0.12)",
-      boxShadow: "inset 0 0 70px rgba(0,0,0,0.34), 0 18px 45px rgba(0,0,0,0.34)",
+      background: "#16202a",
+      border: "1px solid rgba(255,138,61,0.26)",
+      boxShadow: "inset 0 0 42px rgba(255,138,61,0.08), 0 18px 45px rgba(0,0,0,0.34)",
     }}>
-      {typeof L === "undefined" ? <StaticMapFallback lightCss={lightCss} /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} />}
-      <NavigationLightOverlay phase={clamped} lightCss={lightCss} sunAzimuth={sunAzimuth} />
+      {typeof L === "undefined" ? <StaticMapFallback lightCss="#ff8a3d" /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} />}
 
       <div style={{
         position: "absolute", left: 16, right: 16, top: 16, zIndex: 4,
@@ -385,12 +343,12 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         borderRadius: 18,
         background: "rgba(25, 27, 36, 0.90)",
         backdropFilter: "blur(18px)",
-        border: "1px solid rgba(255,255,255,0.10)",
+        border: "1px solid rgba(255,138,61,0.16)",
         boxShadow: "0 16px 42px rgba(0,0,0,0.26)",
       }}>
         <div style={{ display: "grid", gridTemplateColumns: "22px 1fr auto", gap: 10, alignItems: "center" }}>
-          <div style={{ width: 14, height: 14, borderRadius: "50%", border: "3px solid #93c5fd", boxShadow: "0 0 0 3px rgba(59,130,246,.18)" }} />
-          <div style={{ color: "#b9c7ff", fontSize: 15, fontWeight: 700 }}>Your location</div>
+          <div style={{ width: 14, height: 14, borderRadius: "50%", border: "3px solid #ffb26f", boxShadow: "0 0 0 3px rgba(255,138,61,.18)" }} />
+          <div style={{ color: "#ffd0aa", fontSize: 15, fontWeight: 700 }}>Your location</div>
           <div style={{ color: "rgba(255,255,255,.72)", fontSize: 24, letterSpacing: 2 }}>···</div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "22px 1fr auto", gap: 10, alignItems: "center", marginTop: 13 }}>
@@ -405,7 +363,7 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         width: 48, height: 48, borderRadius: "50%",
         display: "grid", placeItems: "center",
         background: "rgba(28, 30, 38, 0.88)",
-        border: "1px solid rgba(255,255,255,0.14)",
+        border: "1px solid rgba(255,138,61,0.22)",
         boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
         color: "#fff", fontSize: 24,
       }}>
@@ -416,9 +374,9 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         position: "absolute", left: 16, top: 274, zIndex: 4,
         padding: "7px 10px",
         borderRadius: 12,
-        background: "rgba(0,0,0,0.42)",
+        background: "rgba(36, 22, 14, 0.62)",
         backdropFilter: "blur(14px)",
-        border: "1px solid rgba(255,255,255,0.10)",
+        border: "1px solid rgba(255,138,61,0.20)",
       }}>
         <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,.58)", letterSpacing: 1 }}>SUN {Math.round(sunAzimuth || 0)}° · {routeSourceLabel}</div>
         <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>附近晚霞点 · {nearbySpots.length || 1} 个</div>
@@ -428,8 +386,8 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 5,
         padding: "16px 16px 18px",
         borderRadius: "24px 24px 0 0",
-        background: "rgba(12, 13, 18, 0.94)",
-        borderTop: "1px solid rgba(255,255,255,0.10)",
+        background: "rgba(18, 15, 15, 0.93)",
+        borderTop: "1px solid rgba(255,138,61,0.18)",
         boxShadow: "0 -18px 42px rgba(0,0,0,0.36)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -442,12 +400,12 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
             padding: "0 22px",
             borderRadius: 999,
             border: "none",
-            background: "#67e8f9",
-            color: "#05202a",
+            background: "#ff8a3d",
+            color: "#1a0e08",
             fontSize: 15,
             fontWeight: 900,
             fontFamily: "inherit",
-            boxShadow: "0 12px 30px rgba(103,232,249,0.26)",
+            boxShadow: "0 12px 30px rgba(255,138,61,0.28)",
           }}>➤ 前往</button>
         </div>
         <div style={{
@@ -460,11 +418,11 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
             <div key={item.name} style={{
               padding: "8px 9px",
               borderRadius: 13,
-              background: index === 0 ? "rgba(103,232,249,0.12)" : "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.10)",
+              background: index === 0 ? "rgba(255,138,61,0.16)" : "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,138,61,0.12)",
               minWidth: 0,
             }}>
-              <div style={{ fontSize: 10, color: index === 0 ? "#9ff6ff" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontSize: 10, color: index === 0 ? "#ffb26f" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {index === 0 ? "推荐" : `备选 ${index + 1}`}
               </div>
               <div style={{ marginTop: 3, fontSize: 11, color: "#fff", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

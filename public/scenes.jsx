@@ -412,8 +412,8 @@ function MiniRouteThumbnail({ routeData, sunsetPayload }) {
     <svg data-route-thumbnail="true" viewBox="0 0 60 60" width="50" height="50" aria-label="路线缩略图">
       <rect width="60" height="60" rx="14" fill="rgba(255,255,255,0.08)" />
       <path d="M 8 16 L 54 10 M 6 42 L 50 34 M 22 6 L 18 54 M 42 8 L 38 56" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
-      <polyline points={path} fill="none" stroke="#67e8f9" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={project(validPoints[0]).split(",")[0]} cy={project(validPoints[0]).split(",")[1]} r="5" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+      <polyline points={path} fill="none" stroke="#ff8a3d" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={project(validPoints[0]).split(",")[0]} cy={project(validPoints[0]).split(",")[1]} r="5" fill="#ffb26f" stroke="#fff" strokeWidth="2" />
       <circle cx={project(validPoints[validPoints.length - 1]).split(",")[0]} cy={project(validPoints[validPoints.length - 1]).split(",")[1]} r="5" fill="#ff5a5a" stroke="#1b0d12" strokeWidth="2" />
     </svg>
   );
