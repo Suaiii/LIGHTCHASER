@@ -420,7 +420,7 @@ function useRouteData(sunsetPayload) {
 
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
-  const [index, setIndex] = useState({ row: 1, col: 0 }); // 默认停在晚霞卡片
+  const [index, setIndex] = useState({ row: 0, col: 0 }); // 默认从第一条视频进入
   const [publishedVideoMode, setPublishedVideoMode] = useState(false);
   const [, force] = useState(0);
   const {
