@@ -1,6 +1,7 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const zlib = require("zlib");
 const { URL } = require("url");
 const { buildSunsetPayload } = require("../lib/sunset-service");
 const { buildRoutePayload } = require("../lib/route-service");
@@ -32,7 +33,20 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload, null, 2));
 }
 
-function sendFile(res, filePath) {
+// 可压缩的文本类资源（图片/视频已是压缩格式，再压无意义）
+const COMPRESSIBLE = new Set([".html", ".js", ".jsx", ".css", ".json", ".svg", ".txt", ".map"]);
+
+function cacheControlFor(filePath) {
+  const normalized = filePath.split(path.sep).join("/");
+  // 第三方库基本不变 —— 长缓存，二次访问秒开
+  if (normalized.includes("/vendor/")) return "public, max-age=604800";
+  // 图片/视频素材 —— 中等缓存
+  if (normalized.includes("/assets/")) return "public, max-age=86400";
+  // 页面与 JSX 开发中会变 —— 每次校验，不长存
+  return "no-cache";
+}
+
+function sendFile(req, res, filePath) {
   fs.readFile(filePath, (error, content) => {
     if (error) {
       res.writeHead(error.code === "ENOENT" ? 404 : 500, {
@@ -42,10 +56,29 @@ function sendFile(res, filePath) {
       return;
     }
 
-    res.writeHead(200, {
-      "Content-Type": MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream",
-      "Cache-Control": "no-store",
-    });
+    const ext = path.extname(filePath).toLowerCase();
+    const headers = {
+      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+      "Cache-Control": cacheControlFor(filePath),
+    };
+
+    const acceptsGzip = /\bgzip\b/.test(req.headers["accept-encoding"] || "");
+    if (acceptsGzip && COMPRESSIBLE.has(ext) && content.length > 512) {
+      zlib.gzip(content, (gzipError, gzipped) => {
+        if (gzipError) {
+          res.writeHead(200, headers);
+          res.end(content);
+          return;
+        }
+        headers["Content-Encoding"] = "gzip";
+        headers["Vary"] = "Accept-Encoding";
+        res.writeHead(200, headers);
+        res.end(gzipped);
+      });
+      return;
+    }
+
+    res.writeHead(200, headers);
     res.end(content);
   });
 }
@@ -102,11 +135,11 @@ async function handleRequest(req, res) {
 
   fs.stat(staticPath, (error, stat) => {
     if (error) {
-      sendFile(res, INDEX_FILE);
+      sendFile(req, res, INDEX_FILE);
       return;
     }
 
-    sendFile(res, stat.isDirectory() ? INDEX_FILE : staticPath);
+    sendFile(req, res, stat.isDirectory() ? INDEX_FILE : staticPath);
   });
 }
 
