@@ -5,6 +5,7 @@ const zlib = require("zlib");
 const { URL } = require("url");
 const { buildSunsetPayload } = require("../lib/sunset-service");
 const { buildRoutePayload } = require("../lib/route-service");
+const babel = require("@babel/core");
 
 const PORT = Number(process.env.PORT || 5174);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -46,7 +47,73 @@ function cacheControlFor(filePath) {
   return "no-cache";
 }
 
+// JSX 服务器端预编译缓存：filePath -> { mtimeMs, code }
+// 文件改动后 mtime 变化会自动失效重编译，队友改 JSX 无需手动操作
+const jsxCache = new Map();
+
+function transpileJsx(filePath, mtimeMs) {
+  const cached = jsxCache.get(filePath);
+  if (cached && cached.mtimeMs === mtimeMs) {
+    return cached.code;
+  }
+  const source = fs.readFileSync(filePath, "utf8");
+  const result = babel.transformSync(source, {
+    filename: filePath,
+    presets: [["@babel/preset-react", { runtime: "classic" }]],
+    babelrc: false,
+    configFile: false,
+  });
+  jsxCache.set(filePath, { mtimeMs, code: result.code });
+  return result.code;
+}
+
+function respond(req, res, buffer, contentType, cacheControl, compressible) {
+  const headers = {
+    "Content-Type": contentType,
+    "Cache-Control": cacheControl,
+  };
+
+  const acceptsGzip = /\bgzip\b/.test(req.headers["accept-encoding"] || "");
+  if (acceptsGzip && compressible && buffer.length > 512) {
+    zlib.gzip(buffer, (gzipError, gzipped) => {
+      if (gzipError) {
+        res.writeHead(200, headers);
+        res.end(buffer);
+        return;
+      }
+      headers["Content-Encoding"] = "gzip";
+      headers["Vary"] = "Accept-Encoding";
+      res.writeHead(200, headers);
+      res.end(gzipped);
+    });
+    return;
+  }
+
+  res.writeHead(200, headers);
+  res.end(buffer);
+}
+
 function sendFile(req, res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+
+  // .jsx —— 服务器端预编译成普通 JS，浏览器无需再下载 3MB 的 Babel
+  if (ext === ".jsx") {
+    try {
+      const mtimeMs = fs.statSync(filePath).mtimeMs;
+      const code = transpileJsx(filePath, mtimeMs);
+      respond(req, res, Buffer.from(code, "utf8"),
+        "text/javascript; charset=utf-8", "no-cache", true);
+    } catch (error) {
+      res.writeHead(error.code === "ENOENT" ? 404 : 500, {
+        "Content-Type": "text/plain; charset=utf-8",
+      });
+      res.end(error.code === "ENOENT"
+        ? "Not found"
+        : "JSX transpile error: " + error.message);
+    }
+    return;
+  }
+
   fs.readFile(filePath, (error, content) => {
     if (error) {
       res.writeHead(error.code === "ENOENT" ? 404 : 500, {
@@ -56,30 +123,10 @@ function sendFile(req, res, filePath) {
       return;
     }
 
-    const ext = path.extname(filePath).toLowerCase();
-    const headers = {
-      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
-      "Cache-Control": cacheControlFor(filePath),
-    };
-
-    const acceptsGzip = /\bgzip\b/.test(req.headers["accept-encoding"] || "");
-    if (acceptsGzip && COMPRESSIBLE.has(ext) && content.length > 512) {
-      zlib.gzip(content, (gzipError, gzipped) => {
-        if (gzipError) {
-          res.writeHead(200, headers);
-          res.end(content);
-          return;
-        }
-        headers["Content-Encoding"] = "gzip";
-        headers["Vary"] = "Accept-Encoding";
-        res.writeHead(200, headers);
-        res.end(gzipped);
-      });
-      return;
-    }
-
-    res.writeHead(200, headers);
-    res.end(content);
+    respond(req, res, content,
+      MIME_TYPES[ext] || "application/octet-stream",
+      cacheControlFor(filePath),
+      COMPRESSIBLE.has(ext));
   });
 }
 
