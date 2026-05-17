@@ -9,14 +9,17 @@ const railIconBox = {
 };
 
 function TopTabs({ active = "推荐" }) {
-  const tabs = ["点", "直播", "团购", "上海", "关注", "商城", "推荐"];
+  const isLightMode = active === "追·光";
+  const tabs = isLightMode
+    ? ["上海", "追·光", "机位", "路线", "拍摄"]
+    : ["点", "直播", "团购", "上海", "关注", "商城", "推荐"];
 
   return (
     <div style={{
       display: "flex",
       alignItems: "center",
-      gap: 18,
-      padding: "7px 13px 13px",
+      gap: isLightMode ? 16 : 18,
+      padding: isLightMode ? "7px 13px 12px" : "7px 13px 13px",
       color: "rgba(255,255,255,0.58)",
       fontSize: 18,
       fontWeight: 800,
@@ -24,6 +27,7 @@ function TopTabs({ active = "推荐" }) {
       position: "relative",
       zIndex: 12,
       whiteSpace: "nowrap",
+      justifyContent: isLightMode ? "center" : "flex-start",
       textShadow: "0 1px 8px rgba(0,0,0,0.55)",
     }}>
       <div style={{
@@ -33,6 +37,8 @@ function TopTabs({ active = "推荐" }) {
         placeItems: "center",
         marginRight: 2,
         flexShrink: 0,
+        position: isLightMode ? "absolute" : "relative",
+        left: isLightMode ? 13 : "auto",
       }}>
         <span style={{
           width: 26,
@@ -55,10 +61,14 @@ function TopTabs({ active = "推荐" }) {
             position: "relative",
             color: isActive ? "#fff" : "rgba(255,255,255,0.58)",
             fontWeight: isActive ? 950 : 800,
-            fontSize: isActive ? 20 : 18,
+            fontSize: isActive && isLightMode ? 24 : isActive ? 20 : 18,
             paddingBottom: 4,
             transition: "color .2s, transform .2s",
-            transform: isActive ? "translateY(-1px)" : "none",
+            transform: isActive ? "translateY(-2px)" : "none",
+            letterSpacing: isActive && isLightMode ? 1.5 : 0,
+            textShadow: isActive && isLightMode
+              ? "0 4px 18px rgba(255,138,61,0.48), 0 2px 10px rgba(0,0,0,0.8)"
+              : "0 1px 8px rgba(0,0,0,0.55)",
           }}>
             {tab}
             {tab === "直播" && (
@@ -81,10 +91,11 @@ function TopTabs({ active = "推荐" }) {
                 bottom: -8,
                 left: "50%",
                 transform: "translateX(-50%)",
-                width: 28,
+                width: isLightMode ? 38 : 28,
                 height: 3,
                 borderRadius: 4,
-                background: "#fff",
+                background: isLightMode ? "#ff8a3d" : "#fff",
+                boxShadow: isLightMode ? "0 0 16px rgba(255,138,61,0.65)" : "none",
               }} />
             )}
           </div>
@@ -92,11 +103,12 @@ function TopTabs({ active = "推荐" }) {
       })}
 
       <div style={{
-        marginLeft: "auto",
+        marginLeft: isLightMode ? 0 : "auto",
         width: 34,
         height: 34,
-        position: "relative",
         flexShrink: 0,
+        position: isLightMode ? "absolute" : "relative",
+        right: isLightMode ? 13 : "auto",
       }}>
         <span style={{
           position: "absolute",

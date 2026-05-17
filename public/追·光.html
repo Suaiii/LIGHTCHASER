@@ -71,24 +71,25 @@
 
   [data-feed-card] .float-pop {
     opacity: 0;
-    transform: translate3d(0, 28px, 0) scale(0.96);
-    filter: blur(1px) saturate(0.82);
+    transform: translate3d(0, 42px, 0) scale(0.92);
+    filter: blur(3px) saturate(0.72);
+    will-change: transform, opacity, filter;
   }
 
   [data-feed-card="active"] .float-pop {
-    animation: floatPop 720ms cubic-bezier(.16,.9,.18,1.12) forwards;
+    animation: floatPop 560ms cubic-bezier(.16,.9,.18,1.18) forwards;
     animation-delay: var(--float-delay, 0ms);
   }
 
   @keyframes floatPop {
     0% {
       opacity: 0;
-      transform: translate3d(0, 28px, 0) scale(0.96);
-      filter: blur(1px) saturate(0.82);
+      transform: translate3d(0, 42px, 0) scale(0.92);
+      filter: blur(3px) saturate(0.72);
     }
     64% {
       opacity: 1;
-      transform: translate3d(0, -7px, 0) scale(1.025);
+      transform: translate3d(0, -10px, 0) scale(1.045);
       filter: blur(0) saturate(1.12);
     }
     100% {

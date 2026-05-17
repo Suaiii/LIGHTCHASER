@@ -14,6 +14,7 @@ function SwipeFeed({ feed, index, setIndex }) {
   const ref = useRef(null);
   const drag = useRef({ on: false, x0: 0, y0: 0, dx: 0, dy: 0, locked: null });
   const [off, setOff] = useState({ x: 0, y: 0 });
+  const [motionSeed, setMotionSeed] = useState(0);
 
   const W = 402;
   const H = 874;
@@ -71,6 +72,10 @@ function SwipeFeed({ feed, index, setIndex }) {
   }
 
   useEffect(() => {
+    setMotionSeed((value) => value + 1);
+  }, [index.row, index.col]);
+
+  useEffect(() => {
     const el = ref.current;
     el.addEventListener("touchstart", onDown, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: false });
@@ -105,8 +110,9 @@ function SwipeFeed({ feed, index, setIndex }) {
             const active = r === index.row && c === index.col;
             return (
             <div
-              key={c}
+              key={`${c}-${active ? motionSeed : "idle"}`}
               data-feed-card={active ? "active" : "idle"}
+              data-motion-seed={active ? motionSeed : 0}
               style={{
                 position: "relative",
                 width: W,
