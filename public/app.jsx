@@ -211,6 +211,7 @@ function SceneMorningVlog() {
 // ─────────────────────────────────────────
 const DEFAULTS = /*EDITMODE-BEGIN*/{
   "scenario": "live",
+  "demoLocation": "gps",
   "accentColor": "#ff8a3d",
   "showChrome": true,
   "palette": "refined"
@@ -220,6 +221,33 @@ const DEMO_SCENARIOS = ["high", "mid", "low"];
 const JINSHAN_FALLBACK_COORDINATES = {
   latitude: 30.7200,
   longitude: 121.3430,
+};
+const DEMO_LOCATIONS = {
+  gps: {
+    label: "真实 GPS",
+    shortLabel: "GPS",
+    coordinates: null,
+  },
+  jinshan: {
+    label: "金山城市沙滩",
+    shortLabel: "金山",
+    coordinates: { latitude: 30.7200, longitude: 121.3430 },
+  },
+  jingansi: {
+    label: "静安寺",
+    shortLabel: "静安寺",
+    coordinates: { latitude: 31.2230, longitude: 121.4455 },
+  },
+  northBund: {
+    label: "北外滩滨江",
+    shortLabel: "北外滩",
+    coordinates: { latitude: 31.2507, longitude: 121.5066 },
+  },
+  xuhui: {
+    label: "徐汇滨江西岸",
+    shortLabel: "徐汇滨江",
+    coordinates: { latitude: 31.1846, longitude: 121.4630 },
+  },
 };
 
 const FALLBACK_SUNSET_PAYLOAD = {
@@ -286,7 +314,7 @@ function getScenarioFallback(scenario) {
   return FALLBACK_SUNSET_PAYLOAD;
 }
 
-function useSunsetData(scenario) {
+function useSunsetData(scenario, demoLocation = "gps") {
   const lastGpsRef = useRef(null);
   const [state, setState] = useState({
     payload: FALLBACK_SUNSET_PAYLOAD,
@@ -311,17 +339,22 @@ function useSunsetData(scenario) {
 
       try {
         let gps = lastGpsRef.current;
+        const locationPreset = DEMO_LOCATIONS[demoLocation] || DEMO_LOCATIONS.gps;
 
-        try {
-          const position = await getPositionOnce({ timeout: isDemo ? 3000 : 4500 });
-          gps = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          lastGpsRef.current = gps;
-        } catch (geoError) {
-          gps = JINSHAN_FALLBACK_COORDINATES;
-          console.info("[LIGHTCHASER] GPS unavailable, using Jinshan demo fallback.", geoError.message);
+        if (locationPreset.coordinates) {
+          gps = locationPreset.coordinates;
+        } else {
+          try {
+            const position = await getPositionOnce({ timeout: isDemo ? 3000 : 4500 });
+            gps = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            lastGpsRef.current = gps;
+          } catch (geoError) {
+            gps = JINSHAN_FALLBACK_COORDINATES;
+            console.info("[LIGHTCHASER] GPS unavailable, using Jinshan demo fallback.", geoError.message);
+          }
         }
 
         const params = new URLSearchParams();
@@ -343,7 +376,9 @@ function useSunsetData(scenario) {
             payload,
             loading: false,
             error: null,
-            mode: isDemo ? `demo-${scenario}-gps` : (gps === JINSHAN_FALLBACK_COORDINATES ? "jinshan-fallback" : "gps"),
+            mode: locationPreset.coordinates
+              ? `${isDemo ? `demo-${scenario}` : "live"}-${locationPreset.shortLabel}`
+              : isDemo ? `demo-${scenario}-gps` : (gps === JINSHAN_FALLBACK_COORDINATES ? "jinshan-fallback" : "gps"),
           });
         }
       } catch (error) {
@@ -363,7 +398,7 @@ function useSunsetData(scenario) {
     return () => {
       cancelled = true;
     };
-  }, [scenario]);
+  }, [scenario, demoLocation]);
 
   return state;
 }
@@ -476,7 +511,7 @@ function App() {
     loading: sunsetLoading,
     error: sunsetError,
     mode: sunsetMode,
-  } = useSunsetData(t.scenario);
+  } = useSunsetData(t.scenario, t.demoLocation);
   const [selectedSpotName, setSelectedSpotName] = useState(null);
   const destinationOptions = sunsetPayload
     ? [
@@ -568,6 +603,21 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!window.GuangbaoHooks) return undefined;
+    window.GuangbaoHooks.setDemoLocation = (locationKey) => {
+      if (!DEMO_LOCATIONS[locationKey]) return;
+      setTweak("demoLocation", locationKey);
+      setSelectedSpotName(null);
+      setIndex({ row: 1, col: 1 });
+    };
+    return () => {
+      if (window.GuangbaoHooks?.setDemoLocation) {
+        delete window.GuangbaoHooks.setDemoLocation;
+      }
+    };
+  }, [setTweak]);
+
+  useEffect(() => {
     if (index.row !== 1 || index.col !== 3) {
       setPublishedVideoMode(false);
     }
@@ -641,6 +691,40 @@ function App() {
           </div>
         </TweakSection>
 
+        <TweakSection label="演示定位">
+          <TweakSelect
+            label="当前位置"
+            value={t.demoLocation || "gps"}
+            onChange={(v) => setTweak("demoLocation", v)}
+            options={Object.entries(DEMO_LOCATIONS).map(([value, item]) => ({
+              value,
+              label: item.label,
+            }))}
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 6 }}>
+            {[
+              ["jinshan", "金山海边"],
+              ["jingansi", "静安寺"],
+              ["northBund", "北外滩"],
+              ["xuhui", "徐汇滨江"],
+            ].map(([value, label]) => (
+              <TweakButton
+                key={value}
+                label={label}
+                secondary={t.demoLocation !== value}
+                onClick={() => {
+                  setTweak({ demoLocation: value, scenario: t.scenario === "live" ? "live" : t.scenario });
+                  setSelectedSpotName(null);
+                  setIndex({ row: 1, col: 1 });
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
+            切换后会重新请求晚霞评分和真实步行路线。
+          </div>
+        </TweakSection>
+
         <TweakSection label="色卡 (Palette)">
           <TweakRadio
             label="色彩方案"
@@ -675,7 +759,7 @@ function App() {
           <TweakButton
             label="一键路演：3D 光影导航"
             onClick={() => {
-              setTweak({ scenario: "high", palette: "refined", showChrome: true });
+              setTweak({ scenario: "high", demoLocation: "jinshan", palette: "refined", showChrome: true });
               setIndex({ row: 1, col: 1 });
               window.GuangbaoHooks?.setLightT?.(0.78);
             }}
