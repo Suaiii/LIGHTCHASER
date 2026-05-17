@@ -14,6 +14,7 @@ function SwipeFeed({ feed, index, setIndex }) {
   const ref = useRef(null);
   const drag = useRef({ on: false, x0: 0, y0: 0, dx: 0, dy: 0, locked: null });
   const [off, setOff] = useState({ x: 0, y: 0 });
+  const [motionSeed, setMotionSeed] = useState(0);
 
   const W = 402;
   const H = 874;
@@ -71,6 +72,10 @@ function SwipeFeed({ feed, index, setIndex }) {
   }
 
   useEffect(() => {
+    setMotionSeed((value) => value + 1);
+  }, [index.row, index.col]);
+
+  useEffect(() => {
     const el = ref.current;
     el.addEventListener("touchstart", onDown, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: false });
@@ -99,20 +104,24 @@ function SwipeFeed({ feed, index, setIndex }) {
           width: W * row.length, height: H,
           display: "flex",
           transform: `translate3d(${-index.col * W + (r === index.row ? off.x : 0)}px, ${(r - index.row) * H + off.y}px, 0)`,
-          transition: drag.current.on ? "none" : "transform 0.5s cubic-bezier(.2,.85,.2,1)",
+          transition: drag.current.on ? "none" : "transform 0.42s cubic-bezier(.16,.9,.18,1)",
         }}>
           {row.map((Page, c) => {
             const active = r === index.row && c === index.col;
             return (
             <div
-              key={c}
+              key={`${c}-${active ? motionSeed : "idle"}`}
               data-feed-card={active ? "active" : "idle"}
+              data-motion-seed={active ? motionSeed : 0}
               style={{
                 position: "relative",
                 width: W,
                 height: H,
                 flexShrink: 0,
-                animation: active && !drag.current.on ? "cardFloatIn 560ms cubic-bezier(.2,.85,.2,1)" : "none",
+                opacity: active || drag.current.on ? 1 : 0.82,
+                transform: active || drag.current.on ? "scale(1)" : "scale(0.985)",
+                transition: drag.current.on ? "none" : "opacity .28s ease, transform .42s cubic-bezier(.16,.9,.18,1)",
+                animation: active && !drag.current.on ? "cardFloatIn 430ms cubic-bezier(.16,.9,.18,1)" : "none",
                 transformOrigin: "50% 56%",
               }}>
               <Page />
@@ -123,13 +132,13 @@ function SwipeFeed({ feed, index, setIndex }) {
       <style>{`
         @keyframes cardFloatIn {
           0% {
-            opacity: 0.72;
-            transform: translate3d(0, 22px, 0) scale(0.985);
-            filter: saturate(0.92);
+            opacity: 0.86;
+            transform: translate3d(0, 34px, 0) scale(1.018);
+            filter: saturate(0.94) blur(1px);
           }
-          62% {
+          70% {
             opacity: 1;
-            transform: translate3d(0, -4px, 0) scale(1.004);
+            transform: translate3d(0, -5px, 0) scale(1.002);
             filter: saturate(1.04);
           }
           100% {
@@ -359,7 +368,22 @@ function useSunsetData(scenario) {
   return state;
 }
 
-function useRouteData(sunsetPayload) {
+function withSelectedDestination(sunsetPayload, destination) {
+  if (!sunsetPayload || !destination?.coordinates) return sunsetPayload;
+  return {
+    ...sunsetPayload,
+    recommendation: {
+      ...sunsetPayload.recommendation,
+      spot: destination.name || sunsetPayload.recommendation?.spot,
+      coordinates: destination.coordinates,
+      direction: destination.direction || sunsetPayload.recommendation?.direction,
+      distance: destination.distance || sunsetPayload.recommendation?.distance,
+      reason: destination.reason || sunsetPayload.recommendation?.reason,
+    },
+  };
+}
+
+function useRouteData(sunsetPayload, destination) {
   const requestIdRef = useRef(0);
   const [state, setState] = useState({
     route: null,
@@ -369,7 +393,7 @@ function useRouteData(sunsetPayload) {
 
   useEffect(() => {
     const start = sunsetPayload?.meta?.coordinates;
-    const end = sunsetPayload?.recommendation?.coordinates;
+    const end = destination?.coordinates || sunsetPayload?.recommendation?.coordinates;
     if (!start || !end) {
       setState({ route: null, loading: false, error: null });
       return;
@@ -411,6 +435,8 @@ function useRouteData(sunsetPayload) {
   }, [
     sunsetPayload?.meta?.coordinates?.lat,
     sunsetPayload?.meta?.coordinates?.lng,
+    destination?.coordinates?.lat,
+    destination?.coordinates?.lng,
     sunsetPayload?.recommendation?.coordinates?.lat,
     sunsetPayload?.recommendation?.coordinates?.lng,
   ]);
@@ -420,7 +446,7 @@ function useRouteData(sunsetPayload) {
 
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
-  const [index, setIndex] = useState({ row: 1, col: 0 }); // 默认停在晚霞卡片
+  const [index, setIndex] = useState({ row: 0, col: 0 }); // 默认从第一条视频进入
   const [publishedVideoMode, setPublishedVideoMode] = useState(false);
   const [, force] = useState(0);
   const {
@@ -429,10 +455,41 @@ function App() {
     error: sunsetError,
     mode: sunsetMode,
   } = useSunsetData(t.scenario);
+  const [selectedSpotName, setSelectedSpotName] = useState(null);
+  const destinationOptions = sunsetPayload
+    ? [
+        {
+          name: sunsetPayload.recommendation?.spot,
+          coordinates: sunsetPayload.recommendation?.coordinates,
+          direction: sunsetPayload.recommendation?.direction,
+          distance: sunsetPayload.recommendation?.distance,
+          reason: sunsetPayload.recommendation?.reason,
+        },
+        ...(sunsetPayload.nearbySpots || []),
+      ].filter((spot, index, list) =>
+        spot?.name &&
+        spot?.coordinates &&
+        list.findIndex((item) => item?.name === spot.name) === index
+      )
+    : [];
+  const selectedDestination =
+    destinationOptions.find((spot) => spot.name === selectedSpotName) ||
+    destinationOptions[0] ||
+    null;
+  const displayPayload = withSelectedDestination(sunsetPayload, selectedDestination);
+
+  useEffect(() => {
+    setSelectedSpotName(null);
+  }, [
+    sunsetPayload?.meta?.coordinates?.lat,
+    sunsetPayload?.meta?.coordinates?.lng,
+    sunsetPayload?.recommendation?.spot,
+  ]);
+
   const {
     route: routeData,
     loading: routeLoading,
-  } = useRouteData(sunsetPayload);
+  } = useRouteData(sunsetPayload, selectedDestination);
 
   // accent color
   useEffect(() => {
@@ -445,20 +502,20 @@ function App() {
     force(x => x + 1);  // 重渲染所有用到 skyColor 的组件
   }, [t.palette]);
 
-  const score = sunsetPayload?.score ?? (t.scenario === "high" ? 87 : t.scenario === "mid" ? 52 : 25);
-  const peak = sunsetPayload?.peakTime || "18:15";
+  const score = displayPayload?.score ?? (t.scenario === "high" ? 87 : t.scenario === "mid" ? 52 : 25);
+  const peak = displayPayload?.peakTime || "18:15";
 
   // 2D feed 结构
   // 接口：window.GuangbaoHooks.swipeVideoNext() / swipeVideoPrev() 可外部切视频
   const feed = [
     // Row 0: 普通视频
-    [() => <SceneVlog score={score} sunsetPayload={sunsetPayload} />],
+    [() => <SceneVlog score={score} sunsetPayload={displayPayload} />],
     // Row 1: 追·光卡片（4 子页）— 封面 → 路线 → 社区 → 拍摄
     [
-      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={sunsetPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
-      () => <SceneRoute sunsetPayload={sunsetPayload} routeData={routeData} routeLoading={routeLoading} />,
-      () => <SceneCommunity sunsetPayload={sunsetPayload} />,
-      () => <SceneQuickShoot sunsetPayload={sunsetPayload} publishedVideoMode={publishedVideoMode} />,
+      () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
+      () => <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />,
+      () => <SceneCommunity sunsetPayload={displayPayload} />,
+      () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
     // Row 2: 蓝调时刻视频
     [() => <SceneNextVideo />],

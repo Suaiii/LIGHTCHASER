@@ -333,18 +333,20 @@ function SceneVlog({ score = 87, sunsetPayload }) {
       </VideoBackdrop>
 
       {/* 抖音号 + 来源 */}
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", top: 64, left: 16,
         fontSize: 11, color: "rgba(255,255,255,0.55)",
         fontFamily: "var(--font-mono)",
+        "--float-delay": "60ms",
       }}>
         <div>抖音号：guang_chaser</div>
         <div>⌕ 上海·南京西路</div>
       </div>
 
       {/* 卡片浮层 — 视频底部信息 */}
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 0, right: 80, bottom: 100, padding: "0 18px",
+        "--float-delay": "150ms",
       }}>
         <div style={{ marginBottom: 10 }}>
           <AIPill text={`${sunsetPayload?.scoreLabel || info.sub} · 上滑看预报`} />
@@ -367,13 +369,14 @@ function SceneVlog({ score = 87, sunsetPayload }) {
       </div>
 
       {/* 引导：左滑发现 */}
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 0, right: 0, bottom: 64,
         textAlign: "center",
         fontSize: 11, color: "rgba(255,255,255,0.6)",
         letterSpacing: 4,
         fontWeight: 500,
         animation: "fadeNudge 2.4s ease-in-out infinite",
+        "--float-delay": "280ms",
       }}>
         ← &nbsp; 左滑查看今晚的天空
       </div>
@@ -542,9 +545,10 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData,
       }} />
 
       {/* 大号衬线标语 — 左侧 */}
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 20, top: 110, zIndex: 3,
         color: "#fff",
+        "--float-delay": "80ms",
       }}>
         <AIPill text={`${loading ? "正在定位" : "今晚"} · ${cityLabel} · ${mode}`} />
         <div className="num" style={{
@@ -583,9 +587,10 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData,
       </div>
 
       {/* 右上：评分徽章 */}
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", right: 16, top: 110, zIndex: 3,
         display: "flex", flexDirection: "column", alignItems: "flex-end",
+        "--float-delay": "170ms",
       }}>
         <div style={{
           padding: "10px 14px",
@@ -625,7 +630,7 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData,
       }} />
 
       {/* 底部：机位卡 */}
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 14, right: 14, bottom: 110, zIndex: 5,
         padding: "14px 16px",
         background: "rgba(20, 10, 24, 0.55)",
@@ -634,6 +639,7 @@ function SceneSunsetCard({ score = 87, peak = "18:15", sunsetPayload, routeData,
         border: "1px solid rgba(255,255,255,0.12)",
         borderRadius: 20,
         boxShadow: "0 12px 40px rgba(0,0,0,0.4)",
+        "--float-delay": "260ms",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
@@ -1094,7 +1100,7 @@ function SceneNextVideo() {
       }} />
       </VideoBackdrop>
       {/* 视频信息 */}
-      <div style={{ position: "absolute", left: 0, right: 80, bottom: 100, padding: "0 18px" }}>
+      <div className="float-pop" style={{ position: "absolute", left: 0, right: 80, bottom: 100, padding: "0 18px", "--float-delay": "140ms" }}>
         <div style={{ fontWeight: 700, fontSize: 16, color: "#fff", marginBottom: 4 }}>
           @夜行人小K
         </div>
@@ -1104,10 +1110,11 @@ function SceneNextVideo() {
         <MusicMarquee text="Night Drive — slowed · 蓝调 · 12.3w 人使用" />
       </div>
 
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", top: 64, left: 16,
         fontSize: 11, color: "rgba(255,255,255,0.55)",
         fontFamily: "var(--font-mono)",
+        "--float-delay": "60ms",
       }}>
         抖音号：nightwalk_k · 上海·外滩
       </div>

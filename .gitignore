@@ -4,3 +4,7 @@ node_modules/
 .env.local
 npm-debug.log*
 dev-preview*.log
+
+# SSH / deploy keys — never commit
+*.pem
+*.key

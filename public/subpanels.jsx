@@ -137,7 +137,7 @@ function buildNavigationGeometry(sunsetPayload, fallbackSpot) {
   };
 }
 
-function SceneRoute({ sunsetPayload, routeData, routeLoading = false }) {
+function SceneRoute({ sunsetPayload, routeData, routeLoading = false, selectedSpotName, onSelectSpot }) {
   const recommendation = sunsetPayload?.recommendation || {};
   const spot = recommendation.spot || "附近开阔水岸";
   const direction = recommendation.direction || "西";
@@ -167,13 +167,15 @@ function SceneRoute({ sunsetPayload, routeData, routeLoading = false }) {
           direction={direction}
           distanceKm={distanceKm}
           departClock={departClock}
+          selectedSpotName={selectedSpotName}
+          onSelectSpot={onSelectSpot}
         />
       </div>
     </div>
   );
 }
 
-function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
+function LeafletMapLayer({ geometry, routeData, nearbySpots = [], selectedSpotName }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const routeLayerRef = useRef(null);
@@ -183,13 +185,16 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
 
     const center = routePoint(geometry.user, geometry.poi, 0.55);
     const map = L.map(containerRef.current, {
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false,
-      dragging: false,
+      dragging: true,
       scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
+      doubleClickZoom: true,
+      touchZoom: true,
+      tap: false,
       keyboard: false,
+      minZoom: 13,
+      maxZoom: 17,
     }).setView([center.lat, center.lng], 14);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -234,13 +239,15 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
       }),
     ];
 
-    nearbySpots.slice(1, 4).forEach((spot) => {
+    nearbySpots.slice(0, 4).forEach((spot) => {
       const lat = spot.coordinates?.lat;
       const lng = spot.coordinates?.lng;
       if (typeof lat !== "number" || typeof lng !== "number") return;
+      const active = spot.name === selectedSpotName || (!selectedSpotName && spot.name === geometry.poi.name);
+      if (active) return;
       layers.push(
         L.circleMarker([lat, lng], {
-          radius: 6,
+          radius: 7,
           color: "#ffd49a",
           weight: 2,
           fillColor: "#ff8a3d",
@@ -256,7 +263,7 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
     const group = L.layerGroup(layers).addTo(map);
 
     routeLayerRef.current = group;
-    map.fitBounds(L.latLngBounds(latLngs), { padding: [58, 42], animate: false });
+    map.fitBounds(L.latLngBounds(latLngs), { padding: [74, 48], animate: true, duration: 0.35, maxZoom: 16 });
   }, [
     geometry.user.lat,
     geometry.user.lng,
@@ -265,11 +272,13 @@ function LeafletMapLayer({ geometry, routeData, nearbySpots = [] }) {
     routeData?.source,
     routeData?.geometry?.length,
     nearbySpots.length,
+    selectedSpotName,
   ]);
 
   return (
     <div
       ref={containerRef}
+      data-swipe-lock="true"
       style={{
         position: "absolute",
         inset: 0,
@@ -302,7 +311,7 @@ function StaticMapFallback({ lightCss }) {
   );
 }
 
-function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, direction, distanceKm, departClock }) {
+function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, direction, distanceKm, departClock, selectedSpotName, onSelectSpot }) {
   const peak = sunsetPayload?.peakTime || "18:15";
   const geometry = buildNavigationGeometry(sunsetPayload, spot);
   const sunAzimuth = sunsetPayload?.meta?.sun?.peak?.azimuthDeg;
@@ -314,13 +323,27 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
     : routeData?.source === "osrm-foot"
       ? "真实步行路线"
       : "估算路线";
-  const nearbySpots = sunsetPayload?.nearbySpots || [];
+  const nearbySpots = [
+    {
+      name: sunsetPayload?.recommendation?.spot,
+      coordinates: sunsetPayload?.recommendation?.coordinates,
+      direction: sunsetPayload?.recommendation?.direction,
+      distance: sunsetPayload?.recommendation?.distance,
+      reason: sunsetPayload?.recommendation?.reason,
+    },
+    ...(sunsetPayload?.nearbySpots || []),
+  ].filter((item, index, list) =>
+    item?.name &&
+    item?.coordinates &&
+    list.findIndex((candidate) => candidate?.name === item.name) === index
+  );
 
   return (
     <div
       data-light-shadow-map="navigation"
       data-route-source={routeData?.source || "pending"}
       data-route-points={routeData?.geometry?.length || 0}
+      data-selected-spot={selectedSpotName || spot}
       style={{
       position: "relative",
       flex: 1,
@@ -331,9 +354,9 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
       border: "1px solid rgba(255,138,61,0.26)",
       boxShadow: "inset 0 0 42px rgba(255,138,61,0.08), 0 18px 45px rgba(0,0,0,0.34)",
     }}>
-      {typeof L === "undefined" ? <StaticMapFallback lightCss="#ff8a3d" /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} />}
+      {typeof L === "undefined" ? <StaticMapFallback lightCss="#ff8a3d" /> : <LeafletMapLayer geometry={geometry} routeData={routeData} nearbySpots={nearbySpots} selectedSpotName={selectedSpotName || spot} />}
 
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 16, right: 16, top: 16, zIndex: 4,
         padding: "13px 14px",
         borderRadius: 18,
@@ -341,6 +364,7 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         backdropFilter: "blur(18px)",
         border: "1px solid rgba(255,138,61,0.16)",
         boxShadow: "0 16px 42px rgba(0,0,0,0.26)",
+        "--float-delay": "70ms",
       }}>
         <div style={{ display: "grid", gridTemplateColumns: "22px 1fr auto", gap: 10, alignItems: "center" }}>
           <div style={{ width: 14, height: 14, borderRadius: "50%", border: "3px solid #ffb26f", boxShadow: "0 0 0 3px rgba(255,138,61,.18)" }} />
@@ -354,7 +378,7 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         </div>
       </div>
 
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", right: 16, top: 170, zIndex: 4,
         width: 48, height: 48, borderRadius: "50%",
         display: "grid", placeItems: "center",
@@ -362,29 +386,32 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
         border: "1px solid rgba(255,138,61,0.22)",
         boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
         color: "#fff", fontSize: 24,
+        "--float-delay": "130ms",
       }}>
-        ◈
+        ＋
       </div>
 
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 16, top: 274, zIndex: 4,
         padding: "7px 10px",
         borderRadius: 12,
         background: "rgba(36, 22, 14, 0.62)",
         backdropFilter: "blur(14px)",
         border: "1px solid rgba(255,138,61,0.20)",
+        "--float-delay": "190ms",
       }}>
         <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,.58)", letterSpacing: 1 }}>SUN {Math.round(sunAzimuth || 0)}° · {routeSourceLabel}</div>
-        <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>附近晚霞点 · {nearbySpots.length || 1} 个</div>
+        <div style={{ marginTop: 3, fontSize: 12, color: "#fff", fontWeight: 800 }}>双指缩放 · 可切换 {nearbySpots.length || 1} 个目的地</div>
       </div>
 
-      <div style={{
+      <div className="float-pop" style={{
         position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 5,
         padding: "16px 16px 18px",
         borderRadius: "24px 24px 0 0",
         background: "rgba(18, 15, 15, 0.93)",
         borderTop: "1px solid rgba(255,138,61,0.18)",
         boxShadow: "0 -18px 42px rgba(0,0,0,0.36)",
+        "--float-delay": "250ms",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div>
@@ -410,22 +437,30 @@ function LightNavigationMap({ sunsetPayload, routeData, routeLoading, spot, dire
           gap: 8,
           paddingTop: 2,
         }}>
-          {nearbySpots.slice(0, 3).map((item, index) => (
-            <div key={item.name} style={{
+          {nearbySpots.slice(0, 3).map((item, index) => {
+            const active = item.name === (selectedSpotName || spot);
+            return (
+            <button key={item.name} type="button" data-swipe-lock="true" onClick={() => onSelectSpot?.(item.name)} className="float-pop" style={{
               padding: "8px 9px",
               borderRadius: 13,
-              background: index === 0 ? "rgba(255,138,61,0.16)" : "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,138,61,0.12)",
+              background: active ? "rgba(255,138,61,0.22)" : "rgba(255,255,255,0.07)",
+              border: active ? "1px solid rgba(255,178,111,0.56)" : "1px solid rgba(255,138,61,0.12)",
               minWidth: 0,
+              textAlign: "left",
+              fontFamily: "inherit",
+              cursor: "pointer",
+              boxShadow: active ? "0 8px 20px rgba(255,138,61,0.16)" : "none",
+              "--float-delay": `${330 + index * 70}ms`,
             }}>
-              <div style={{ fontSize: 10, color: index === 0 ? "#ffb26f" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {index === 0 ? "推荐" : `备选 ${index + 1}`}
+              <div style={{ fontSize: 10, color: active ? "#ffb26f" : "rgba(255,255,255,0.62)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {active ? "当前路线" : `备选 ${index + 1}`}
               </div>
               <div style={{ marginTop: 3, fontSize: 11, color: "#fff", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {item.name}
               </div>
-            </div>
-          ))}
+            </button>
+          );
+          })}
         </div>
       </div>
     </div>
@@ -490,7 +525,7 @@ function SceneCommunity({ sunsetPayload }) {
         position: "absolute", inset: 0, padding: "100px 16px 110px",
         display: "flex", flexDirection: "column", gap: 12, zIndex: 2,
       }}>
-        <div>
+        <div className="float-pop" style={{ "--float-delay": "70ms" }}>
           <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: 1.4, marginBottom: 4 }}>
             COMMUNITY&nbsp;·&nbsp;NEARBY
           </div>
@@ -500,12 +535,13 @@ function SceneCommunity({ sunsetPayload }) {
           </div>
         </div>
 
-        <div style={{
+        <div className="float-pop" style={{
           padding: "11px 14px",
           background: "linear-gradient(135deg, rgba(255,138,61,0.15), rgba(200,72,88,0.12))",
           border: "1px solid rgba(255,138,61,0.28)",
           borderRadius: 14,
           display: "flex", alignItems: "center", gap: 10,
+          "--float-delay": "150ms",
         }}>
           <div style={{
             width: 8, height: 8, borderRadius: "50%",
@@ -527,19 +563,21 @@ function SceneCommunity({ sunsetPayload }) {
               <NoteCard
                 key={i}
                 {...n}
+                index={i}
                 onOpenVideo={n.videoSrc ? () => setActiveVideo(n.videoSrc) : undefined}
               />
             ))}
           </div>
         </div>
 
-        <div style={{
+        <div className="float-pop" style={{
           padding: "10px 12px",
           background: "rgba(20, 14, 22, 0.55)",
           backdropFilter: "blur(16px)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 12,
           display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          "--float-delay": "430ms",
         }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", letterSpacing: 0.5, marginRight: 2 }}>
             💬 评论
@@ -583,7 +621,7 @@ function SceneCommunity({ sunsetPayload }) {
   );
 }
 
-function NoteCard({ skyT, score, date, author, note, imageSrc, videoSrc, onOpenVideo }) {
+function NoteCard({ skyT, score, date, author, note, imageSrc, videoSrc, onOpenVideo, index = 0 }) {
   const media = (
     <div style={{ position: "relative", aspectRatio: "4/5", overflow: "hidden" }}>
       {imageSrc ? (
@@ -666,10 +704,11 @@ function NoteCard({ skyT, score, date, author, note, imageSrc, videoSrc, onOpenV
   );
 
   return (
-    <div style={{
+    <div className="float-pop" style={{
       borderRadius: 12, overflow: "hidden",
       background: "#1a1018",
       border: "1px solid rgba(255,255,255,0.06)",
+      "--float-delay": `${230 + index * 55}ms`,
     }}>
       {videoSrc ? (
         <button
@@ -850,9 +889,10 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
 
           <ViewfinderOverlay recording={recording} />
 
-          <div style={{
+          <div className="float-pop" style={{
             position: "absolute", top: 100, left: 16, right: 16, zIndex: 3,
             display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+            "--float-delay": "80ms",
           }}>
             <div>
               <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: 1.4, marginBottom: 4 }}>
@@ -880,9 +920,10 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
             </div>
           </div>
 
-          <div style={{
+          <div className="float-pop" style={{
             position: "absolute", right: 16, top: 200, zIndex: 3,
             display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end",
+            "--float-delay": "170ms",
           }}>
             {[
               ["ISO", score >= 80 ? "200" : "400"],
@@ -903,9 +944,10 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
             ))}
           </div>
 
-          <div style={{
+          <div className="float-pop" style={{
             position: "absolute", left: 0, right: 0, bottom: 80, zIndex: 4,
             padding: "0 14px",
+            "--float-delay": "260ms",
           }}>
             <ShootAssistPanel
               titles={titles}
@@ -1128,7 +1170,7 @@ function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, trans
 
   return (
     <>
-      <div style={panelStyle}>
+      <div className="float-pop" style={{ ...panelStyle, "--float-delay": transparent ? "180ms" : "260ms" }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8,
           textShadow: transparent ? "0 1px 5px rgba(0,0,0,0.8)" : "none",
@@ -1143,6 +1185,7 @@ function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, trans
         <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
           {titles.map((tt, i) => (
             <button key={i}
+              className="float-pop"
               onClick={() => setSelectedTitle(i)}
               style={{
                 flexShrink: 0,
@@ -1160,6 +1203,7 @@ function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, trans
                 whiteSpace: "nowrap",
                 cursor: "pointer",
                 textShadow: transparent && i !== selectedTitle ? "0 1px 5px rgba(0,0,0,0.9)" : "none",
+                "--float-delay": `${320 + i * 45}ms`,
               }}>
               {tt}
             </button>
@@ -1167,7 +1211,7 @@ function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, trans
         </div>
       </div>
 
-      <div style={tipsStyle}>
+      <div className="float-pop" style={{ ...tipsStyle, "--float-delay": transparent ? "280ms" : "360ms" }}>
         <div style={{
           fontSize: 10,
           color: transparent ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.55)",
@@ -1178,7 +1222,7 @@ function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, trans
           后端拍摄建议 · B 接口
         </div>
         {tips.slice(0, 3).map((tip, i) => (
-          <div key={i} style={{
+          <div key={i} className="float-pop" style={{
             display: "flex",
             gap: 8,
             fontSize: 11,
@@ -1186,6 +1230,7 @@ function ShootAssistPanel({ titles, selectedTitle, setSelectedTitle, tips, trans
             lineHeight: 1.45,
             paddingTop: i ? 5 : 0,
             textShadow: transparent ? "0 1px 5px rgba(0,0,0,0.85)" : "none",
+            "--float-delay": `${430 + i * 55}ms`,
           }}>
             <span className="mono" style={{ color: "#ffd49a" }}>{String(i + 1).padStart(2, "0")}</span>
             <span>{tip}</span>
