@@ -191,9 +191,34 @@ function VlogFallbackScene() {
   );
 }
 
-// time helpers — slider 0..1 maps to 17:00 → 18:30 (90min)
-function tToClock(t) {
-  const totalMin = 17 * 60 + Math.round(t * 90);
+// time helpers — slider 0..1 maps to the live golden-hour window.
+function clockToMinutes(clock, fallback) {
+  const match = String(clock || "").match(/(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function clockFromMinutes(totalMinutes) {
+  const wrapped = ((Math.round(totalMinutes) % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60), m = wrapped % 60;
+  return `${h}:${String(m).padStart(2, "0")}`;
+}
+
+function buildTimeWindow(payload) {
+  const peak = clockToMinutes(payload?.peakTime, 18 * 60 + 15);
+  const sunset = clockToMinutes(payload?.meta?.sunsetTime, peak - 13);
+  const golden = clockToMinutes(payload?.meta?.goldenHourStart, sunset - 32);
+  const start = Math.min(golden, sunset, peak) - 18;
+  const end = Math.max(golden, sunset, peak) + Math.max(18, payload?.peakDuration || 14);
+  const span = Math.max(45, end - start);
+  const toT = (minutes) => Math.max(0, Math.min(1, (minutes - start) / span));
+  return { start, end, span, golden, sunset, peak, toT };
+}
+
+function tToClock(t, windowInfo) {
+  const start = windowInfo?.start ?? 17 * 60;
+  const span = windowInfo?.span ?? 90;
+  const totalMin = start + Math.round(t * span);
   const h = Math.floor(totalMin / 60), m = totalMin % 60;
   return `${h}:${String(m).padStart(2, "0")}`;
 }
@@ -716,9 +741,18 @@ function Metric({ label, value, accent }) {
 // Scene 3 — 时间条 + 色卡 (产品灵魂)
 // ─────────────────────────────────────────
 function SceneTimeSlider({ sunsetPayload }) {
-  const [t, setT] = useState(0.62);  // 默认在 18:02 日落
+  const windowInfo = buildTimeWindow(sunsetPayload);
+  const [t, setT] = useState(() => windowInfo.toT(windowInfo.sunset));
   const trackRef = useRef(null);
   const dragging = useRef(false);
+
+  useEffect(() => {
+    setT(windowInfo.toT(windowInfo.sunset));
+  }, [
+    sunsetPayload?.meta?.goldenHourStart,
+    sunsetPayload?.meta?.sunsetTime,
+    sunsetPayload?.peakTime,
+  ]);
 
   const c = getTimelineColorAt(sunsetPayload, t, t);
   const cTop = getTimelineColorAt(sunsetPayload, Math.max(0, t - 0.18), Math.max(0, t - 0.18));
@@ -758,11 +792,11 @@ function SceneTimeSlider({ sunsetPayload }) {
   }, []);
 
   const anchors = [
-    { t: 0.00, label: "17:00", note: "现在" },
-    { t: 0.33, label: sunsetPayload?.meta?.goldenHourStart || "17:30", note: "黄金时刻" },
-    { t: 0.62, label: sunsetPayload?.meta?.sunsetTime || "18:02", note: "日落" },
-    { t: 0.78, label: sunsetPayload?.peakTime || "18:15", note: "峰值" },
-    { t: 1.00, label: "18:30", note: "结束" },
+    { t: 0.00, label: clockFromMinutes(windowInfo.start), note: "现在" },
+    { t: windowInfo.toT(windowInfo.golden), label: sunsetPayload?.meta?.goldenHourStart || clockFromMinutes(windowInfo.golden), note: "黄金时刻" },
+    { t: windowInfo.toT(windowInfo.sunset), label: sunsetPayload?.meta?.sunsetTime || clockFromMinutes(windowInfo.sunset), note: "日落" },
+    { t: windowInfo.toT(windowInfo.peak), label: sunsetPayload?.peakTime || clockFromMinutes(windowInfo.peak), note: "峰值" },
+    { t: 1.00, label: clockFromMinutes(windowInfo.end), note: "结束" },
   ];
 
   // 当前最近锚点的 note
@@ -821,7 +855,7 @@ function SceneTimeSlider({ sunsetPayload }) {
           textShadow: "0 4px 30px rgba(0,0,0,0.4)",
           letterSpacing: -2,
         }}>
-          {tToClock(t)}
+          {tToClock(t, windowInfo)}
         </div>
         <div style={{ marginTop: 10, fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>
           {timeNarration(t)}

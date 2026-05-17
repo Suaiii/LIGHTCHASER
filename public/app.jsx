@@ -444,6 +444,28 @@ function useRouteData(sunsetPayload, destination) {
   return state;
 }
 
+function formatCurrentClock(timeZone = "Asia/Shanghai") {
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  }).format(new Date());
+}
+
+function useCurrentClock(timeZone) {
+  const [clock, setClock] = useState(() => formatCurrentClock(timeZone));
+  useEffect(() => {
+    function tick() {
+      setClock(formatCurrentClock(timeZone));
+    }
+    tick();
+    const timer = setInterval(tick, 30 * 1000);
+    return () => clearInterval(timer);
+  }, [timeZone]);
+  return clock;
+}
+
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
   const [index, setIndex] = useState({ row: 0, col: 0 }); // 默认从第一条视频进入
@@ -504,6 +526,7 @@ function App() {
 
   const score = displayPayload?.score ?? (t.scenario === "high" ? 87 : t.scenario === "mid" ? 52 : 25);
   const peak = displayPayload?.peakTime || "18:15";
+  const currentClock = useCurrentClock(displayPayload?.meta?.timezone || "Asia/Shanghai");
 
   // 2D feed 结构
   // 接口：window.GuangbaoHooks.swipeVideoNext() / swipeVideoPrev() 可外部切视频
@@ -562,7 +585,7 @@ function App() {
   return (
     <>
       <DeviceScaler width={402} height={874}>
-        <IOSDevice width={402} height={874} dark={true}>
+        <IOSDevice width={402} height={874} dark={true} statusTime={currentClock}>
           <div data-screen-label={screenLabel} style={{
             position: "relative", width: "100%", height: "100%",
             background: "#0a0a0d", overflow: "hidden",
@@ -773,7 +796,7 @@ function PaletteSwatch({ palette }) {
         fontSize: 9, fontFamily: "var(--font-mono)",
         color: "rgba(255,255,255,0.55)",
       }}>
-        <span>17:00</span><span>17:30</span><span>18:02</span><span>18:15</span><span>18:30</span>
+        <span>LIVE</span><span>GOLDEN</span><span>SUNSET</span><span>PEAK</span><span>END</span>
       </div>
     </div>
   );

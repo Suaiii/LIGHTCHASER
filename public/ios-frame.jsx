@@ -189,7 +189,7 @@ function IOSList({ header, children, dark = false }) {
 // ─────────────────────────────────────────────────────────────
 function IOSDevice({
   children, width = 402, height = 874, dark = false,
-  title, keyboard = false,
+  title, keyboard = false, statusTime,
 }) {
   return (
     <div style={{
@@ -206,7 +206,7 @@ function IOSDevice({
       }} />
       {/* status bar (absolute) */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <IOSStatusBar dark={dark} />
+        <IOSStatusBar dark={dark} time={statusTime} />
       </div>
       {/* nav + content */}
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
