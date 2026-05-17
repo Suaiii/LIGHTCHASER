@@ -156,18 +156,25 @@ function SwipeFeed({ feed, index, setIndex }) {
 // 缩放容器：把 402x874 设备缩放到 viewport
 // ─────────────────────────────────────────
 function DeviceScaler({ width, height, children }) {
+  const isPhone = useIsPhone();
   const [scale, setScale] = useState(1);
   useEffect(() => {
     function calc() {
-      const padding = 40;
+      // 桌面：留 40px 边距、最大 1x（仿真预览）
+      // 真机：去边距、允许放大，等比铺满整屏（402x874 与手机比例几乎一致）
+      const padding = isPhone ? 0 : 40;
       const sx = (window.innerWidth - padding) / width;
       const sy = (window.innerHeight - padding) / height;
-      setScale(Math.min(1, sx, sy));
+      setScale(isPhone ? Math.min(sx, sy) : Math.min(1, sx, sy));
     }
     calc();
     window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
-  }, [width, height]);
+    window.addEventListener("orientationchange", calc);
+    return () => {
+      window.removeEventListener("resize", calc);
+      window.removeEventListener("orientationchange", calc);
+    };
+  }, [width, height, isPhone]);
   return (
     <div style={{ width: width * scale, height: height * scale, position: "relative" }}>
       <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", width, height }}>
