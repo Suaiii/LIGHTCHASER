@@ -1,4 +1,6 @@
 const {
+  SCENE_FILTERS,
+  FILTER_PRESETS,
   classifyLight,
   recommendFilters,
   calculateCropBox,
@@ -15,6 +17,21 @@ function assertEqual(actual, expected, message) {
   assert(actual === expected, `${message}: expected ${expected}, got ${actual}`);
 }
 
+function testFilterCatalogIntegrity() {
+  const names = new Set();
+  for (const [scene, config] of Object.entries(SCENE_FILTERS)) {
+    assert(config.filters.length === 3, `${scene} should expose three filters`);
+    for (const filter of config.filters) {
+      assert(FILTER_PRESETS[filter], `${scene} references missing filter preset ${filter}`);
+      names.add(filter);
+    }
+  }
+
+  assert(names.has("iPhone Rich Contrast"), "catalog should include authorized iPhone-style filter");
+  assert(names.has("FUJIFILM Velvia"), "catalog should include authorized Fujifilm-style filter");
+  assert(names.has("Google Night Sight"), "catalog should include authorized Google-style filter");
+}
+
 function testLightClassification() {
   assertEqual(classifyLight({ brightness: 0.2, warmth: 0 }), "偏暗", "dark light");
   assertEqual(classifyLight({ brightness: 0.86, warmth: 0 }), "过曝", "overexposed light");
@@ -24,9 +41,11 @@ function testLightClassification() {
 }
 
 function testFilterRecommendation() {
-  assertEqual(recommendFilters("portrait", "偏暗")[0], "暖肤提亮", "dark portrait filter");
-  assertEqual(recommendFilters("food", "正常")[0], "鲜艳暖色", "food filter");
-  assertEqual(recommendFilters("night", "偏暗")[0], "夜景提亮", "night filter");
+  assertEqual(recommendFilters("portrait", "偏暗")[0], "Google Portrait", "dark portrait filter");
+  assertEqual(recommendFilters("food", "正常")[0], "iPhone Vibrant", "food filter");
+  assertEqual(recommendFilters("night", "偏暗")[0], "Google Night Sight", "night filter");
+  assertEqual(recommendFilters("street", "正常")[0], "FUJIFILM Classic Neg.", "street filter");
+  assertEqual(recommendFilters("landscape", "偏暖")[0], "iPhone Cool", "warm landscape correction");
 }
 
 function testCropMaintainsPreviewRatio() {
@@ -58,7 +77,7 @@ function testAiDecisionLocksStableSampleWindow() {
   assertEqual(decision.mode, "ai-capture", "decision mode");
   assertEqual(decision.scene, "portrait", "stable scene");
   assertEqual(decision.light, "偏暗", "stable light");
-  assertEqual(decision.appliedFilter, "暖肤提亮", "auto-applied filter");
+  assertEqual(decision.appliedFilter, "Google Portrait", "auto-applied filter");
   assert(decision.cropBox.width < 1200 || decision.cropBox.height < 1600, "AI composition should crop");
   assert(decision.outputs.original, "original output");
   assert(decision.outputs.aiCrop, "ai crop output");
@@ -80,6 +99,7 @@ function testStandardDecisionDoesNotApplyAi() {
 }
 
 function main() {
+  testFilterCatalogIntegrity();
   testLightClassification();
   testFilterRecommendation();
   testCropMaintainsPreviewRatio();

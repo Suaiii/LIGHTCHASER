@@ -1,4 +1,5 @@
 const core = window.LightchaserAICameraCore;
+const filterPresets = core.FILTER_PRESETS;
 
 const video = document.getElementById("camera");
 const preview = document.getElementById("preview");
@@ -142,7 +143,8 @@ function updateDecision() {
 
 function renderDecision(decision) {
   scenePill.textContent = `${decision.sceneLabel} · ${decision.light}`;
-  filterPill.textContent = decision.appliedFilter ? `滤镜：${decision.appliedFilter}` : `推荐：${decision.recommendedFilters.join(" / ")}`;
+  const recommendedLabels = decision.recommendedFilters.map(filterLabel);
+  filterPill.textContent = decision.appliedFilter ? `滤镜：${filterLabel(decision.appliedFilter)}` : `推荐：${recommendedLabels.join(" / ")}`;
   if (state.aiComposition) {
     positionCropBox(decision.cropBox);
     cropBoxEl.hidden = false;
@@ -173,9 +175,15 @@ function applyFilter(targetCtx, width, height, filterName) {
     let g = data[i + 1];
     let b = data[i + 2];
     const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    r = gray + (r - gray) * settings.saturation;
-    g = gray + (g - gray) * settings.saturation;
-    b = gray + (b - gray) * settings.saturation;
+    if (settings.grayscale) {
+      r = gray;
+      g = gray;
+      b = gray;
+    } else {
+      r = gray + (r - gray) * settings.saturation;
+      g = gray + (g - gray) * settings.saturation;
+      b = gray + (b - gray) * settings.saturation;
+    }
     r = (r - 128) * settings.contrast + 128 + settings.brightness + settings.warmth;
     g = (g - 128) * settings.contrast + 128 + settings.brightness + settings.warmth * 0.2;
     b = (b - 128) * settings.contrast + 128 + settings.brightness - settings.warmth;
@@ -187,12 +195,12 @@ function applyFilter(targetCtx, width, height, filterName) {
 }
 
 function filterSettings(filterName) {
-  if (filterName.includes("暖") || filterName.includes("肤")) return { brightness: 10, contrast: 0.98, saturation: 1.08, warmth: 12 };
-  if (filterName.includes("夜景")) return { brightness: 24, contrast: 1.08, saturation: 1.02, warmth: -4 };
-  if (filterName.includes("鲜艳") || filterName.includes("天空")) return { brightness: 8, contrast: 1.08, saturation: 1.22, warmth: 3 };
-  if (filterName.includes("胶片") || filterName.includes("高对比")) return { brightness: 2, contrast: 1.18, saturation: 0.92, warmth: 5 };
-  if (filterName.includes("清透") || filterName.includes("白平衡")) return { brightness: 12, contrast: 1.02, saturation: 1.04, warmth: -6 };
+  if (filterPresets[filterName]) return filterPresets[filterName];
   return { brightness: 6, contrast: 1.04, saturation: 1.06, warmth: 0 };
+}
+
+function filterLabel(filterName) {
+  return filterPresets[filterName]?.label || filterName;
 }
 
 async function startCamera() {
@@ -278,7 +286,7 @@ async function capture() {
   downloadButton.disabled = false;
   state.capturing = false;
   captureButton.disabled = false;
-  setStatus(`拍照完成：${decision.sceneLabel} / ${decision.light}${decision.appliedFilter ? ` / 已套用 ${decision.appliedFilter}` : ""}`);
+  setStatus(`拍照完成：${decision.sceneLabel} / ${decision.light}${decision.appliedFilter ? ` / 已套用 ${filterLabel(decision.appliedFilter)}` : ""}`);
 }
 
 function makeCanvas(width, height) {

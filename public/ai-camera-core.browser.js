@@ -5,15 +5,61 @@
   }
   root.LightchaserAICameraCore = api;
 })(typeof globalThis !== "undefined" ? globalThis : window, function () {
+  const FILTER_PRESETS = {
+    "iPhone Rich Contrast": { label: "iPhone 深调高反差", brightness: -2, contrast: 1.16, saturation: 1.04, warmth: 0 },
+    "iPhone Vibrant": { label: "iPhone 鲜明", brightness: 4, contrast: 1.06, saturation: 1.18, warmth: 0 },
+    "iPhone Warm": { label: "iPhone 暖色", brightness: 4, contrast: 1.02, saturation: 1.08, warmth: 18 },
+    "iPhone Cool": { label: "iPhone 冷色", brightness: 6, contrast: 1.04, saturation: 1.02, warmth: -16 },
+    "FUJIFILM PROVIA": { label: "富士 PROVIA 标准", brightness: 2, contrast: 1.02, saturation: 1.05, warmth: 2 },
+    "FUJIFILM Velvia": { label: "富士 Velvia 鲜艳", brightness: 4, contrast: 1.12, saturation: 1.28, warmth: 2 },
+    "FUJIFILM ASTIA": { label: "富士 ASTIA 柔和", brightness: 5, contrast: 0.92, saturation: 1.04, warmth: 8 },
+    "FUJIFILM Classic Chrome": { label: "富士 Classic Chrome", brightness: 1, contrast: 1.12, saturation: 0.78, warmth: -2 },
+    "FUJIFILM Classic Neg.": { label: "富士 Classic Neg.", brightness: 0, contrast: 1.18, saturation: 0.92, warmth: 4 },
+    "FUJIFILM ETERNA": { label: "富士 ETERNA 电影", brightness: 3, contrast: 0.88, saturation: 0.72, warmth: 0 },
+    "FUJIFILM ACROS": { label: "富士 ACROS 黑白", brightness: 0, contrast: 1.2, saturation: 0, warmth: 0, grayscale: true },
+    "Google Dynamic": { label: "Google Dynamic 鲜活", brightness: 5, contrast: 1.07, saturation: 1.16, warmth: 0 },
+    "Google Night Sight": { label: "Google Night Sight", brightness: 20, contrast: 1.08, saturation: 1.02, warmth: -4 },
+    "Google Portrait": { label: "Google Portrait 柔肤", brightness: 6, contrast: 0.94, saturation: 1.06, warmth: 10 },
+    "Clear Scan": { label: "清晰扫描", brightness: 18, contrast: 1.28, saturation: 0.2, warmth: -6 },
+  };
+
   const SCENE_FILTERS = {
-    portrait: { label: "人像", filters: ["暖肤提亮", "柔和清透", "低对比胶片"] },
-    food: { label: "美食", filters: ["鲜艳暖色", "微锐化", "高饱和"] },
-    night: { label: "夜景", filters: ["夜景提亮", "保留高光", "冷暖平衡"] },
-    landscape: { label: "风景", filters: ["鲜艳通透", "轻胶片", "增强天空"] },
-    indoor: { label: "室内", filters: ["白平衡清透", "轻提亮", "自然暖调"] },
-    street: { label: "街拍", filters: ["高对比胶片", "微颗粒", "冷调街景"] },
-    document: { label: "文档", filters: ["清晰扫描", "去黄提亮", "高对比黑白"] },
-    general: { label: "普通", filters: ["自然增强", "轻微提亮", "柔和胶片"] },
+    portrait: { label: "人像", filters: ["Google Portrait", "FUJIFILM ASTIA", "iPhone Warm"] },
+    food: { label: "美食", filters: ["iPhone Vibrant", "Google Dynamic", "FUJIFILM Velvia"] },
+    night: { label: "夜景", filters: ["Google Night Sight", "iPhone Cool", "FUJIFILM ETERNA"] },
+    landscape: { label: "风景", filters: ["FUJIFILM Velvia", "Google Dynamic", "FUJIFILM PROVIA"] },
+    indoor: { label: "室内", filters: ["iPhone Cool", "Google Portrait", "FUJIFILM PROVIA"] },
+    street: { label: "街拍", filters: ["FUJIFILM Classic Neg.", "FUJIFILM Classic Chrome", "iPhone Rich Contrast"] },
+    document: { label: "文档", filters: ["Clear Scan", "FUJIFILM ACROS", "iPhone Cool"] },
+    general: { label: "普通", filters: ["Google Dynamic", "FUJIFILM PROVIA", "FUJIFILM ETERNA"] },
+  };
+
+  const LIGHT_FILTER_OVERRIDES = {
+    "偏暗": {
+      night: "Google Night Sight",
+      portrait: "Google Portrait",
+      document: "Clear Scan",
+      general: "Google Night Sight",
+    },
+    "过曝": {
+      portrait: "FUJIFILM ASTIA",
+      food: "FUJIFILM PROVIA",
+      landscape: "FUJIFILM PROVIA",
+      street: "FUJIFILM Classic Chrome",
+      general: "FUJIFILM ETERNA",
+    },
+    "偏冷": {
+      portrait: "iPhone Warm",
+      food: "iPhone Warm",
+      indoor: "iPhone Warm",
+      general: "iPhone Warm",
+    },
+    "偏暖": {
+      portrait: "iPhone Cool",
+      food: "FUJIFILM PROVIA",
+      indoor: "iPhone Cool",
+      general: "iPhone Cool",
+    },
   };
 
   function clamp(value, min, max) {
@@ -32,17 +78,19 @@
 
   function chooseFilter(scene, light) {
     const config = SCENE_FILTERS[scene] || SCENE_FILTERS.general;
-    if (light === "偏暗") return scene === "night" ? "夜景提亮" : config.filters.find((filter) => filter.includes("提亮")) || "轻微提亮";
-    if (light === "过曝") return scene === "portrait" ? "柔和清透" : "保留高光";
-    if (light === "偏冷") return config.filters.find((filter) => filter.includes("暖")) || "自然暖调";
-    if (light === "偏暖") return config.filters.find((filter) => filter.includes("清透")) || "白平衡清透";
+    const lightOverrides = LIGHT_FILTER_OVERRIDES[light];
+    const override = lightOverrides?.[scene] || lightOverrides?.general;
+    if (override && FILTER_PRESETS[override]) return override;
     return config.filters[0];
   }
 
   function recommendFilters(scene, light) {
     const config = SCENE_FILTERS[scene] || SCENE_FILTERS.general;
     const primary = chooseFilter(scene, light);
-    return [primary, ...config.filters.filter((filter) => filter !== primary)].slice(0, 3);
+    const fallback = SCENE_FILTERS.general.filters;
+    return [primary, ...config.filters, ...fallback]
+      .filter((filter, index, filters) => FILTER_PRESETS[filter] && filters.indexOf(filter) === index)
+      .slice(0, 3);
   }
 
   function inferScene(samples) {
@@ -128,5 +176,5 @@
     };
   }
 
-  return { SCENE_FILTERS, classifyLight, recommendFilters, calculateCropBox, buildCaptureDecision };
+  return { SCENE_FILTERS, FILTER_PRESETS, classifyLight, recommendFilters, calculateCropBox, buildCaptureDecision };
 });
