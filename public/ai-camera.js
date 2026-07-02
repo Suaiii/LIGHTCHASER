@@ -82,6 +82,7 @@ function sampleFrame() {
   let centerMassX = 0;
   let centerMassY = 0;
   let mass = 0;
+  let activePixels = 0;
 
   for (let i = 0; i < imageData.length; i += 4) {
     const r = imageData[i];
@@ -97,6 +98,7 @@ function sampleFrame() {
     if (brightness < 0.24) darkPixels += 1;
     if (r > g * 1.08 && r > b * 1.22 && brightness > 0.32) saturatedWarm += 1;
     const weight = Math.max(0, brightness - 0.18);
+    if (weight > 0.08) activePixels += 1;
     centerMassX += x * weight;
     centerMassY += y * weight;
     mass += weight;
@@ -105,8 +107,9 @@ function sampleFrame() {
   const pixels = imageData.length / 4;
   const frameStats = { brightness: total / pixels, warmth: warmth / pixels };
   const scene = inferDemoScene(frameStats, brightPixels / pixels, darkPixels / pixels, saturatedWarm / pixels);
-  const subjectBox = inferSubjectBox(centerMassX, centerMassY, mass, sampleWidth, sampleHeight, preview.width, preview.height);
-  return { scene: scene.scene, confidence: scene.confidence, frameStats, subjectBox, at: Date.now() };
+  const subjectBox = inferSubjectBox(centerMassX, centerMassY, mass, activePixels / pixels, pixels, sampleWidth, sampleHeight, preview.width, preview.height);
+  const subjectBoxes = subjectBox ? [subjectBox] : [];
+  return { scene: scene.scene, confidence: scene.confidence, frameStats, subjectBox, subjectBoxes, at: Date.now() };
 }
 
 function currentSource() {
@@ -128,17 +131,22 @@ function inferDemoScene(frameStats, brightRatio, darkRatio, warmRatio) {
   return { scene: "street", confidence: 0.58 };
 }
 
-function inferSubjectBox(centerMassX, centerMassY, mass, sampleWidth, sampleHeight, frameWidth, frameHeight) {
+function inferSubjectBox(centerMassX, centerMassY, mass, activeRatio, pixels, sampleWidth, sampleHeight, frameWidth, frameHeight) {
   if (!mass) return null;
   const cx = (centerMassX / mass / sampleWidth) * frameWidth;
   const cy = (centerMassY / mass / sampleHeight) * frameHeight;
   const width = frameWidth * 0.42;
   const height = frameHeight * 0.58;
+  const averageWeight = mass / pixels;
+  const confidence = activeRatio > 0.72 || activeRatio < 0.02
+    ? 0.2
+    : Math.max(0.2, Math.min(0.9, 0.75 - activeRatio * 0.65 + averageWeight * 0.4));
   return {
     x: Math.max(0, Math.min(frameWidth - width, cx - width / 2)),
     y: Math.max(0, Math.min(frameHeight - height, cy - height / 2)),
     width,
     height,
+    confidence,
   };
 }
 
@@ -153,6 +161,7 @@ function updateDecision() {
     aiFilter: state.aiFilter,
     frame: { width: preview.width, height: preview.height },
     samples: state.samples,
+    previousDecision: state.lastDecision,
   });
   renderDecision(state.lastDecision);
 }
@@ -161,7 +170,7 @@ function renderDecision(decision) {
   scenePill.textContent = `${decision.sceneLabel} · ${decision.light}`;
   const recommendedLabels = decision.recommendedFilters.map(filterLabel);
   filterPill.textContent = decision.appliedFilter ? `滤镜：${filterLabel(decision.appliedFilter)}` : `推荐：${recommendedLabels.join(" / ")}`;
-  if (state.aiComposition) {
+  if (state.aiComposition && decision.outputs.aiCrop) {
     positionCropBox(decision.cropBox);
     cropBoxEl.hidden = false;
   } else {
@@ -319,6 +328,7 @@ async function capture() {
     sourceType: state.sourceType,
     frame: { width: preview.width, height: preview.height },
     samples,
+    previousDecision: state.lastDecision,
   });
   const crop = cropCanvas(original, decision.cropBox);
   const filtered = cropCanvas(original, decision.cropBox);
@@ -329,8 +339,14 @@ async function capture() {
   const outputs = [
     { key: "original", title: "original.jpg", canvas: original },
   ];
-  if (state.aiComposition) outputs.push({ key: "ai_crop", title: "ai_crop.jpg", canvas: crop });
-  if (state.aiFilter) outputs.push({ key: "ai_crop_filter", title: state.aiComposition ? "ai_crop_filter.jpg" : "ai_filter.jpg", canvas: filtered });
+  if (decision.outputs.aiCrop) outputs.push({ key: "ai_crop", title: "ai_crop.jpg", canvas: crop });
+  if (decision.outputs.aiCropFilter || decision.outputs.aiFilter) {
+    outputs.push({
+      key: decision.outputs.aiCropFilter ? "ai_crop_filter" : "ai_filter",
+      title: decision.outputs.aiCropFilter ? "ai_crop_filter.jpg" : "ai_filter.jpg",
+      canvas: filtered,
+    });
+  }
 
   state.lastMetadata = {
     createdAt: new Date().toISOString(),
@@ -344,6 +360,7 @@ async function capture() {
       confidence: sample.confidence,
       frameStats: sample.frameStats,
       subjectBox: sample.subjectBox,
+      subjectBoxes: sample.subjectBoxes,
     })),
   };
   renderResults(outputs, state.lastMetadata);

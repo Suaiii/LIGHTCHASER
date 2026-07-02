@@ -69,8 +69,8 @@ function testAiDecisionLocksStableSampleWindow() {
     frame: { width: 1200, height: 1600 },
     samples: [
       { scene: "street", confidence: 0.4, frameStats: { brightness: 0.5, warmth: 0 } },
-      { scene: "portrait", confidence: 0.9, frameStats: { brightness: 0.28, warmth: 0.1 }, subjectBox: { x: 430, y: 250, width: 260, height: 520 } },
-      { scene: "portrait", confidence: 0.85, frameStats: { brightness: 0.3, warmth: 0.08 }, subjectBox: { x: 450, y: 270, width: 260, height: 520 } },
+      { scene: "portrait", confidence: 0.9, frameStats: { brightness: 0.28, warmth: 0.1 }, subjectBox: { x: 430, y: 250, width: 260, height: 520, confidence: 0.82 } },
+      { scene: "portrait", confidence: 0.85, frameStats: { brightness: 0.3, warmth: 0.08 }, subjectBox: { x: 450, y: 270, width: 260, height: 520, confidence: 0.82 } },
     ],
   });
 
@@ -78,10 +78,151 @@ function testAiDecisionLocksStableSampleWindow() {
   assertEqual(decision.scene, "portrait", "stable scene");
   assertEqual(decision.light, "偏暗", "stable light");
   assertEqual(decision.appliedFilter, "Google Portrait", "auto-applied filter");
+  assert(decision.sceneConfidence <= 1, "scene confidence should be normalized");
+  assertEqual(decision.compositionSkippedReason, null, "clear subject should allow AI composition");
   assert(decision.cropBox.width < 1200 || decision.cropBox.height < 1600, "AI composition should crop");
   assert(decision.outputs.original, "original output");
   assert(decision.outputs.aiCrop, "ai crop output");
   assert(decision.outputs.aiCropFilter, "ai crop filter output");
+}
+
+function testLowConfidenceFallsBackToGeneralFilter() {
+  const decision = buildCaptureDecision({
+    aiComposition: false,
+    aiFilter: true,
+    frame: { width: 1200, height: 1600 },
+    samples: [
+      { scene: "food", confidence: 0.18, frameStats: { brightness: 0.55, warmth: 0.18 } },
+      { scene: "portrait", confidence: 0.2, frameStats: { brightness: 0.55, warmth: 0.18 } },
+      { scene: "street", confidence: 0.16, frameStats: { brightness: 0.55, warmth: 0.18 } },
+    ],
+  });
+
+  assertEqual(decision.scene, "general", "low-confidence scene should fall back to general");
+  assert(decision.sceneConfidence < 0.52, "low-confidence decision should expose low confidence");
+  assertEqual(decision.appliedFilter, "iPhone Cool", "warm low-confidence frame should use a general corrective filter");
+  assertEqual(decision.decisionReason, "low_scene_confidence", "low-confidence fallback reason");
+}
+
+function testRepeatedWeakSceneStillFallsBack() {
+  const decision = buildCaptureDecision({
+    aiComposition: false,
+    aiFilter: true,
+    frame: { width: 1200, height: 1600 },
+    samples: Array.from({ length: 5 }, () => ({
+      scene: "food",
+      confidence: 0.22,
+      frameStats: { brightness: 0.54, warmth: 0.16 },
+    })),
+  });
+
+  assertEqual(decision.scene, "general", "repeated weak scene should not become certain");
+  assertEqual(decision.decisionReason, "low_scene_confidence", "repeated weak scene fallback reason");
+}
+
+function testAiCompositionSkipsWhenSubjectIsUnclear() {
+  const decision = buildCaptureDecision({
+    aiComposition: true,
+    aiFilter: false,
+    frame: { width: 1200, height: 1600 },
+    samples: [
+      { scene: "landscape", confidence: 0.68, frameStats: { brightness: 0.66, warmth: 0.02 } },
+      { scene: "landscape", confidence: 0.7, frameStats: { brightness: 0.64, warmth: 0.01 } },
+    ],
+  });
+
+  assertEqual(decision.cropBox.x, 0, "unclear subject should keep full-frame x");
+  assertEqual(decision.cropBox.y, 0, "unclear subject should keep full-frame y");
+  assertEqual(decision.cropBox.width, 1200, "unclear subject should keep full-frame width");
+  assertEqual(decision.cropBox.height, 1600, "unclear subject should keep full-frame height");
+  assertEqual(decision.compositionSkippedReason, "subject_unclear", "skip reason");
+  assert(!decision.outputs.aiCrop, "skipped composition should not emit a duplicate crop output");
+  assert(!decision.outputs.aiCropFilter, "skipped composition should not label filter output as crop-filter");
+}
+
+function testAiCompositionSkipsLowConfidenceSubjectBox() {
+  const decision = buildCaptureDecision({
+    aiComposition: true,
+    aiFilter: false,
+    frame: { width: 1200, height: 1600 },
+    samples: [
+      {
+        scene: "landscape",
+        confidence: 0.7,
+        frameStats: { brightness: 0.66, warmth: 0.02 },
+        subjectBox: { x: 300, y: 360, width: 500, height: 700, confidence: 0.2 },
+      },
+    ],
+  });
+
+  assertEqual(decision.cropBox.width, 1200, "low-confidence subject box should keep full-frame width");
+  assertEqual(decision.cropBox.height, 1600, "low-confidence subject box should keep full-frame height");
+  assertEqual(decision.compositionSkippedReason, "subject_unclear", "low-confidence subject skip reason");
+}
+
+function testAiCompositionProtectsMultipleSubjects() {
+  const decision = buildCaptureDecision({
+    aiComposition: true,
+    aiFilter: false,
+    frame: { width: 1200, height: 1600 },
+    samples: [
+      {
+        scene: "portrait",
+        confidence: 0.8,
+        frameStats: { brightness: 0.52, warmth: 0.04 },
+        subjectBoxes: [
+          { x: 120, y: 420, width: 220, height: 520, confidence: 0.75 },
+          { x: 860, y: 420, width: 220, height: 520, confidence: 0.75 },
+        ],
+      },
+    ],
+  });
+
+  assertEqual(decision.compositionSkippedReason, null, "clear multi-subject frame should crop");
+  assert(decision.cropBox.x <= 120, "crop should include the left subject");
+  assert(decision.cropBox.x + decision.cropBox.width >= 1080, "crop should include the right subject");
+}
+
+function testAiFilterHoldsPreviousFilterOnUnstableSwitch() {
+  const decision = buildCaptureDecision({
+    aiComposition: false,
+    aiFilter: true,
+    frame: { width: 1200, height: 1600 },
+    previousDecision: {
+      scene: "portrait",
+      sceneConfidence: 0.84,
+      appliedFilter: "Google Portrait",
+    },
+    samples: [
+      { scene: "street", confidence: 0.9, frameStats: { brightness: 0.5, warmth: 0.01 } },
+      { scene: "street", confidence: 0.8, frameStats: { brightness: 0.5, warmth: 0.01 } },
+      { scene: "portrait", confidence: 0.1, frameStats: { brightness: 0.5, warmth: 0.01 } },
+    ],
+  });
+
+  assertEqual(decision.appliedFilter, "Google Portrait", "unstable scene switch should hold previous filter");
+  assertEqual(decision.filterDecisionReason, "held_previous_filter", "filter hold reason");
+}
+
+function testLowConfidenceBeatsPreviousFilterHold() {
+  const decision = buildCaptureDecision({
+    aiComposition: false,
+    aiFilter: true,
+    frame: { width: 1200, height: 1600 },
+    previousDecision: {
+      scene: "portrait",
+      sceneConfidence: 0.84,
+      appliedFilter: "Google Portrait",
+    },
+    samples: [
+      { scene: "food", confidence: 0.18, frameStats: { brightness: 0.55, warmth: 0.18 } },
+      { scene: "street", confidence: 0.16, frameStats: { brightness: 0.55, warmth: 0.18 } },
+    ],
+  });
+
+  assertEqual(decision.scene, "general", "low confidence should fall back to general even with a previous decision");
+  assertEqual(decision.appliedFilter, "iPhone Cool", "low confidence should use general light correction instead of previous filter");
+  assertEqual(decision.filterDecisionReason, "low_scene_confidence", "low confidence should explain filter choice");
 }
 
 function testStandardDecisionDoesNotApplyAi() {
@@ -104,6 +245,13 @@ function main() {
   testFilterRecommendation();
   testCropMaintainsPreviewRatio();
   testAiDecisionLocksStableSampleWindow();
+  testLowConfidenceFallsBackToGeneralFilter();
+  testRepeatedWeakSceneStillFallsBack();
+  testAiCompositionSkipsWhenSubjectIsUnclear();
+  testAiCompositionSkipsLowConfidenceSubjectBox();
+  testAiCompositionProtectsMultipleSubjects();
+  testAiFilterHoldsPreviousFilterOnUnstableSwitch();
+  testLowConfidenceBeatsPreviousFilterHold();
   testStandardDecisionDoesNotApplyAi();
   console.log("AI camera core tests passed");
 }

@@ -62,6 +62,11 @@
     },
   };
 
+  const MIN_SCENE_CONFIDENCE = 0.52;
+  const MIN_SUBJECT_CONFIDENCE = 0.35;
+  const FILTER_SWITCH_CONFIDENCE = 0.72;
+  const SUBJECT_PADDING_RATIO = 0.08;
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -97,10 +102,17 @@
     const scores = {};
     for (const sample of samples) {
       const scene = sample.scene || "general";
-      scores[scene] = (scores[scene] || 0) + (Number.isFinite(sample.confidence) ? sample.confidence : 0.5);
+      const confidence = clamp(Number.isFinite(sample.confidence) ? sample.confidence : 0.5, 0, 1);
+      scores[scene] = (scores[scene] || 0) + confidence;
     }
     const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-    return { scene: sorted[0]?.[0] || "general", confidence: Number((sorted[0]?.[1] || 0).toFixed(3)) };
+    const topScene = sorted[0]?.[0] || "general";
+    const topScore = sorted[0]?.[1] || 0;
+    const confidence = samples.length ? topScore / samples.length : 0;
+    if (confidence < MIN_SCENE_CONFIDENCE) {
+      return { scene: "general", confidence: Number(confidence.toFixed(3)), rawScene: topScene, reason: "low_scene_confidence" };
+    }
+    return { scene: topScene, confidence: Number(confidence.toFixed(3)), rawScene: topScene, reason: "scene_stable" };
   }
 
   function averageStats(samples) {
@@ -145,6 +157,62 @@
     };
   }
 
+  function fullFrameCrop(frame) {
+    return { x: 0, y: 0, width: frame.width, height: frame.height };
+  }
+
+  function sampleSubjectBoxes(sample) {
+    const boxes = Array.isArray(sample.subjectBoxes) ? sample.subjectBoxes : [sample.subjectBox];
+    return boxes
+      .filter((box) => {
+        const confidence = Number.isFinite(box?.confidence) ? box.confidence : 0;
+        return box && box.width > 0 && box.height > 0 && confidence >= MIN_SUBJECT_CONFIDENCE;
+      });
+  }
+
+  function latestSubjectBoxes(samples) {
+    for (let index = samples.length - 1; index >= 0; index -= 1) {
+      const boxes = sampleSubjectBoxes(samples[index]);
+      if (boxes.length) return boxes;
+    }
+    return [];
+  }
+
+  function mergeSubjectBoxes(frame, boxes) {
+    if (!boxes.length) return null;
+    const paddingX = frame.width * SUBJECT_PADDING_RATIO;
+    const paddingY = frame.height * SUBJECT_PADDING_RATIO;
+    const left = Math.min(...boxes.map((box) => box.x));
+    const top = Math.min(...boxes.map((box) => box.y));
+    const right = Math.max(...boxes.map((box) => box.x + box.width));
+    const bottom = Math.max(...boxes.map((box) => box.y + box.height));
+    const x = clamp(left - paddingX, 0, frame.width);
+    const y = clamp(top - paddingY, 0, frame.height);
+    const maxRight = clamp(right + paddingX, 0, frame.width);
+    const maxBottom = clamp(bottom + paddingY, 0, frame.height);
+    return { x, y, width: maxRight - x, height: maxBottom - y };
+  }
+
+  function chooseAppliedFilter(options) {
+    const previousDecision = options.previousDecision;
+    const candidate = options.candidate;
+    const sceneResult = options.sceneResult;
+    const aiFilter = options.aiFilter;
+    if (!aiFilter) return { filter: null, reason: "ai_filter_off" };
+    if (sceneResult.reason === "low_scene_confidence") {
+      return { filter: candidate, reason: "low_scene_confidence" };
+    }
+    if (
+      previousDecision?.appliedFilter &&
+      previousDecision.scene &&
+      previousDecision.scene !== sceneResult.scene &&
+      sceneResult.confidence < FILTER_SWITCH_CONFIDENCE
+    ) {
+      return { filter: previousDecision.appliedFilter, reason: "held_previous_filter" };
+    }
+    return { filter: candidate, reason: "scene_light_match" };
+  }
+
   function buildCaptureDecision(options) {
     const samples = options.samples || [];
     const frame = options.frame || { width: 1080, height: 1440 };
@@ -154,24 +222,41 @@
     const sceneResult = inferScene(stableSamples);
     const light = classifyLight(averageStats(stableSamples));
     const filters = recommendFilters(sceneResult.scene, light);
-    const subjectBox = [...stableSamples].reverse().find((sample) => sample.subjectBox)?.subjectBox;
-    const cropBox = aiComposition
+    const subjectBoxes = latestSubjectBoxes(stableSamples);
+    const subjectBox = mergeSubjectBoxes(frame, subjectBoxes);
+    const compositionSkippedReason = aiComposition && !subjectBox ? "subject_unclear" : null;
+    const cropBox = aiComposition && subjectBox
       ? calculateCropBox(frame, subjectBox, frame.width / frame.height)
-      : { x: 0, y: 0, width: frame.width, height: frame.height };
+      : fullFrameCrop(frame);
+    const filterDecision = chooseAppliedFilter({
+      aiFilter,
+      candidate: filters[0],
+      previousDecision: options.previousDecision,
+      sceneResult,
+    });
+    const aiCropEnabled = aiComposition && !compositionSkippedReason;
+    const aiFilterEnabled = aiFilter && Boolean(filterDecision.filter);
 
     return {
       mode: aiComposition || aiFilter ? "ai-capture" : "standard",
       scene: sceneResult.scene,
       sceneLabel: SCENE_FILTERS[sceneResult.scene]?.label || SCENE_FILTERS.general.label,
       sceneConfidence: sceneResult.confidence,
+      rawScene: sceneResult.rawScene,
+      decisionReason: sceneResult.reason,
       light,
       recommendedFilters: filters,
-      appliedFilter: aiFilter ? filters[0] : null,
+      appliedFilter: filterDecision.filter,
+      filterDecisionReason: filterDecision.reason,
       cropBox,
+      subjectBox,
+      subjectCount: subjectBoxes.length,
+      compositionSkippedReason,
       outputs: {
         original: true,
-        aiCrop: aiComposition,
-        aiCropFilter: aiComposition && aiFilter,
+        aiCrop: aiCropEnabled,
+        aiCropFilter: aiCropEnabled && aiFilterEnabled,
+        aiFilter: !aiCropEnabled && aiFilterEnabled,
       },
     };
   }
