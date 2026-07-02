@@ -11,6 +11,7 @@ const countdownEl = document.getElementById("countdown");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const startButton = document.getElementById("startButton");
+const mediaInput = document.getElementById("mediaInput");
 const captureButton = document.getElementById("captureButton");
 const downloadButton = document.getElementById("downloadButton");
 const compositionToggle = document.getElementById("compositionToggle");
@@ -18,6 +19,8 @@ const filterToggle = document.getElementById("filterToggle");
 
 const state = {
   stream: null,
+  sourceType: "camera",
+  imageSource: null,
   aiComposition: false,
   aiFilter: false,
   samples: [],
@@ -39,8 +42,9 @@ compositionToggle.addEventListener("click", () => toggle(compositionToggle, "aiC
 filterToggle.addEventListener("click", () => toggle(filterToggle, "aiFilter"));
 
 function ensureCanvasSize() {
-  const width = video.videoWidth || 1280;
-  const height = video.videoHeight || 720;
+  const source = currentSource();
+  const width = source?.videoWidth || source?.naturalWidth || 1280;
+  const height = source?.videoHeight || source?.naturalHeight || 720;
   if (preview.width !== width || preview.height !== height) {
     preview.width = width;
     preview.height = height;
@@ -48,9 +52,10 @@ function ensureCanvasSize() {
 }
 
 function drawPreview() {
-  if (video.readyState >= 2) {
+  const source = currentSource();
+  if (sourceReady(source)) {
     ensureCanvasSize();
-    ctx.drawImage(video, 0, 0, preview.width, preview.height);
+    ctx.drawImage(source, 0, 0, preview.width, preview.height);
     if (state.aiFilter && state.lastDecision?.appliedFilter) {
       applyFilter(ctx, preview.width, preview.height, state.lastDecision.appliedFilter);
     }
@@ -59,14 +64,15 @@ function drawPreview() {
 }
 
 function sampleFrame() {
-  if (!preview.width || !preview.height || video.readyState < 2) return null;
+  const source = currentSource();
+  if (!preview.width || !preview.height || !sourceReady(source)) return null;
   const sampleWidth = 96;
   const sampleHeight = Math.max(54, Math.round(sampleWidth * preview.height / preview.width));
   const canvas = document.createElement("canvas");
   const sampleCtx = canvas.getContext("2d", { willReadFrequently: true });
   canvas.width = sampleWidth;
   canvas.height = sampleHeight;
-  sampleCtx.drawImage(video, 0, 0, sampleWidth, sampleHeight);
+  sampleCtx.drawImage(source, 0, 0, sampleWidth, sampleHeight);
   const imageData = sampleCtx.getImageData(0, 0, sampleWidth, sampleHeight).data;
   let total = 0;
   let warmth = 0;
@@ -101,6 +107,16 @@ function sampleFrame() {
   const scene = inferDemoScene(frameStats, brightPixels / pixels, darkPixels / pixels, saturatedWarm / pixels);
   const subjectBox = inferSubjectBox(centerMassX, centerMassY, mass, sampleWidth, sampleHeight, preview.width, preview.height);
   return { scene: scene.scene, confidence: scene.confidence, frameStats, subjectBox, at: Date.now() };
+}
+
+function currentSource() {
+  return state.sourceType === "image" ? state.imageSource : video;
+}
+
+function sourceReady(source) {
+  if (!source) return false;
+  if (source instanceof HTMLImageElement) return source.complete && source.naturalWidth > 0;
+  return source.readyState >= 2;
 }
 
 function inferDemoScene(frameStats, brightRatio, darkRatio, warmRatio) {
@@ -210,14 +226,61 @@ async function startCamera() {
       audio: false,
     });
     state.stream = stream;
+    state.sourceType = "camera";
+    state.imageSource = null;
     video.srcObject = stream;
+    video.hidden = false;
     await video.play();
     captureButton.disabled = false;
     startButton.textContent = "摄像头已启动";
     setStatus("摄像头已启动。关闭 AI 功能时拍照将保存原图；打开 AI 功能时拍照会进入 3 秒倒计时。");
   } catch (error) {
-    setStatus(`摄像头启动失败：${error.message}`);
+    setStatus(`摄像头启动失败：${error.message}。可选择图片/视频继续调试 AI 构图和 AI 滤镜。`);
   }
+}
+
+async function loadMediaFile(file) {
+  if (!file) return;
+  stopCameraStream();
+  resultsEl.innerHTML = "";
+  state.samples = [];
+  state.lastDecision = null;
+  state.lastMetadata = null;
+  downloadButton.disabled = true;
+  const url = URL.createObjectURL(file);
+
+  if (file.type.startsWith("video/")) {
+    state.sourceType = "video";
+    state.imageSource = null;
+    video.hidden = false;
+    video.srcObject = null;
+    video.src = url;
+    video.loop = true;
+    video.muted = true;
+    await video.play();
+  } else {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = url;
+    });
+    state.sourceType = "image";
+    state.imageSource = image;
+    video.hidden = true;
+  }
+
+  ensureCanvasSize();
+  captureButton.disabled = false;
+  setStatus(`已载入${file.type.startsWith("video/") ? "视频" : "图片"}调试素材。打开 AI 后拍照会进入 3 秒观察窗口并输出裁剪/滤镜结果。`);
+}
+
+function stopCameraStream() {
+  if (!state.stream) return;
+  for (const track of state.stream.getTracks()) {
+    track.stop();
+  }
+  state.stream = null;
 }
 
 async function capture() {
@@ -248,11 +311,12 @@ async function capture() {
 
   ensureCanvasSize();
   const original = makeCanvas(preview.width, preview.height);
-  original.getContext("2d").drawImage(video, 0, 0, preview.width, preview.height);
+  original.getContext("2d").drawImage(currentSource(), 0, 0, preview.width, preview.height);
   const samples = captureSamples.length ? captureSamples : state.samples;
   const decision = core.buildCaptureDecision({
     aiComposition: state.aiComposition,
     aiFilter: state.aiFilter,
+    sourceType: state.sourceType,
     frame: { width: preview.width, height: preview.height },
     samples,
   });
@@ -337,6 +401,9 @@ function wait(ms) {
 }
 
 startButton.addEventListener("click", startCamera);
+mediaInput.addEventListener("change", () => {
+  loadMediaFile(mediaInput.files[0]).catch((error) => setStatus(`调试素材载入失败：${error.message}`));
+});
 captureButton.addEventListener("click", capture);
 downloadButton.addEventListener("click", downloadMetadata);
 setInterval(updateDecision, 1000);

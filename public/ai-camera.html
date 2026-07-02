@@ -137,6 +137,18 @@
     background: var(--panel-2);
     border: 1px solid var(--line);
   }
+  label.secondary {
+    display: block;
+    text-align: center;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  input[type="file"] { display: none; }
   button:disabled { opacity: .48; cursor: not-allowed; }
   .status {
     min-height: 72px;
@@ -213,6 +225,8 @@
           <button class="switch" id="filterToggle" type="button" aria-checked="false"><span></span></button>
         </div>
         <button id="startButton" type="button">启动摄像头</button>
+        <label class="secondary" for="mediaInput">选择图片/视频调试</label>
+        <input id="mediaInput" type="file" accept="image/*,video/*" />
         <button id="captureButton" type="button" disabled>拍照</button>
         <button id="downloadButton" type="button" class="secondary" disabled>下载 metadata.json</button>
         <div class="status" id="status">等待摄像头授权。</div>
