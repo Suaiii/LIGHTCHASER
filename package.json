@@ -5,7 +5,9 @@
   "description": "Role B data and sunset recommendation layer for LIGHTCHASER",
   "scripts": {
     "dev:preview": "node scripts/dev-preview.js",
-    "test:api": "node scripts/test-sunset.js"
+    "test:api": "node scripts/test-sunset.js",
+    "test:ai-camera": "node scripts/test-ai-camera.js",
+    "test": "npm run test:api && npm run test:ai-camera"
   },
   "dependencies": {
     "suncalc": "^1.9.0"

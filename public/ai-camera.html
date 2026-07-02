@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>追·光 AI 相机 Demo</title>
+<style>
+  :root {
+    --bg: #08090d;
+    --panel: #151821;
+    --panel-2: #202432;
+    --line: rgba(255,255,255,.12);
+    --text: #f7f4ee;
+    --muted: rgba(247,244,238,.66);
+    --accent: #ff8a3d;
+    --good: #5dd88f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--text);
+    font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+  }
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) 360px;
+    gap: 20px;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .stage {
+    position: relative;
+    overflow: hidden;
+    min-height: calc(100vh - 40px);
+    border: 1px solid var(--line);
+    background: #000;
+  }
+  video, canvas.preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  .hud {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: none;
+  }
+  .pill {
+    border: 1px solid var(--line);
+    background: rgba(8,9,13,.72);
+    padding: 8px 10px;
+    font-size: 13px;
+    backdrop-filter: blur(12px);
+  }
+  .crop-box {
+    position: absolute;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.34), 0 0 24px rgba(255,138,61,.35);
+    pointer-events: none;
+    transition: all .26s ease;
+  }
+  .countdown {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    background: rgba(0,0,0,.18);
+    font-size: 120px;
+    font-weight: 800;
+    text-shadow: 0 12px 44px rgba(0,0,0,.5);
+  }
+  .countdown.active { display: grid; }
+  aside {
+    border-left: 1px solid var(--line);
+    padding-left: 20px;
+  }
+  h1 { margin: 0 0 6px; font-size: 24px; }
+  p { margin: 0; color: var(--muted); line-height: 1.55; }
+  .controls, .results {
+    margin-top: 20px;
+    display: grid;
+    gap: 12px;
+  }
+  .toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .toggle strong { display: block; margin-bottom: 4px; }
+  .switch {
+    width: 52px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #2a2d38;
+    padding: 3px;
+    flex: none;
+    cursor: pointer;
+  }
+  .switch span {
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.72);
+    transition: transform .18s ease, background .18s ease;
+  }
+  .switch[aria-checked="true"] span {
+    transform: translateX(22px);
+    background: var(--accent);
+  }
+  button {
+    border: 0;
+    color: #17110c;
+    background: var(--accent);
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  button.secondary {
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+  }
+  button:disabled { opacity: .48; cursor: not-allowed; }
+  .status {
+    min-height: 72px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .result {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 10px;
+  }
+  .result img {
+    display: block;
+    width: 100%;
+    background: #000;
+    margin-top: 8px;
+  }
+  .result-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  code {
+    display: block;
+    white-space: pre-wrap;
+    max-height: 180px;
+    overflow: auto;
+    padding: 10px;
+    background: #0d0f15;
+    color: #d9e1ff;
+    font-size: 11px;
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .stage { min-height: 62vh; }
+    aside { border-left: 0; padding-left: 0; }
+  }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="stage">
+      <video id="camera" playsinline autoplay muted></video>
+      <canvas id="preview" class="preview"></canvas>
+      <div id="cropBox" class="crop-box" hidden></div>
+      <div class="hud">
+        <div class="pill" id="scenePill">场景识别待启动</div>
+        <div class="pill" id="filterPill">滤镜：未应用</div>
+      </div>
+      <div class="countdown" id="countdown">3</div>
+    </section>
+    <aside>
+      <h1>追·光 AI 相机</h1>
+      <p>真实摄像头优先；AI 功能关闭时按普通相机拍照。打开 AI 后，拍照进入 3 秒观察窗口，结束时锁定构图和滤镜。</p>
+      <div class="controls">
+        <div class="toggle">
+          <div>
+            <strong>AI 构图</strong>
+            <p>打开后按当前预览比例自动裁剪，并保留原图对照。</p>
+          </div>
+          <button class="switch" id="compositionToggle" type="button" aria-checked="false"><span></span></button>
+        </div>
+        <div class="toggle">
+          <div>
+            <strong>AI 滤镜</strong>
+            <p>打开后按场景和光照自动套用首选滤镜。</p>
+          </div>
+          <button class="switch" id="filterToggle" type="button" aria-checked="false"><span></span></button>
+        </div>
+        <button id="startButton" type="button">启动摄像头</button>
+        <button id="captureButton" type="button" disabled>拍照</button>
+        <button id="downloadButton" type="button" class="secondary" disabled>下载 metadata.json</button>
+        <div class="status" id="status">等待摄像头授权。</div>
+      </div>
+      <div class="results" id="results"></div>
+    </aside>
+  </main>
+  <script src="./ai-camera-core.browser.js"></script>
+  <script src="./ai-camera.js"></script>
+</body>
+</html>

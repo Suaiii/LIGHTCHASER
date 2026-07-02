@@ -18,7 +18,7 @@ This branch adds the initial Role B data layer:
 
 ```bash
 npm install
-npm run test:api
+npm test
 npm run dev:preview
 ```
 
@@ -27,6 +27,14 @@ Open the integrated frontend and backend preview:
 ```text
 http://127.0.0.1:5174/
 ```
+
+Open the AI camera demo:
+
+```text
+http://127.0.0.1:5174/ai-camera.html
+```
+
+The AI camera demo uses the browser camera as the primary input. With AI features off it behaves like a normal camera. With AI composition or AI filters on, capture starts a 3-second observation window, then exports the original image, AI crop, AI crop + filter, and `metadata.json`.
 
 The same local server also handles:
 
