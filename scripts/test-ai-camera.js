@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 const {
   SCENE_FILTERS,
   FILTER_PRESETS,
@@ -15,6 +18,28 @@ function assert(condition, message) {
 
 function assertEqual(actual, expected, message) {
   assert(actual === expected, `${message}: expected ${expected}, got ${actual}`);
+}
+
+function testHiddenAttributeCanHideCameraOverlay() {
+  const html = fs.readFileSync(path.join(__dirname, "../public/ai-camera.html"), "utf8");
+  assert(/\[hidden\]\s*\{\s*display:\s*none\s*!important;\s*\}/.test(html), "hidden attribute should override overlay display rules");
+}
+
+function testAiControlsLiveInRightRailAndDefaultOff() {
+  const html = fs.readFileSync(path.join(__dirname, "../public/ai-camera.html"), "utf8");
+  assert(html.includes('<nav class="ai-group" aria-label="AI 拍摄辅助">'), "AI controls should live in the right-side rail");
+  assert(html.indexOf('<nav class="ai-group"') > html.indexOf("</header>"), "AI controls should be outside the top toolbar");
+  assert(/id="compositionToggle"[^>]*aria-pressed="false"[^>]*>AI构图<\/button>/.test(html), "AI composition should render off by default");
+  assert(/id="filterToggle"[^>]*aria-pressed="false"[^>]*>AI滤镜<\/button>/.test(html), "AI filter should render off by default");
+  assert(!html.includes("自动构图和滤镜。"), "start copy should not imply AI starts automatically");
+}
+
+function testAiSettingsDefaultToStandardCamera() {
+  const js = fs.readFileSync(path.join(__dirname, "../public/ai-camera.js"), "utf8");
+  assert(/aiComposition:\s*savedBoolean\("aiComposition",\s*false\)/.test(js), "new users should default AI composition off");
+  assert(/aiFilter:\s*savedBoolean\("aiFilter",\s*false\)/.test(js), "new users should default AI filter off");
+  assert(!/savedSettings\.aiComposition\s*!==\s*false/.test(js), "AI composition should not default on when settings are missing");
+  assert(!/savedSettings\.aiFilter\s*!==\s*false/.test(js), "AI filter should not default on when settings are missing");
 }
 
 function testFilterCatalogIntegrity() {
@@ -263,6 +288,9 @@ function testStandardDecisionDoesNotApplyAi() {
 }
 
 function main() {
+  testHiddenAttributeCanHideCameraOverlay();
+  testAiControlsLiveInRightRailAndDefaultOff();
+  testAiSettingsDefaultToStandardCamera();
   testFilterCatalogIntegrity();
   testLightClassification();
   testFilterRecommendation();

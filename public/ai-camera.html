@@ -2,241 +2,492 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>追·光 AI 相机 Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>追·光相机</title>
 <style>
   :root {
-    --bg: #08090d;
-    --panel: #151821;
-    --panel-2: #202432;
-    --line: rgba(255,255,255,.12);
-    --text: #f7f4ee;
-    --muted: rgba(247,244,238,.66);
-    --accent: #ff8a3d;
-    --good: #5dd88f;
+    color-scheme: dark;
+    --bg: #050609;
+    --text: #fffaf2;
+    --muted: rgba(255,250,242,.68);
+    --line: rgba(255,255,255,.18);
+    --glass: rgba(10,12,18,.62);
+    --glass-strong: rgba(10,12,18,.82);
+    --accent: #ffb13b;
+    --accent-2: #61d394;
+    --danger: #ff6d6d;
+    --shadow: 0 18px 60px rgba(0,0,0,.42);
   }
   * { box-sizing: border-box; }
-  body {
+  html, body {
+    width: 100%;
+    min-height: 100%;
     margin: 0;
-    min-height: 100vh;
+    background: var(--bg);
     color: var(--text);
     font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    background: var(--bg);
   }
-  .shell {
-    display: grid;
-    grid-template-columns: minmax(360px, 1fr) 360px;
-    gap: 20px;
-    min-height: 100vh;
-    padding: 20px;
+  body { overflow: hidden; }
+  button, input { font: inherit; }
+  button {
+    border: 0;
+    color: inherit;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  .stage {
-    position: relative;
+  button:disabled { cursor: not-allowed; opacity: .45; }
+  [hidden] { display: none !important; }
+  .camera-app {
+    position: fixed;
+    inset: 0;
+    min-width: 320px;
+    background: #000;
     overflow: hidden;
-    min-height: calc(100vh - 40px);
-    border: 1px solid var(--line);
+  }
+  .viewfinder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
     background: #000;
   }
-  video, canvas.preview {
+  video, canvas.capture-buffer {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     background: #000;
   }
-  .hud {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    top: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 12px;
+  canvas.capture-buffer {
+    visibility: hidden;
     pointer-events: none;
   }
-  .pill {
-    border: 1px solid var(--line);
-    background: rgba(8,9,13,.72);
-    padding: 8px 10px;
-    font-size: 13px;
-    max-width: 100%;
-    backdrop-filter: blur(12px);
-  }
-  .crop-box {
+  .ratio-mask {
     position: absolute;
-    border: 2px solid var(--accent);
-    box-shadow: 0 0 0 9999px rgba(0,0,0,.34), 0 0 24px rgba(255,138,61,.35);
+    inset: 0;
     pointer-events: none;
-    transition: all .26s ease;
+    box-shadow: inset 0 0 0 999px rgba(0,0,0,0);
+    transition: box-shadow .2s ease;
   }
-  .countdown {
+  .camera-app[data-ratio="1:1"] .ratio-mask {
+    box-shadow: inset 0 15vh 0 rgba(0,0,0,.42), inset 0 -15vh 0 rgba(0,0,0,.42);
+  }
+  .camera-app[data-ratio="16:9"] .ratio-mask {
+    box-shadow: inset 0 7vh 0 rgba(0,0,0,.32), inset 0 -7vh 0 rgba(0,0,0,.32);
+  }
+  .grid-lines {
     position: absolute;
     inset: 0;
     display: none;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, transparent 33.2%, rgba(255,255,255,.28) 33.2%, rgba(255,255,255,.28) 33.6%, transparent 33.6%, transparent 66.4%, rgba(255,255,255,.28) 66.4%, rgba(255,255,255,.28) 66.8%, transparent 66.8%),
+      linear-gradient(to bottom, transparent 33.2%, rgba(255,255,255,.28) 33.2%, rgba(255,255,255,.28) 33.6%, transparent 33.6%, transparent 66.4%, rgba(255,255,255,.28) 66.4%, rgba(255,255,255,.28) 66.8%, transparent 66.8%);
+  }
+  .camera-app.grid-on .grid-lines { display: block; }
+  .crop-box {
+    position: absolute;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 24px rgba(255,177,59,.35);
+    pointer-events: none;
+    transition: all .22s ease;
+  }
+  .focus-ring {
+    position: absolute;
+    width: 78px;
+    height: 78px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(.72);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .focus-ring.active {
+    animation: focus-pulse .72s ease forwards;
+  }
+  @keyframes focus-pulse {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+    28% { opacity: 1; transform: translate(-50%, -50%) scale(.86); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+  .top-hud, .bottom-controls, .ai-group {
+    position: absolute;
+    z-index: 4;
+  }
+  .top-hud, .bottom-controls {
+    left: max(14px, env(safe-area-inset-left));
+    right: max(14px, env(safe-area-inset-right));
+  }
+  .top-hud {
+    top: max(12px, env(safe-area-inset-top));
+    display: grid;
+    gap: 10px;
+  }
+  .top-row, .bottom-controls, .review-actions, .variant-tabs {
+    display: flex;
+    align-items: center;
+  }
+  .top-row {
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip, .icon-button, .ratio-button, .ai-button {
+    border: 1px solid var(--line);
+    background: var(--glass);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  }
+  .chip {
+    min-height: 34px;
+    max-width: 100%;
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .chip.good { border-color: rgba(97,211,148,.54); color: #ceffdf; }
+  .chip.warn { border-color: rgba(255,177,59,.58); color: #ffe0a3; }
+  .icon-button {
+    width: 44px;
+    height: 44px;
+    display: grid;
     place-items: center;
-    background: rgba(0,0,0,.18);
-    font-size: 120px;
+    border-radius: 50%;
+    font-size: 18px;
     font-weight: 800;
-    text-shadow: 0 12px 44px rgba(0,0,0,.5);
   }
-  .countdown.active { display: grid; }
-  aside {
-    border-left: 1px solid var(--line);
-    padding-left: 20px;
+  .tool-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
-  h1 { margin: 0 0 6px; font-size: 24px; }
-  p { margin: 0; color: var(--muted); line-height: 1.55; }
-  .controls, .results {
-    margin-top: 20px;
+  .ratio-group {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    background: rgba(0,0,0,.24);
+    backdrop-filter: blur(18px);
+  }
+  .ratio-button, .ai-button {
+    min-width: 46px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .ratio-button.active, .ai-button[aria-pressed="true"] {
+    color: #15110a;
+    background: var(--accent);
+    border-color: rgba(255,177,59,.8);
+  }
+  .ai-group {
+    right: max(14px, env(safe-area-inset-right));
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    gap: 10px;
+  }
+  .ai-button {
+    width: 66px;
+    height: 52px;
+    border-radius: 8px;
+    line-height: 1.15;
+  }
+  .bottom-controls {
+    bottom: max(18px, env(safe-area-inset-bottom));
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .thumbnail-button {
+    width: 58px;
+    height: 58px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--glass);
+  }
+  .thumbnail-button img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .thumbnail-empty {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: var(--muted);
+    font-size: 22px;
+  }
+  .shutter {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    border: 4px solid rgba(255,255,255,.94);
+    background: rgba(255,255,255,.2);
+    box-shadow: var(--shadow);
+    display: grid;
+    place-items: center;
+  }
+  .shutter::after {
+    content: "";
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.94);
+    transition: transform .12s ease;
+  }
+  .shutter:active::after { transform: scale(.86); }
+  .start-gate, .busy-layer, .review-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+  }
+  .start-gate {
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+      linear-gradient(180deg, rgba(5,6,9,.18), rgba(5,6,9,.84)),
+      radial-gradient(circle at 50% 18%, rgba(255,177,59,.24), transparent 34%),
+      #050609;
+  }
+  .start-card {
+    width: min(420px, 100%);
+    display: grid;
+    gap: 16px;
+    text-align: center;
+  }
+  .start-card h1 { margin: 0; font-size: clamp(34px, 10vw, 58px); letter-spacing: 0; }
+  .start-card p { margin: 0; color: var(--muted); line-height: 1.7; }
+  .primary-button, .secondary-button, .danger-button {
+    min-height: 46px;
+    padding: 0 18px;
+    font-weight: 850;
+  }
+  .primary-button {
+    color: #15110a;
+    background: var(--accent);
+  }
+  .secondary-button {
+    border: 1px solid var(--line);
+    background: var(--glass);
+  }
+  .danger-button {
+    border: 1px solid rgba(255,109,109,.44);
+    color: #ffd1d1;
+    background: rgba(90,16,20,.7);
+  }
+  .busy-layer {
+    display: none;
+    place-items: center;
+    background: rgba(0,0,0,.34);
+    backdrop-filter: blur(2px);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .busy-layer.active { display: grid; }
+  .review-layer {
+    display: none;
+    grid-template-rows: 1fr auto;
+    background: #050609;
+  }
+  .review-layer.active { display: grid; }
+  .review-image-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: max(16px, env(safe-area-inset-top)) 14px 10px;
+    background: #000;
+  }
+  .review-image-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    box-shadow: 0 20px 70px rgba(0,0,0,.46);
+  }
+  .review-panel {
     display: grid;
     gap: 12px;
+    padding: 14px max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    border-top: 1px solid var(--line);
+    background: var(--glass-strong);
+    backdrop-filter: blur(20px);
   }
-  .toggle {
+  .review-title {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 14px;
-    padding: 14px;
-    border: 1px solid var(--line);
-    background: var(--panel);
+    gap: 12px;
+    align-items: flex-start;
   }
-  .toggle strong { display: block; margin-bottom: 4px; }
-  .switch {
-    width: 52px;
-    height: 30px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: #2a2d38;
-    padding: 3px;
+  .review-title h2 { margin: 0; font-size: 18px; }
+  .review-title p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .variant-tabs {
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .variant-tab {
     flex: none;
-    cursor: pointer;
-  }
-  .switch span {
-    display: block;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.72);
-    transition: transform .18s ease, background .18s ease;
-  }
-  .switch[aria-checked="true"] span {
-    transform: translateX(22px);
-    background: var(--accent);
-  }
-  button {
-    border: 0;
-    color: #17110c;
-    background: var(--accent);
-    padding: 14px 16px;
-    font-size: 15px;
-    font-weight: 800;
-    cursor: pointer;
-  }
-  button.secondary {
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.08);
     color: var(--text);
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-  }
-  label.secondary {
-    display: block;
-    text-align: center;
-    color: var(--text);
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    padding: 14px 16px;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 800;
-    cursor: pointer;
   }
-  input[type="file"] { display: none; }
-  button:disabled { opacity: .48; cursor: not-allowed; }
-  .status {
-    min-height: 72px;
-    border: 1px solid var(--line);
-    background: var(--panel);
-    padding: 14px;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.6;
+  .variant-tab.active {
+    color: #15110a;
+    background: var(--accent);
+    border-color: var(--accent);
   }
-  .result {
-    border: 1px solid var(--line);
-    background: var(--panel);
-    padding: 10px;
-  }
-  .result img {
-    display: block;
-    width: 100%;
-    background: #000;
-    margin-top: 8px;
-  }
-  .result-title {
-    display: flex;
+  .review-actions {
     justify-content: space-between;
     gap: 8px;
-    color: var(--muted);
-    font-size: 12px;
   }
-  code {
-    display: block;
-    white-space: pre-wrap;
-    max-height: 180px;
+  .review-actions button, .review-actions a {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    text-decoration: none;
+    color: inherit;
+    font-size: 13px;
+  }
+  .debug-panel {
+    position: absolute;
+    right: max(14px, env(safe-area-inset-right));
+    top: 112px;
+    z-index: 8;
+    display: none;
+    width: min(360px, calc(100% - 28px));
+    max-height: calc(100vh - 180px);
     overflow: auto;
-    padding: 10px;
-    background: #0d0f15;
+    padding: 12px;
+    border: 1px solid var(--line);
+    background: var(--glass-strong);
+    backdrop-filter: blur(18px);
+  }
+  .camera-app.debug-on .debug-panel { display: grid; gap: 10px; }
+  .debug-panel code {
+    display: block;
+    max-height: 220px;
+    overflow: auto;
+    white-space: pre-wrap;
     color: #d9e1ff;
     font-size: 11px;
+    line-height: 1.5;
   }
-  @media (max-width: 900px) {
-    .shell { grid-template-columns: 1fr; }
-    .stage { min-height: 62vh; }
-    aside { border-left: 0; padding-left: 0; }
+  .debug-panel input { width: 100%; color: var(--text); }
+  @media (max-width: 720px) {
+    .top-row { align-items: flex-start; }
+    .tool-group { flex-wrap: wrap; justify-content: flex-end; padding-right: 76px; }
+    .ai-group { right: max(10px, env(safe-area-inset-right)); }
+    .ai-button { width: 58px; height: 48px; font-size: 11px; }
+    .chip-row { max-width: 100%; }
+    .chip { font-size: 11px; }
+    .shutter { width: 78px; height: 78px; }
+    .shutter::after { width: 58px; height: 58px; }
+    .thumbnail-button { width: 52px; height: 52px; }
+    .icon-button { width: 42px; height: 42px; }
   }
 </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="stage">
+  <main class="camera-app" id="cameraApp" data-ratio="4:3">
+    <section class="viewfinder" id="viewfinder" aria-label="相机取景器">
       <video id="camera" playsinline autoplay muted></video>
-      <canvas id="preview" class="preview"></canvas>
+      <canvas id="preview" class="capture-buffer"></canvas>
+      <div class="ratio-mask" aria-hidden="true"></div>
+      <div class="grid-lines" aria-hidden="true"></div>
       <div id="cropBox" class="crop-box" hidden></div>
-      <div class="hud">
-        <div class="pill" id="scenePill">场景识别待启动</div>
-        <div class="pill" id="compositionPill">AI 构图已关闭</div>
-        <div class="pill" id="filterPill">滤镜：未应用</div>
-      </div>
-      <div class="countdown" id="countdown">3</div>
+      <div id="focusRing" class="focus-ring" aria-hidden="true"></div>
     </section>
-    <aside>
-      <h1>追·光 AI 相机</h1>
-      <p>真实摄像头优先；AI 功能关闭时按普通相机拍照。打开 AI 后，拍照进入 3 秒观察窗口，结束时锁定构图和滤镜。</p>
-      <div class="controls">
-        <div class="toggle">
-          <div>
-            <strong>AI 构图</strong>
-            <p>打开后按当前预览比例自动裁剪，并保留原图对照。</p>
-          </div>
-          <button class="switch" id="compositionToggle" type="button" aria-checked="false"><span></span></button>
+
+    <header class="top-hud">
+      <div class="top-row">
+        <div class="chip-row">
+          <div class="chip good" id="sunsetChip">追光状态载入中</div>
+          <div class="chip" id="scenePill">等待取景</div>
+          <div class="chip" id="tipChip">打开相机后即可拍摄</div>
         </div>
-        <div class="toggle">
-          <div>
-            <strong>AI 滤镜</strong>
-            <p>打开后按场景和光照自动套用首选滤镜。</p>
+        <div class="tool-group">
+          <button class="icon-button" id="gridButton" type="button" aria-pressed="true" title="网格线">#</button>
+          <div class="ratio-group" aria-label="拍摄比例">
+            <button class="ratio-button active" type="button" data-ratio="4:3">4:3</button>
+            <button class="ratio-button" type="button" data-ratio="1:1">1:1</button>
+            <button class="ratio-button" type="button" data-ratio="16:9">16:9</button>
           </div>
-          <button class="switch" id="filterToggle" type="button" aria-checked="false"><span></span></button>
         </div>
-        <button id="startButton" type="button">启动摄像头</button>
-        <label class="secondary" for="mediaInput">选择图片/视频调试</label>
-        <input id="mediaInput" type="file" accept="image/*,video/*" />
-        <button id="captureButton" type="button" disabled>拍照</button>
-        <button id="downloadButton" type="button" class="secondary" disabled>下载 metadata.json</button>
-        <div class="status" id="status">等待摄像头授权。</div>
       </div>
-      <div class="results" id="results"></div>
+    </header>
+
+    <nav class="ai-group" aria-label="AI 拍摄辅助">
+      <button class="ai-button" id="compositionToggle" type="button" aria-pressed="false">AI构图</button>
+      <button class="ai-button" id="filterToggle" type="button" aria-pressed="false">AI滤镜</button>
+    </nav>
+
+    <footer class="bottom-controls">
+      <button class="thumbnail-button" id="thumbnailButton" type="button" title="最近照片">
+        <span class="thumbnail-empty">□</span>
+      </button>
+      <button class="shutter" id="captureButton" type="button" aria-label="拍照" disabled></button>
+      <button class="icon-button" id="switchButton" type="button" title="切换摄像头" disabled>↺</button>
+    </footer>
+
+    <section class="start-gate" id="startGate">
+      <div class="start-card">
+        <h1>追·光相机</h1>
+        <p>实时取景、即时快门，可在右侧手动开启 AI 构图和 AI 滤镜。拍照不会等待 AI 倒计时，AI 结果会在拍后完成。</p>
+        <button id="startButton" type="button" class="primary-button">启动相机</button>
+        <button id="retryButton" type="button" class="secondary-button" hidden>重新授权</button>
+        <p id="status">等待摄像头授权。</p>
+      </div>
+    </section>
+
+    <div class="busy-layer" id="busyLayer">正在处理照片</div>
+
+    <section class="review-layer" id="reviewLayer" aria-label="照片回看">
+      <div class="review-image-wrap">
+        <img id="reviewImage" alt="拍摄结果" />
+      </div>
+      <div class="review-panel">
+        <div class="review-title">
+          <div>
+            <h2 id="reviewTitle">刚刚拍摄</h2>
+            <p id="reviewMeta">AI 正在整理成片</p>
+          </div>
+          <button class="icon-button" id="closeReviewButton" type="button" title="返回取景">×</button>
+        </div>
+        <div class="variant-tabs" id="variantTabs"></div>
+        <div class="review-actions">
+          <a id="downloadLink" class="secondary-button" download="lightchaser-photo.jpg" href="#">下载</a>
+          <button id="deletePhotoButton" class="danger-button" type="button">删除</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="debug-panel" id="debugPanel">
+      <strong>开发调试</strong>
+      <button id="sampleMediaButton" type="button" class="secondary-button">载入示例照片</button>
+      <input id="mediaInput" type="file" accept="image/*,video/*" />
+      <button id="downloadMetadataButton" type="button" class="secondary-button" disabled>下载 metadata.json</button>
+      <code id="debugJson">{}</code>
     </aside>
   </main>
+
+  <script src="./vendor/filterous2.min.js"></script>
   <script src="./ai-camera-core.browser.js"></script>
   <script src="./ai-camera.js"></script>
 </body>
