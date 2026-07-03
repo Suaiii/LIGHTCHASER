@@ -6,6 +6,7 @@ const preview = document.getElementById("preview");
 const ctx = preview.getContext("2d", { willReadFrequently: true });
 const cropBoxEl = document.getElementById("cropBox");
 const scenePill = document.getElementById("scenePill");
+const compositionPill = document.getElementById("compositionPill");
 const filterPill = document.getElementById("filterPill");
 const countdownEl = document.getElementById("countdown");
 const statusEl = document.getElementById("status");
@@ -168,6 +169,7 @@ function updateDecision() {
 
 function renderDecision(decision) {
   scenePill.textContent = `${decision.sceneLabel} · ${decision.light}`;
+  compositionPill.textContent = compositionLabel(decision);
   const recommendedLabels = decision.recommendedFilters.map(filterLabel);
   filterPill.textContent = decision.appliedFilter ? `滤镜：${filterLabel(decision.appliedFilter)}` : `推荐：${recommendedLabels.join(" / ")}`;
   if (state.aiComposition && decision.outputs.aiCrop) {
@@ -226,6 +228,14 @@ function filterSettings(filterName) {
 
 function filterLabel(filterName) {
   return filterPresets[filterName]?.label || filterName;
+}
+
+function compositionLabel(decision) {
+  if (decision.compositionStatus === "off") return "AI 构图已关闭";
+  const kept = Math.round((decision.cropAreaRatio || 1) * 100);
+  if (decision.compositionStatus === "skipped") return "AI 构图已跳过";
+  if (decision.compositionReason === "protected_full_frame") return `AI 构图已应用 · 主体保护 · 保留 ${kept}%`;
+  return `AI 构图已应用 · 保留 ${kept}%`;
 }
 
 async function startCamera() {
@@ -367,7 +377,7 @@ async function capture() {
   downloadButton.disabled = false;
   state.capturing = false;
   captureButton.disabled = false;
-  setStatus(`拍照完成：${decision.sceneLabel} / ${decision.light}${decision.appliedFilter ? ` / 已套用 ${filterLabel(decision.appliedFilter)}` : ""}`);
+  setStatus(`拍照完成：${decision.sceneLabel} / ${decision.light} / ${compositionLabel(decision)}${decision.appliedFilter ? ` / 已套用 ${filterLabel(decision.appliedFilter)}` : ""}`);
 }
 
 function makeCanvas(width, height) {

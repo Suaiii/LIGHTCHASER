@@ -66,6 +66,8 @@
   const MIN_SUBJECT_CONFIDENCE = 0.35;
   const FILTER_SWITCH_CONFIDENCE = 0.72;
   const SUBJECT_PADDING_RATIO = 0.08;
+  const DEFAULT_COMPOSITION_AREA_RATIO = 0.88;
+  const MAX_NOTICEABLE_CROP_AREA_RATIO = 0.92;
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -161,6 +163,90 @@
     return { x: 0, y: 0, width: frame.width, height: frame.height };
   }
 
+  function cropAreaRatio(frame, cropBox) {
+    return (cropBox.width * cropBox.height) / (frame.width * frame.height);
+  }
+
+  function centeredCrop(frame, areaRatio = DEFAULT_COMPOSITION_AREA_RATIO) {
+    const scale = Math.sqrt(clamp(areaRatio, 0.01, 1));
+    const width = Math.round(frame.width * scale);
+    const height = Math.round(frame.height * scale);
+    return {
+      x: Math.round((frame.width - width) / 2),
+      y: Math.round((frame.height - height) / 2),
+      width,
+      height,
+    };
+  }
+
+  function containsBox(cropBox, subjectBox) {
+    return cropBox.x <= subjectBox.x
+      && cropBox.y <= subjectBox.y
+      && cropBox.x + cropBox.width >= subjectBox.x + subjectBox.width
+      && cropBox.y + cropBox.height >= subjectBox.y + subjectBox.height;
+  }
+
+  function cropAroundSubject(frame, subjectBox, aspectRatio, areaRatio = DEFAULT_COMPOSITION_AREA_RATIO) {
+    const targetRatio = aspectRatio || frame.width / frame.height;
+    const scale = Math.sqrt(clamp(areaRatio, 0.01, 1));
+    let cropWidth = frame.width * scale;
+    let cropHeight = cropWidth / targetRatio;
+
+    if (cropHeight > frame.height * scale) {
+      cropHeight = frame.height * scale;
+      cropWidth = cropHeight * targetRatio;
+    }
+
+    cropWidth = Math.min(cropWidth, frame.width);
+    cropHeight = Math.min(cropHeight, frame.height);
+
+    const subjectCenterX = subjectBox.x + subjectBox.width / 2;
+    const subjectCenterY = subjectBox.y + subjectBox.height / 2;
+    const cropBox = {
+      x: Math.round(clamp(subjectCenterX - cropWidth / 2, 0, frame.width - cropWidth)),
+      y: Math.round(clamp(subjectCenterY - cropHeight / 2, 0, frame.height - cropHeight)),
+      width: Math.round(cropWidth),
+      height: Math.round(cropHeight),
+    };
+
+    return cropBox;
+  }
+
+  function chooseCompositionCrop(frame, subjectBox) {
+    if (!subjectBox) {
+      return {
+        cropBox: centeredCrop(frame),
+        status: "applied",
+        reason: "center_safe_crop",
+      };
+    }
+
+    const aspectRatio = frame.width / frame.height;
+    const naturalCrop = calculateCropBox(frame, subjectBox, aspectRatio);
+    if (cropAreaRatio(frame, naturalCrop) <= MAX_NOTICEABLE_CROP_AREA_RATIO) {
+      return {
+        cropBox: naturalCrop,
+        status: "applied",
+        reason: "subject_crop",
+      };
+    }
+
+    const strongerCrop = cropAroundSubject(frame, subjectBox, aspectRatio);
+    if (containsBox(strongerCrop, subjectBox)) {
+      return {
+        cropBox: strongerCrop,
+        status: "applied",
+        reason: "subject_crop",
+      };
+    }
+
+    return {
+      cropBox: naturalCrop,
+      status: "applied",
+      reason: "protected_full_frame",
+    };
+  }
+
   function sampleSubjectBoxes(sample) {
     const boxes = Array.isArray(sample.subjectBoxes) ? sample.subjectBoxes : [sample.subjectBox];
     return boxes
@@ -224,17 +310,18 @@
     const filters = recommendFilters(sceneResult.scene, light);
     const subjectBoxes = latestSubjectBoxes(stableSamples);
     const subjectBox = mergeSubjectBoxes(frame, subjectBoxes);
-    const compositionSkippedReason = aiComposition && !subjectBox ? "subject_unclear" : null;
-    const cropBox = aiComposition && subjectBox
-      ? calculateCropBox(frame, subjectBox, frame.width / frame.height)
-      : fullFrameCrop(frame);
+    const compositionDecision = aiComposition
+      ? chooseCompositionCrop(frame, subjectBox)
+      : { cropBox: fullFrameCrop(frame), status: "off", reason: "ai_composition_off" };
+    const compositionSkippedReason = compositionDecision.status === "skipped" ? compositionDecision.reason : null;
+    const cropBox = compositionDecision.cropBox;
     const filterDecision = chooseAppliedFilter({
       aiFilter,
       candidate: filters[0],
       previousDecision: options.previousDecision,
       sceneResult,
     });
-    const aiCropEnabled = aiComposition && !compositionSkippedReason;
+    const aiCropEnabled = aiComposition && compositionDecision.status === "applied";
     const aiFilterEnabled = aiFilter && Boolean(filterDecision.filter);
 
     return {
@@ -252,6 +339,9 @@
       subjectBox,
       subjectCount: subjectBoxes.length,
       compositionSkippedReason,
+      compositionStatus: compositionDecision.status,
+      compositionReason: compositionDecision.reason,
+      cropAreaRatio: Number(cropAreaRatio(frame, cropBox).toFixed(3)),
       outputs: {
         original: true,
         aiCrop: aiCropEnabled,

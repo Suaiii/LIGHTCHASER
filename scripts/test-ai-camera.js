@@ -131,13 +131,12 @@ function testAiCompositionSkipsWhenSubjectIsUnclear() {
     ],
   });
 
-  assertEqual(decision.cropBox.x, 0, "unclear subject should keep full-frame x");
-  assertEqual(decision.cropBox.y, 0, "unclear subject should keep full-frame y");
-  assertEqual(decision.cropBox.width, 1200, "unclear subject should keep full-frame width");
-  assertEqual(decision.cropBox.height, 1600, "unclear subject should keep full-frame height");
-  assertEqual(decision.compositionSkippedReason, "subject_unclear", "skip reason");
-  assert(!decision.outputs.aiCrop, "skipped composition should not emit a duplicate crop output");
-  assert(!decision.outputs.aiCropFilter, "skipped composition should not label filter output as crop-filter");
+  assertEqual(decision.compositionStatus, "applied", "unclear subject should still apply visible composition");
+  assertEqual(decision.compositionReason, "center_safe_crop", "unclear subject should use center safe crop");
+  assert(decision.cropAreaRatio >= 0.85 && decision.cropAreaRatio <= 0.92, `center crop should keep 85%-92%, got ${decision.cropAreaRatio}`);
+  assert(decision.cropBox.x > 0, "center crop should trim horizontal edge");
+  assert(decision.cropBox.y > 0, "center crop should trim vertical edge");
+  assert(decision.outputs.aiCrop, "center-safe composition should emit ai crop output");
 }
 
 function testAiCompositionSkipsLowConfidenceSubjectBox() {
@@ -155,9 +154,33 @@ function testAiCompositionSkipsLowConfidenceSubjectBox() {
     ],
   });
 
-  assertEqual(decision.cropBox.width, 1200, "low-confidence subject box should keep full-frame width");
-  assertEqual(decision.cropBox.height, 1600, "low-confidence subject box should keep full-frame height");
-  assertEqual(decision.compositionSkippedReason, "subject_unclear", "low-confidence subject skip reason");
+  assertEqual(decision.compositionStatus, "applied", "low-confidence subject should still apply visible composition");
+  assertEqual(decision.compositionReason, "center_safe_crop", "low-confidence subject should fall back to center safe crop");
+  assert(decision.cropAreaRatio >= 0.85 && decision.cropAreaRatio <= 0.92, `low-confidence subject crop should keep 85%-92%, got ${decision.cropAreaRatio}`);
+}
+
+function testAiCompositionHasNoticeableMinimumCropForReliableSubject() {
+  const decision = buildCaptureDecision({
+    aiComposition: true,
+    aiFilter: false,
+    frame: { width: 1280, height: 720 },
+    samples: [
+      {
+        scene: "landscape",
+        confidence: 0.72,
+        frameStats: { brightness: 0.66, warmth: 0.02 },
+        subjectBox: { x: 400, y: 160, width: 520, height: 360, confidence: 0.82 },
+      },
+    ],
+  });
+
+  assertEqual(decision.compositionStatus, "applied", "reliable subject should apply AI composition");
+  assertEqual(decision.compositionReason, "subject_crop", "reliable subject should use subject crop");
+  assert(decision.cropAreaRatio <= 0.92, `reliable subject crop should be noticeable, got ${decision.cropAreaRatio}`);
+  assert(decision.cropBox.x <= decision.subjectBox.x, "crop should include subject left edge");
+  assert(decision.cropBox.y <= decision.subjectBox.y, "crop should include subject top edge");
+  assert(decision.cropBox.x + decision.cropBox.width >= decision.subjectBox.x + decision.subjectBox.width, "crop should include subject right edge");
+  assert(decision.cropBox.y + decision.cropBox.height >= decision.subjectBox.y + decision.subjectBox.height, "crop should include subject bottom edge");
 }
 
 function testAiCompositionProtectsMultipleSubjects() {
@@ -249,6 +272,7 @@ function main() {
   testRepeatedWeakSceneStillFallsBack();
   testAiCompositionSkipsWhenSubjectIsUnclear();
   testAiCompositionSkipsLowConfidenceSubjectBox();
+  testAiCompositionHasNoticeableMinimumCropForReliableSubject();
   testAiCompositionProtectsMultipleSubjects();
   testAiFilterHoldsPreviousFilterOnUnstableSwitch();
   testLowConfidenceBeatsPreviousFilterHold();
