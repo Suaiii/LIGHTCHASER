@@ -5,60 +5,255 @@
   }
   root.LightchaserAICameraCore = api;
 })(typeof globalThis !== "undefined" ? globalThis : window, function () {
+  // 23 套胶片模拟 —— 5 大品牌分组(抖音风滤镜选择器配套)
   const FILTER_PRESETS = {
-    "iPhone Rich Contrast": { label: "iPhone 深调高反差", brightness: -2, contrast: 1.16, saturation: 1.04, warmth: 0 },
-    "iPhone Vibrant": { label: "iPhone 鲜明", brightness: 4, contrast: 1.06, saturation: 1.18, warmth: 0 },
-    "iPhone Warm": { label: "iPhone 暖色", brightness: 4, contrast: 1.02, saturation: 1.08, warmth: 18 },
-    "iPhone Cool": { label: "iPhone 冷色", brightness: 6, contrast: 1.04, saturation: 1.02, warmth: -16 },
-    "FUJIFILM PROVIA": { label: "富士 PROVIA 标准", brightness: 2, contrast: 1.02, saturation: 1.05, warmth: 2 },
-    "FUJIFILM Velvia": { label: "富士 Velvia 鲜艳", brightness: 4, contrast: 1.12, saturation: 1.28, warmth: 2 },
-    "FUJIFILM ASTIA": { label: "富士 ASTIA 柔和", brightness: 5, contrast: 0.92, saturation: 1.04, warmth: 8 },
-    "FUJIFILM Classic Chrome": { label: "富士 Classic Chrome", brightness: 1, contrast: 1.12, saturation: 0.78, warmth: -2 },
-    "FUJIFILM Classic Neg.": { label: "富士 Classic Neg.", brightness: 0, contrast: 1.18, saturation: 0.92, warmth: 4 },
-    "FUJIFILM ETERNA": { label: "富士 ETERNA 电影", brightness: 3, contrast: 0.88, saturation: 0.72, warmth: 0 },
-    "FUJIFILM ACROS": { label: "富士 ACROS 黑白", brightness: 0, contrast: 1.2, saturation: 0, warmth: 0, grayscale: true },
-    "Google Dynamic": { label: "Google Dynamic 鲜活", brightness: 5, contrast: 1.07, saturation: 1.16, warmth: 0 },
-    "Google Night Sight": { label: "Google Night Sight", brightness: 20, contrast: 1.08, saturation: 1.02, warmth: -4 },
-    "Google Portrait": { label: "Google Portrait 柔肤", brightness: 6, contrast: 0.94, saturation: 1.06, warmth: 10 },
-    "Clear Scan": { label: "清晰扫描", brightness: 18, contrast: 1.28, saturation: 0.2, warmth: -6 },
+    // ─── 富士 8 ───
+    // ─── 富士 8 ───
+    F_PROVIA: {
+      label: "PROVIA", brand: "fuji",
+      tone: { brightness: 2,  contrast: 1.02, saturation: 1.05, warmth: 2,  grayscale: false },
+      grain: 0.18, vignette: 0.18,
+      iconColors: ["#ffd400", "#0b3b88"],
+    },
+    F_VELVIA: {
+      label: "Velvia", brand: "fuji",
+      tone: { brightness: 4,  contrast: 1.12, saturation: 1.28, warmth: 2,  grayscale: false },
+      grain: 0.20, vignette: 0.22,
+      lut: "velvia", lutStrength: 1.0,
+      iconColors: ["#ffd400", "#1f8f3b"],
+    },
+    F_C_CHROME: {
+      label: "Classic Chrome", brand: "fuji",
+      tone: { brightness: 1,  contrast: 1.12, saturation: 0.78, warmth: -2, grayscale: false },
+      grain: 0.24, vignette: 0.26,
+      lut: "classic-chrome", lutStrength: 1.0,
+      iconColors: ["#ffd400", "#222222"],
+    },
+    F_ASTIA: {
+      label: "ASTIA", brand: "fuji",
+      tone: { brightness: 5,  contrast: 0.92, saturation: 1.04, warmth: 8,  grayscale: false },
+      grain: 0.14, vignette: 0.16,
+      iconColors: ["#ffd400", "#f4b3b3"],
+    },
+    F_CLASSIC_NEG: {
+      label: "Classic Neg.", brand: "fuji",
+      tone: { brightness: 0,  contrast: 1.18, saturation: 0.92, warmth: 4,  grayscale: false },
+      grain: 0.26, vignette: 0.32,
+      iconColors: ["#ffd400", "#7d3c14"],
+    },
+    F_ACROS: {
+      label: "ACROS", brand: "fuji",
+      tone: { brightness: 0,  contrast: 1.22, saturation: 0,    warmth: 0,  grayscale: true  },
+      grain: 0.30, vignette: 0.30,
+      iconColors: ["#1a1a1a", "#cccccc"],
+    },
+    F_NOSTALGIC_NEG: {
+      label: "Nostalgic Neg.", brand: "fuji",
+      tone: { brightness: 4,  contrast: 1.06, saturation: 0.86, warmth: 16, grayscale: false },
+      grain: 0.28, vignette: 0.34,
+      iconColors: ["#ffd400", "#d8a264"],
+    },
+    F_BLEACH_BYPASS: {
+      label: "Bleach Bypass", brand: "fuji",
+      tone: { brightness: -4, contrast: 1.22, saturation: 0.62, warmth: -4, grayscale: false },
+      grain: 0.30, vignette: 0.36,
+      iconColors: ["#ffd400", "#5d6371"],
+    },
+
+    // ─── 柯达 5 ───
+    K_PORTRA_160: {
+      label: "Portra 160", brand: "kodak",
+      tone: { brightness: 6,  contrast: 1.00, saturation: 0.78, warmth: 14, grayscale: false },
+      grain: 0.18, vignette: 0.18,
+      lut: "portra-400", lutStrength: 0.65,
+      iconColors: ["#f5e0b8", "#a86c2c"],
+    },
+    K_PORTRA_400: {
+      label: "Portra 400", brand: "kodak",
+      tone: { brightness: 4,  contrast: 1.04, saturation: 0.92, warmth: 18, grayscale: false },
+      grain: 0.22, vignette: 0.22,
+      lut: "portra-400", lutStrength: 1.0,
+      iconColors: ["#e8c987", "#3a2820"],
+    },
+    K_EKTAR_100: {
+      label: "Ektar 100", brand: "kodak",
+      tone: { brightness: 2,  contrast: 1.14, saturation: 1.22, warmth: -6, grayscale: false },
+      grain: 0.16, vignette: 0.18,
+      iconColors: ["#d75b29", "#1c1c1c"],
+    },
+    K_GOLD_200: {
+      label: "Gold 200", brand: "kodak",
+      tone: { brightness: 6,  contrast: 1.04, saturation: 1.06, warmth: 22, grayscale: false },
+      grain: 0.22, vignette: 0.24,
+      iconColors: ["#e6a91a", "#7c1f10"],
+    },
+    K_TRI_X_400: {
+      label: "Tri-X 400", brand: "kodak",
+      tone: { brightness: 0,  contrast: 1.32, saturation: 0,    warmth: 0,  grayscale: true  },
+      grain: 0.36, vignette: 0.32,
+      lut: "tri-x", lutStrength: 1.0,
+      iconColors: ["#1c1c1c", "#e4c5a0"],
+    },
+
+    // ─── Agfa 4 ───
+    A_VISTA_PLUS_200: {
+      label: "Vista Plus 200", brand: "agfa",
+      tone: { brightness: 4,  contrast: 1.02, saturation: 0.86, warmth: -14, grayscale: false },
+      grain: 0.18, vignette: 0.22,
+      iconColors: ["#0f6b56", "#e3edec"],
+    },
+    A_VISTA_200: {
+      label: "Vista 200", brand: "agfa",
+      tone: { brightness: 4,  contrast: 1.04, saturation: 1.08, warmth: -4, grayscale: false },
+      grain: 0.20, vignette: 0.20,
+      iconColors: ["#1f8f7a", "#f6e98a"],
+    },
+    A_OPTIMA_200: {
+      label: "Optima 200", brand: "agfa",
+      tone: { brightness: 4,  contrast: 1.06, saturation: 1.16, warmth: 10, grayscale: false },
+      grain: 0.20, vignette: 0.22,
+      iconColors: ["#bf2525", "#f5b830"],
+    },
+    A_ULTRA_100: {
+      label: "Ultra 100", brand: "agfa",
+      tone: { brightness: 2,  contrast: 1.04, saturation: 0.88, warmth: -2, grayscale: false },
+      grain: 0.12, vignette: 0.16,
+      iconColors: ["#9aa6a8", "#ffffff"],
+    },
+
+    // ─── 清新人像 3 ───
+    FRESH_GLOW: {
+      label: "清新发光", brand: "fresh",
+      tone: { brightness: 10, contrast: 0.96, saturation: 0.96, warmth: 6,  grayscale: false },
+      grain: 0.10, vignette: 0.10,
+      iconColors: ["#9be0e8", "#fff7d8"],
+    },
+    SOFT_SKIN: {
+      label: "柔肤", brand: "fresh",
+      tone: { brightness: 8,  contrast: 0.92, saturation: 0.98, warmth: 8,  grayscale: false },
+      grain: 0.10, vignette: 0.12,
+      iconColors: ["#fce0d4", "#f6a89b"],
+    },
+    PORCELAIN_SKIN: {
+      label: "瓷肌", brand: "fresh",
+      tone: { brightness: 12, contrast: 0.90, saturation: 0.86, warmth: 4,  grayscale: false },
+      grain: 0.08, vignette: 0.10,
+      iconColors: ["#fff7f3", "#e3c4be"],
+    },
+
+    // ─── 黑白 3 ───
+    MONO_CLASSIC: {
+      label: "经典黑白", brand: "mono",
+      tone: { brightness: 0,  contrast: 1.12, saturation: 0,    warmth: 0,  grayscale: true  },
+      grain: 0.16, vignette: 0.18,
+      iconColors: ["#222222", "#9a9a9a"],
+    },
+    MONO_FADE: {
+      label: "褪色黑白", brand: "mono",
+      tone: { brightness: 8,  contrast: 0.92, saturation: 0,    warmth: 0,  grayscale: true  },
+      grain: 0.22, vignette: 0.22,
+      iconColors: ["#5b5b5b", "#ffffff"],
+    },
+    MONO_HIGH: {
+      label: "高反差黑白", brand: "mono",
+      tone: { brightness: -4, contrast: 1.42, saturation: 0,    warmth: 0,  grayscale: true  },
+      grain: 0.34, vignette: 0.30,
+      iconColors: ["#000000", "#ffffff"],
+    },
   };
 
+  // 按品牌分组的索引 —— UI 渲染用
+  const BRAND_ORDER = ["fuji", "kodak", "agfa", "fresh", "mono"];
+  const BRAND_LABEL = {
+    fuji: "富士",
+    kodak: "柯达",
+    agfa: "Agfa",
+    fresh: "清新人像",
+    mono: "黑白",
+  };
+  const PACKAGING_BY_BRAND = {
+    fuji: "/assets/film-packaging-thumbnails/fuji.jpg",
+    kodak: "/assets/film-packaging-thumbnails/kodak.jpg",
+    agfa: "/assets/film-packaging-thumbnails/agfa.jpg",
+    fresh: "/assets/film-packaging-thumbnails/fresh.jpg",
+    mono: "/assets/film-packaging-thumbnails/mono.jpg",
+  };
+  // 胶片卡只需要展示尺寸；保留原图供其他高分辨率场景使用。
+  const FILTER_DEMO_PATHS = {
+    F_PROVIA:        "/assets/filter-thumbnails/f_provia.jpg",
+    F_VELVIA:        "/assets/filter-thumbnails/f_velvia.jpg",
+    F_C_CHROME:      "/assets/filter-thumbnails/f_c_chrome.jpg",
+    F_ASTIA:         "/assets/filter-thumbnails/f_astia.jpg",
+    F_CLASSIC_NEG:   "/assets/filter-thumbnails/f_classic_neg.jpg",
+    F_ACROS:         "/assets/filter-thumbnails/f_acros.jpg",
+    F_NOSTALGIC_NEG: "/assets/filter-thumbnails/f_nostalgic_neg.jpg",
+    F_BLEACH_BYPASS: "/assets/filter-thumbnails/f_bleach_bypass.jpg",
+    K_PORTRA_160:    "/assets/filter-thumbnails/k_portra_160.jpg",
+    K_PORTRA_400:    "/assets/filter-thumbnails/k_portra_400.jpg",
+    K_EKTAR_100:     "/assets/filter-thumbnails/k_ektar_100.jpg",
+    K_GOLD_200:      "/assets/filter-thumbnails/k_gold_200.jpg",
+    K_TRI_X_400:     "/assets/filter-thumbnails/k_tri_x_400.jpg",
+    A_VISTA_PLUS_200:"/assets/filter-thumbnails/a_vista_plus_200.jpg",
+    A_VISTA_200:     "/assets/filter-thumbnails/a_vista_200.jpg",
+    A_OPTIMA_200:    "/assets/filter-thumbnails/a_optima_200.jpg",
+    A_ULTRA_100:     "/assets/filter-thumbnails/a_ultra_100.jpg",
+    FRESH_GLOW:      "/assets/filter-thumbnails/fresh_glow.jpg",
+    SOFT_SKIN:       "/assets/filter-thumbnails/soft_skin.jpg",
+    PORCELAIN_SKIN:  "/assets/filter-thumbnails/porcelain_skin.jpg",
+    MONO_CLASSIC:    "/assets/filter-thumbnails/mono_classic.jpg",
+    MONO_FADE:       "/assets/filter-thumbnails/mono_fade.jpg",
+    MONO_HIGH:       "/assets/filter-thumbnails/mono_high.jpg",
+  };
+  const FILTERS_BY_BRAND = BRAND_ORDER.reduce((acc, brand) => {
+    acc[brand] = Object.entries(FILTER_PRESETS)
+      .filter(([, preset]) => preset.brand === brand)
+      .map(([key]) => key);
+    return acc;
+  }, {});
+
+  // 场景 → 推荐滤镜(全用新 key)
   const SCENE_FILTERS = {
-    portrait: { label: "人像", filters: ["Google Portrait", "FUJIFILM ASTIA", "iPhone Warm"] },
-    food: { label: "美食", filters: ["iPhone Vibrant", "Google Dynamic", "FUJIFILM Velvia"] },
-    night: { label: "夜景", filters: ["Google Night Sight", "iPhone Cool", "FUJIFILM ETERNA"] },
-    landscape: { label: "风景", filters: ["FUJIFILM Velvia", "Google Dynamic", "FUJIFILM PROVIA"] },
-    indoor: { label: "室内", filters: ["iPhone Cool", "Google Portrait", "FUJIFILM PROVIA"] },
-    street: { label: "街拍", filters: ["FUJIFILM Classic Neg.", "FUJIFILM Classic Chrome", "iPhone Rich Contrast"] },
-    document: { label: "文档", filters: ["Clear Scan", "FUJIFILM ACROS", "iPhone Cool"] },
-    general: { label: "普通", filters: ["Google Dynamic", "FUJIFILM PROVIA", "FUJIFILM ETERNA"] },
+    portrait:   { label: "人像",   filters: ["K_PORTRA_400", "F_ASTIA", "SOFT_SKIN"] },
+    food:       { label: "美食",   filters: ["F_VELVIA", "A_OPTIMA_200", "K_GOLD_200"] },
+    night:      { label: "夜景",   filters: ["F_CLASSIC_NEG", "MONO_HIGH", "K_PORTRA_400"] },
+    landscape:  { label: "风景",   filters: ["F_VELVIA", "K_EKTAR_100", "F_PROVIA"] },
+    indoor:     { label: "室内",   filters: ["K_PORTRA_160", "F_ASTIA", "FRESH_GLOW"] },
+    street:     { label: "街拍",   filters: ["F_C_CHROME", "F_CLASSIC_NEG", "MONO_CLASSIC"] },
+    document:   { label: "文档",   filters: ["MONO_HIGH", "F_ACROS", "MONO_CLASSIC"] },
+    sunset:     { label: "夕阳",   filters: ["K_GOLD_200", "F_NOSTALGIC_NEG", "F_VELVIA"] },
+    general:    { label: "普通",   filters: ["F_PROVIA", "K_PORTRA_400", "FRESH_GLOW"] },
   };
 
   const LIGHT_FILTER_OVERRIDES = {
     "偏暗": {
-      night: "Google Night Sight",
-      portrait: "Google Portrait",
-      document: "Clear Scan",
-      general: "Google Night Sight",
+      night:     "F_BLEACH_BYPASS",
+      portrait:  "FRESH_GLOW",
+      food:      "FRESH_GLOW",
+      landscape: "F_PROVIA",
+      street:    "F_C_CHROME",
+      general:   "F_BLEACH_BYPASS",
     },
     "过曝": {
-      portrait: "FUJIFILM ASTIA",
-      food: "FUJIFILM PROVIA",
-      landscape: "FUJIFILM PROVIA",
-      street: "FUJIFILM Classic Chrome",
-      general: "FUJIFILM ETERNA",
+      portrait:  "F_ASTIA",
+      food:      "F_PROVIA",
+      landscape: "A_VISTA_PLUS_200",
+      street:    "F_C_CHROME",
+      sunset:    "A_VISTA_PLUS_200",
+      general:   "F_ASTIA",
     },
     "偏冷": {
-      portrait: "iPhone Warm",
-      food: "iPhone Warm",
-      indoor: "iPhone Warm",
-      general: "iPhone Warm",
+      portrait: "K_PORTRA_400",
+      food:     "K_GOLD_200",
+      indoor:   "K_PORTRA_400",
+      sunset:   "F_NOSTALGIC_NEG",
+      general:  "K_PORTRA_400",
     },
     "偏暖": {
-      portrait: "iPhone Cool",
-      food: "FUJIFILM PROVIA",
-      indoor: "iPhone Cool",
-      general: "iPhone Cool",
+      portrait: "A_VISTA_PLUS_200",
+      food:     "F_PROVIA",
+      indoor:   "A_VISTA_PLUS_200",
+      sunset:   "A_OPTIMA_200",
+      general:  "A_VISTA_PLUS_200",
     },
   };
 
@@ -68,9 +263,31 @@
   const SUBJECT_PADDING_RATIO = 0.08;
   const DEFAULT_COMPOSITION_AREA_RATIO = 0.88;
   const MAX_NOTICEABLE_CROP_AREA_RATIO = 0.92;
+  const ASPECT_RATIOS = {
+    "1:1": 1,
+    "3:4": 3 / 4,
+    "4:3": 4 / 3,
+    "16:9": 16 / 9,
+  };
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function aspectRatioValue(ratioName, fallbackRatio) {
+    return ASPECT_RATIOS[ratioName] || fallbackRatio || 3 / 4;
+  }
+
+  function closestAspectRatioName(frame) {
+    const frameRatio = frame.width / frame.height;
+    return Object.entries(ASPECT_RATIOS)
+      .map(([name, value]) => ({ name, distance: Math.abs(value - frameRatio) }))
+      .sort((a, b) => a.distance - b.distance)[0]?.name || "3:4";
+  }
+
+  function normalizeAspectRatioName(ratioName, frame) {
+    if (ASPECT_RATIOS[ratioName]) return ratioName;
+    return frame ? closestAspectRatioName(frame) : "3:4";
   }
 
   function classifyLight(frameStats) {
@@ -150,10 +367,16 @@
 
     const subjectCenterX = subject.x + subject.width / 2;
     const subjectCenterY = subject.y + subject.height / 2;
-    const thirdsBiasY = subjectCenterY < height * 0.5 ? -0.06 * cropHeight : 0.04 * cropHeight;
+    // 主体靠近其原始一侧的三分线，另一侧自然留白；边界仍严格包住主体。
+    const targetX = subjectCenterX < width * 0.5 ? cropWidth / 3 : cropWidth * 2 / 3;
+    const targetY = cropHeight * 0.44;
+    const minX = subject.x + subject.width - cropWidth;
+    const maxX = subject.x;
+    const minY = subject.y + subject.height - cropHeight;
+    const maxY = subject.y;
     return {
-      x: Math.round(clamp(subjectCenterX - cropWidth / 2, 0, width - cropWidth)),
-      y: Math.round(clamp(subjectCenterY - cropHeight / 2 + thirdsBiasY, 0, height - cropHeight)),
+      x: Math.round(clamp(clamp(subjectCenterX - targetX, minX, maxX), 0, width - cropWidth)),
+      y: Math.round(clamp(clamp(subjectCenterY - targetY, minY, maxY), 0, height - cropHeight)),
       width: Math.round(cropWidth),
       height: Math.round(cropHeight),
     };
@@ -167,10 +390,25 @@
     return (cropBox.width * cropBox.height) / (frame.width * frame.height);
   }
 
-  function centeredCrop(frame, areaRatio = DEFAULT_COMPOSITION_AREA_RATIO) {
+  function centeredCrop(frame, aspectRatio, areaRatio = DEFAULT_COMPOSITION_AREA_RATIO) {
+    const targetRatio = aspectRatio || frame.width / frame.height;
     const scale = Math.sqrt(clamp(areaRatio, 0.01, 1));
-    const width = Math.round(frame.width * scale);
-    const height = Math.round(frame.height * scale);
+    let width = frame.width * scale;
+    let height = width / targetRatio;
+    if (height > frame.height * scale) {
+      height = frame.height * scale;
+      width = height * targetRatio;
+    }
+    if (width > frame.width) {
+      width = frame.width;
+      height = width / targetRatio;
+    }
+    if (height > frame.height) {
+      height = frame.height;
+      width = height * targetRatio;
+    }
+    width = Math.round(width);
+    height = Math.round(height);
     return {
       x: Math.round((frame.width - width) / 2),
       y: Math.round((frame.height - height) / 2),
@@ -212,17 +450,17 @@
     return cropBox;
   }
 
-  function chooseCompositionCrop(frame, subjectBox) {
+  function chooseCompositionCrop(frame, subjectBox, aspectRatio) {
+    const targetRatio = aspectRatio || frame.width / frame.height;
     if (!subjectBox) {
       return {
-        cropBox: centeredCrop(frame),
-        status: "applied",
-        reason: "center_safe_crop",
+        cropBox: fullFrameCrop(frame),
+        status: "skipped",
+        reason: "subject_unconfirmed",
       };
     }
 
-    const aspectRatio = frame.width / frame.height;
-    const naturalCrop = calculateCropBox(frame, subjectBox, aspectRatio);
+    const naturalCrop = calculateCropBox(frame, subjectBox, targetRatio);
     if (cropAreaRatio(frame, naturalCrop) <= MAX_NOTICEABLE_CROP_AREA_RATIO) {
       return {
         cropBox: naturalCrop,
@@ -231,7 +469,7 @@
       };
     }
 
-    const strongerCrop = cropAroundSubject(frame, subjectBox, aspectRatio);
+    const strongerCrop = cropAroundSubject(frame, subjectBox, targetRatio);
     if (containsBox(strongerCrop, subjectBox)) {
       return {
         cropBox: strongerCrop,
@@ -244,6 +482,73 @@
       cropBox: naturalCrop,
       status: "applied",
       reason: "protected_full_frame",
+    };
+  }
+
+  function subjectGeometry(frame, subjectBox) {
+    if (!subjectBox) {
+      return { areaRatio: 0, subjectRatio: 0, heightRatio: 0, widthRatio: 0, tall: false, wide: false };
+    }
+    const areaRatio = (subjectBox.width * subjectBox.height) / (frame.width * frame.height);
+    const subjectRatio = subjectBox.width / subjectBox.height;
+    const heightRatio = subjectBox.height / frame.height;
+    const widthRatio = subjectBox.width / frame.width;
+    return {
+      areaRatio,
+      subjectRatio,
+      heightRatio,
+      widthRatio,
+      tall: heightRatio >= 0.48 && subjectRatio <= 0.85,
+      wide: widthRatio >= 0.46 && subjectRatio >= 1.15,
+    };
+  }
+
+  function recommendAspectRatio(sceneResult, subjectBox, frame, manualAspectRatio) {
+    const manual = normalizeAspectRatioName(manualAspectRatio, frame);
+    if (!sceneResult || sceneResult.reason === "low_scene_confidence" || sceneResult.scene === "general") {
+      return {
+        recommendedAspectRatio: manual,
+        ratioReason: sceneResult?.reason || "manual_default",
+        compositionGuideText: "保持当前画幅",
+      };
+    }
+
+    if (sceneResult.scene === "portrait") {
+      return {
+        recommendedAspectRatio: "3:4",
+        ratioReason: "portrait_vertical",
+        compositionGuideText: "人像竖幅，保留头顶和身体线条",
+      };
+    }
+
+    if (sceneResult.scene === "food") {
+      return {
+        recommendedAspectRatio: "1:1",
+        ratioReason: "food_square",
+        compositionGuideText: "方幅收紧桌面主体",
+      };
+    }
+
+    if (sceneResult.scene === "landscape") {
+      const geometry = subjectGeometry(frame, subjectBox);
+      if (geometry.tall) {
+        return {
+          recommendedAspectRatio: "3:4",
+          ratioReason: "landscape_tall_subject",
+          compositionGuideText: "竖向主体，保留高度",
+        };
+      }
+      return {
+        recommendedAspectRatio: "16:9",
+        ratioReason: geometry.wide ? "landscape_wide_subject" : "landscape_wide_scene",
+        compositionGuideText: "横幅保留天空和地平线",
+      };
+    }
+
+    return {
+      recommendedAspectRatio: manual,
+      ratioReason: "manual_for_scene",
+      compositionGuideText: "保持当前画幅",
     };
   }
 
@@ -304,14 +609,21 @@
     const frame = options.frame || { width: 1080, height: 1440 };
     const aiComposition = Boolean(options.aiComposition);
     const aiFilter = Boolean(options.aiFilter);
+    const manualAspectRatio = normalizeAspectRatioName(options.manualAspectRatio, frame);
+    const aspectRatioMode = options.aspectRatioMode === "auto" ? "auto" : "manual";
     const stableSamples = samples.slice(-Math.min(5, samples.length || 1));
     const sceneResult = inferScene(stableSamples);
     const light = classifyLight(averageStats(stableSamples));
     const filters = recommendFilters(sceneResult.scene, light);
     const subjectBoxes = latestSubjectBoxes(stableSamples);
     const subjectBox = mergeSubjectBoxes(frame, subjectBoxes);
+    const ratioPlan = recommendAspectRatio(sceneResult, subjectBox, frame, manualAspectRatio);
+    const effectiveAspectRatio = aiComposition && aspectRatioMode === "auto"
+      ? ratioPlan.recommendedAspectRatio
+      : manualAspectRatio;
+    const targetAspectRatio = aspectRatioValue(effectiveAspectRatio, frame.width / frame.height);
     const compositionDecision = aiComposition
-      ? chooseCompositionCrop(frame, subjectBox)
+      ? chooseCompositionCrop(frame, subjectBox, targetAspectRatio)
       : { cropBox: fullFrameCrop(frame), status: "off", reason: "ai_composition_off" };
     const compositionSkippedReason = compositionDecision.status === "skipped" ? compositionDecision.reason : null;
     const cropBox = compositionDecision.cropBox;
@@ -323,6 +635,8 @@
     });
     const aiCropEnabled = aiComposition && compositionDecision.status === "applied";
     const aiFilterEnabled = aiFilter && Boolean(filterDecision.filter);
+    // 单张 final 输出:不再枚举 4 个 variant,告诉下游该 apply 什么、用哪个 filter key、画幅是什么。
+    const selectedFilterKey = aiFilterEnabled ? filterDecision.filter : null;
 
     return {
       mode: aiComposition || aiFilter ? "ai-capture" : "standard",
@@ -333,7 +647,14 @@
       decisionReason: sceneResult.reason,
       light,
       recommendedFilters: filters,
-      appliedFilter: filterDecision.filter,
+      manualAspectRatio,
+      recommendedAspectRatio: ratioPlan.recommendedAspectRatio,
+      effectiveAspectRatio,
+      ratioReason: aiComposition && aspectRatioMode === "auto"
+        ? ratioPlan.ratioReason
+        : (aiComposition ? "manual_aspect_ratio" : "ai_composition_off"),
+      compositionGuideText: ratioPlan.compositionGuideText,
+      appliedFilter: selectedFilterKey,
       filterDecisionReason: filterDecision.reason,
       cropBox,
       subjectBox,
@@ -342,14 +663,31 @@
       compositionStatus: compositionDecision.status,
       compositionReason: compositionDecision.reason,
       cropAreaRatio: Number(cropAreaRatio(frame, cropBox).toFixed(3)),
-      outputs: {
-        original: true,
-        aiCrop: aiCropEnabled,
-        aiCropFilter: aiCropEnabled && aiFilterEnabled,
-        aiFilter: !aiCropEnabled && aiFilterEnabled,
+      output: {
+        applyComposition: aiCropEnabled,
+        applyLockedFilter: Boolean(selectedFilterKey),
+        selectedFilterKey,
+        selectedAspectRatio: effectiveAspectRatio,
+        sceneLabel: SCENE_FILTERS[sceneResult.scene]?.label || SCENE_FILTERS.general.label,
+        sceneConfidence: sceneResult.confidence,
+        lightClassification: light,
+        recommendedFilterKeys: filters,
       },
     };
   }
 
-  return { SCENE_FILTERS, FILTER_PRESETS, classifyLight, recommendFilters, calculateCropBox, buildCaptureDecision };
+  return {
+    SCENE_FILTERS,
+    FILTER_PRESETS,
+    BRAND_ORDER,
+    BRAND_LABEL,
+    PACKAGING_BY_BRAND,
+    FILTERS_BY_BRAND,
+    FILTER_DEMO_PATHS,
+    classifyLight,
+    recommendFilters,
+    recommendAspectRatio,
+    calculateCropBox,
+    buildCaptureDecision,
+  };
 });

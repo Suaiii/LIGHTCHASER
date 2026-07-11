@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>LIGHTCHASER</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --black: #000000;
+        --white: #ffffff;
+        --yellow: #ffd60a;
+        --amber: #C9963F;
+        --amber-bright: #E2B261;
+        --amber-glow: rgba(201, 150, 63, 0.4);
+        --muted-white: rgba(255, 255, 255, 0.48);
+        --panel: rgba(0, 0, 0, 0.55);
+        --hairline: rgba(255, 255, 255, 0.92);
+        --rim: rgba(255, 255, 255, 0.08);
+        --system-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+          "Helvetica Neue", "PingFang SC", Arial, sans-serif;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      * { box-sizing: border-box; }
+      button { appearance: none; border: 0; margin: 0; padding: 0; font: inherit; color: inherit; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      html, body { width: 100%; height: 100%; margin: 0; background: var(--black); font-family: var(--system-font); overflow: hidden; }
+      body { color: var(--white); }
+
+      .stage { width: 100vw; height: 100svh; display: grid; place-items: center; background: var(--black); overflow: hidden; }
+      .phone { width: 100vw; height: 100svh; background: var(--black); overflow: hidden; position: relative; }
+
+      .camera-app {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-rows: minmax(0, 68fr) clamp(42px, 5.6%, 50px) minmax(174px, 26fr);
+        background: var(--black);
+      }
+
+      /* ===== 取景器 ===== */
+      .viewfinder {
+        position: relative;
+        min-height: 0;
+        overflow: hidden;
+        background: #1c1c1e;
+        isolation: isolate;
+      }
+      .preview {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+      .viewfinder::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(180deg, rgba(0, 0, 0, 0.42), transparent 18%),
+          linear-gradient(0deg, rgba(0, 0, 0, 0.36), transparent 20%);
+        z-index: 1;
+      }
+
+      /* ===== 顶部工具栏 ===== */
+      .top-bar {
+        position: absolute;
+        top: max(env(safe-area-inset-top), 12px);
+        left: 0;
+        right: 0;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 clamp(18px, 6vw, 28px);
+        z-index: 2;
+      }
+      .icon-button {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        color: var(--white);
+        border-radius: 50%;
+        transition: opacity 200ms var(--ease), background 200ms var(--ease);
+      }
+      .icon-button:active { opacity: 0.55; }
+      .icon-button.active {
+        background: rgba(201, 150, 63, 0.18);
+        box-shadow: 0 0 0 0.5px var(--amber-glow), 0 0 14px rgba(201, 150, 63, 0.28);
+      }
+      .icon-button.active svg { color: var(--amber-bright); }
+      .icon-button svg {
+        width: 25px; height: 25px; fill: none; stroke: currentColor;
+        stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+      }
+
+      /* AI 构图 / 滤镜 圆形按钮 */
+      .ai-dot {
+        position: absolute;
+        top: 6px; right: 6px;
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 6px var(--amber-glow);
+        animation: ai-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes ai-pulse {
+        0%, 100% { opacity: 0.5; transform: scale(0.85); }
+        50% { opacity: 1; transform: scale(1.15); }
+      }
+
+      /* 滤镜预览状态 chip(顶部居中) */
+      .preview-chip {
+        position: absolute;
+        top: max(env(safe-area-inset-top), 16px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px 7px 10px;
+        background: rgba(20, 20, 20, 0.78);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 0.5px solid var(--amber-glow);
+        border-radius: 100px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 320ms var(--ease), transform 320ms var(--ease);
+        cursor: pointer;
+      }
+      .preview-chip.show {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+      }
+      .preview-chip .dot {
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 6px var(--amber-glow);
+      }
+      .preview-chip .label {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        color: var(--amber-bright);
+      }
+      .preview-chip .close {
+        font-size: 12px;
+        color: var(--muted-white);
+        line-height: 1;
+        margin-left: 2px;
+        opacity: 0.7;
+      }
+
+      /* ===== Zoom Controls ===== */
+      .zoom-controls {
+        position: absolute;
+        left: 50%;
+        bottom: clamp(13px, 2.2svh, 22px);
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        z-index: 2;
+      }
+      .zoom-controls button {
+        width: 34px; height: 34px;
+        display: grid; place-items: center;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.52);
+        color: var(--white);
+        font-size: 12px; font-weight: 700; line-height: 1;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        transition: background 240ms var(--ease), color 240ms var(--ease), transform 240ms var(--ease);
+      }
+      .zoom-controls .active {
+        background: var(--white);
+        color: var(--black);
+        transform: scale(1.06);
+      }
+
+      /* AI 构图比例建议框 */
+      .ai-frame {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        border: 2px solid var(--amber);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 320ms var(--ease);
+        z-index: 3;
+      }
+      .ai-frame.show { opacity: 1; }
+      .ai-frame .ai-label {
+        position: absolute;
+        top: -28px; left: 50%;
+        transform: translateX(-50%);
+        background: rgba(20, 20, 20, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 0.5px solid var(--amber-glow);
+        color: var(--amber-bright);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        padding: 5px 10px;
+        border-radius: 100px;
+        font-family: var(--system-font);
+        white-space: nowrap;
+      }
+      /* 三等分引导线 */
+      .ai-frame .grid-lines {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .ai-frame .grid-lines::before,
+      .ai-frame .grid-lines::after {
+        content: '';
+        position: absolute;
+        background: rgba(201, 150, 63, 0.45);
+      }
+      .ai-frame .grid-lines::before {
+        left: 33.333%; right: 33.333%;
+        top: 0; bottom: 0;
+        border-left: 0.5px solid rgba(201, 150, 63, 0.45);
+        border-right: 0.5px solid rgba(201, 150, 63, 0.45);
+      }
+      .ai-frame .grid-lines::after {
+        top: 33.333%; bottom: 33.333%;
+        left: 0; right: 0;
+        border-top: 0.5px solid rgba(201, 150, 63, 0.45);
+        border-bottom: 0.5px solid rgba(201, 150, 63, 0.45);
+      }
+
+      /* ===== Mode Carousel ===== */
+      .mode-carousel {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(17px, 4.8vw, 25px);
+        padding: 0 10px;
+        overflow: hidden;
+        background: var(--black);
+        color: var(--muted-white);
+        font-size: clamp(11px, 2.85vw, 12px);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .mode-carousel span {
+        cursor: pointer;
+        transition: color 240ms var(--ease), transform 240ms var(--ease);
+      }
+      .mode-carousel .active {
+        color: var(--yellow);
+        transform: scale(1.06);
+      }
+
+      /* ===== Bottom Controls ===== */
+      .bottom-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        align-items: center;
+        justify-items: center;
+        padding:
+          clamp(10px, 1.6svh, 15px)
+          clamp(24px, 8vw, 36px)
+          max(env(safe-area-inset-bottom), clamp(18px, 3.3svh, 31px));
+        background: var(--black);
+      }
+      .thumbnail-button {
+        width: clamp(44px, 12.4vw, 53px);
+        aspect-ratio: 1;
+        justify-self: start;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #1c1c1e;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+        position: relative;
+      }
+      .thumbnail-button img {
+        width: 100%; height: 100%; display: block; object-fit: cover;
+      }
+      .thumbnail-button.empty::after {
+        content: '';
+        position: absolute;
+        inset: 30%;
+        border: 1.5px solid rgba(255, 255, 255, 0.4);
+        border-radius: 4px;
+      }
+
+      .shutter-button {
+        width: clamp(76px, 20.8vw, 88px);
+        aspect-ratio: 1;
+        display: grid; place-items: center;
+        border-radius: 50%;
+        border: 3px solid var(--hairline);
+        background: var(--black);
+        transition: transform 220ms var(--ease-spring);
+      }
+      .shutter-button:active { transform: scale(0.92); }
+      .shutter-button span {
+        width: calc(100% - 12px);
+        aspect-ratio: 1;
+        display: block;
+        border-radius: 50%;
+        background: var(--white);
+        transition: background 200ms var(--ease), transform 220ms var(--ease-spring);
+      }
+      .shutter-button:active span { background: #e0e0e0; transform: scale(0.95); }
+
+      .flip-button {
+        width: clamp(48px, 13.4vw, 58px);
+        aspect-ratio: 1;
+        justify-self: end;
+        display: grid; place-items: center;
+        color: var(--white);
+        border-radius: 50%;
+        background: var(--panel);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: transform 320ms var(--ease-spring);
+      }
+      .flip-button:active { transform: rotate(180deg) scale(0.94); }
+      .flip-button svg {
+        width: 31px; height: 31px; fill: none; stroke: currentColor;
+        stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round;
+      }
+
+      /* ===== 闪屏 ===== */
+      .shutter-flash {
+        position: fixed; inset: 0;
+        background: #fff;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      /* ===== AI 滤镜抽屉 ===== */
+      .filter-sheet {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: rgba(15, 15, 15, 0.96);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        border-top: 0.5px solid var(--rim);
+        border-radius: 24px 24px 0 0;
+        padding: 12px 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+        transform: translateY(100%);
+        transition: transform 480ms var(--ease);
+        z-index: 50;
+        max-height: 78%;
+        display: flex;
+        flex-direction: column;
+      }
+      .filter-sheet.open { transform: translateY(0); }
+      .filter-handle {
+        width: 36px; height: 4px;
+        background: rgba(255, 255, 255, 0.16);
+        border-radius: 100px;
+        margin: 0 auto 16px;
+        flex-shrink: 0;
+      }
+      .filter-sheet-header {
+        padding: 0 20px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .filter-sheet-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--white);
+        letter-spacing: 0.04em;
+      }
+      .filter-sheet-title .ai-tag {
+        color: var(--amber);
+        margin-right: 6px;
+        font-weight: 600;
+      }
+      .filter-sheet-close {
+        width: 28px; height: 28px;
+        display: grid; place-items: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--muted-white);
+        font-size: 14px;
+      }
+
+      .filter-tabs {
+        display: flex;
+        padding: 0 20px;
+        border-bottom: 0.5px solid var(--rim);
+        margin-bottom: 16px;
+        flex-shrink: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .filter-tabs::-webkit-scrollbar { display: none; }
+      .filter-tab {
+        flex-shrink: 0;
+        padding: 10px 12px;
+        background: none;
+        border: none;
+        color: var(--muted-white);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        position: relative;
+        transition: color 240ms var(--ease);
+        white-space: nowrap;
+      }
+      .filter-tab.active { color: var(--white); }
+      .filter-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5px;
+        left: 24%; right: 24%;
+        height: 1.5px;
+        background: var(--amber);
+        box-shadow: 0 0 8px var(--amber-glow);
+        border-radius: 2px;
+      }
+
+      .filter-content {
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .filter-content::-webkit-scrollbar { display: none; }
+      .filter-strip {
+        display: flex;
+        gap: 10px;
+        padding: 0 20px 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .filter-strip::-webkit-scrollbar { display: none; }
+      .filter-card {
+        flex-shrink: 0;
+        width: 84px;
+        cursor: pointer;
+        transition: transform 240ms var(--ease);
+      }
+      .filter-card:active { transform: scale(0.96); }
+      .filter-card.active .filter-thumb {
+        border-color: var(--amber);
+        box-shadow: 0 0 0 1px var(--amber), 0 6px 20px rgba(201, 150, 63, 0.25);
+        transform: translateY(-2px);
+      }
+      .filter-thumb {
+        width: 84px; height: 108px;
+        border-radius: 4px;
+        margin-bottom: 7px;
+        position: relative;
+        overflow: hidden;
+        border: 1.5px solid transparent;
+        transition: all 240ms var(--ease);
+        background: #1c1c1e;
+      }
+      .filter-thumb img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .filter-thumb::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.5) 100%);
+        pointer-events: none;
+      }
+      .filter-thumb .badge {
+        position: absolute;
+        bottom: 4px; left: 4px; right: 4px;
+        font-size: 7px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: rgba(255, 255, 255, 0.95);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        text-align: center;
+        text-transform: uppercase;
+        z-index: 2;
+      }
+      .filter-name {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--muted-white);
+        text-align: center;
+        letter-spacing: 0.02em;
+        transition: color 240ms var(--ease);
+      }
+      .filter-card.active .filter-name { color: var(--amber-bright); }
+
+      /* AI 滤镜抽屉上半部分场景推荐 */
+      .filter-scene {
+        padding: 0 20px 14px;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        flex-shrink: 0;
+      }
+      .filter-scene::-webkit-scrollbar { display: none; }
+      .filter-scene-chip {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 0.5px solid var(--rim);
+        border-radius: 100px;
+        color: var(--muted-white);
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 200ms var(--ease);
+      }
+      .filter-scene-chip.active {
+        background: var(--amber);
+        color: var(--black);
+        border-color: var(--amber);
+        font-weight: 600;
+      }
+
+      /* ===== AI 处理中(雷达) ===== */
+      .processing {
+        position: fixed; inset: 0;
+        background: rgba(5, 5, 5, 0.94);
+        backdrop-filter: blur(12px);
+        z-index: 80;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 320ms var(--ease);
+      }
+      .processing.show { opacity: 1; pointer-events: auto; }
+      .radar {
+        width: 80px; height: 80px;
+        position: relative;
+        margin-bottom: 24px;
+      }
+      .radar .ring {
+        position: absolute; inset: 0;
+        border-radius: 50%;
+        border: 0.5px solid var(--amber-glow);
+      }
+      .radar .ring:nth-child(2) { inset: 12px; opacity: 0.7; }
+      .radar .ring:nth-child(3) { inset: 24px; opacity: 0.5; }
+      .radar .ring:nth-child(4) { inset: 36px; opacity: 0.3; }
+      .radar .sweep {
+        position: absolute; inset: 0;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent 0deg, var(--amber) 20deg, transparent 60deg);
+        animation: radar-sweep 2.2s linear infinite;
+        mask: radial-gradient(circle, transparent 8%, black 30%);
+        -webkit-mask: radial-gradient(circle, transparent 8%, black 30%);
+      }
+      @keyframes radar-sweep { to { transform: rotate(360deg); } }
+      .radar .cross-h, .radar .cross-v {
+        position: absolute; background: var(--amber-glow);
+      }
+      .radar .cross-h { top: 50%; left: 0; right: 0; height: 0.5px; transform: translateY(-50%); }
+      .radar .cross-v { left: 50%; top: 0; bottom: 0; width: 0.5px; transform: translateX(-50%); }
+      .processing-label {
+        font-size: 11px; letter-spacing: 0.32em;
+        color: var(--amber);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .processing-sub {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted-white);
+      }
+
+      /* ===== 回看页 ===== */
+      .review {
+        position: fixed; inset: 0;
+        background: var(--black);
+        transform: translateY(100%);
+        transition: transform 540ms var(--ease);
+        z-index: 90;
+        display: flex;
+        flex-direction: column;
+      }
+      .review.open { transform: translateY(0); }
+      .review-header {
+        padding: calc(env(safe-area-inset-top, 0px) + 16px) 20px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .review-back {
+        width: 36px; height: 36px;
+        display: grid; place-items: center;
+        color: var(--white);
+        background: var(--panel);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 50%;
+      }
+      .review-back svg {
+        width: 16px; height: 16px;
+        fill: none; stroke: currentColor; stroke-width: 1.6;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      .review-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--white);
+        letter-spacing: 0.04em;
+      }
+      .review-img-wrap {
+        flex: 1;
+        margin: 0 16px;
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #1c1c1e;
+      }
+      .review-img-wrap img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+      }
+      .review-img-wrap .watermark {
+        position: absolute;
+        bottom: 12px; right: 12px;
+        font-size: 10px;
+        letter-spacing: 0.32em;
+        color: rgba(255, 255, 255, 0.65);
+        text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      }
+      .review-meta {
+        padding: 16px 24px 8px;
+        text-align: center;
+      }
+      .review-meta .filter-tag {
+        display: inline-block;
+        padding: 4px 10px;
+        background: rgba(201, 150, 63, 0.15);
+        border: 0.5px solid var(--amber-glow);
+        color: var(--amber-bright);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        border-radius: 100px;
+        margin-bottom: 8px;
+      }
+      .review-meta .sub {
+        font-size: 11px;
+        color: var(--muted-white);
+        letter-spacing: 0.04em;
+      }
+      .review-actions {
+        padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+        display: flex;
+        gap: 10px;
+      }
+      .review-action {
+        flex: 1;
+        padding: 13px;
+        background: rgba(30, 30, 30, 0.7);
+        backdrop-filter: blur(20px);
+        border: 0.5px solid var(--rim);
+        border-radius: 100px;
+        color: var(--white);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 200ms var(--ease);
+      }
+      .review-action.primary {
+        background: var(--amber);
+        color: var(--black);
+        border-color: var(--amber);
+        font-weight: 600;
+      }
+      .review-action:active { transform: scale(0.97); }
+
+      /* ===== 启动屏 ===== */
+      .boot {
+        position: fixed; inset: 0;
+        background: var(--black);
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 600ms var(--ease);
+      }
+      .boot.hide { opacity: 0; pointer-events: none; }
+      .boot-mark {
+        width: 56px; height: 56px;
+        border: 1px solid var(--amber);
+        border-radius: 50%;
+        position: relative;
+        margin-bottom: 24px;
+        animation: boot-in 1.4s var(--ease) forwards;
+        opacity: 0;
+      }
+      @keyframes boot-in {
+        0% { opacity: 0; transform: scale(1.4); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      .boot-mark::before, .boot-mark::after {
+        content: '';
+        position: absolute; inset: 0;
+        border-radius: 50%;
+        border: 0.5px solid var(--amber-glow);
+      }
+      .boot-mark::before { inset: 8px; }
+      .boot-mark::after { inset: 16px; opacity: 0.5; }
+      .boot-mark .core {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 16px var(--amber-glow);
+      }
+      .boot-text {
+        font-size: 11px;
+        letter-spacing: 0.4em;
+        color: var(--muted-white);
+        animation: boot-text 1s var(--ease) 0.4s both;
+        font-weight: 300;
+      }
+      @keyframes boot-text {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Desktop 框 */
+      @media (width >= 560px) and (height >= 720px) {
+        .stage { height: 100svh; padding: 24px; }
+        .phone {
+          width: min(430px, calc((100svh - 48px) * 0.4614));
+          height: min(932px, calc(100svh - 48px));
+          border-radius: 44px;
+          box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.12),
+            0 28px 80px rgba(0, 0, 0, 0.72);
+        }
+        .camera-app { border-radius: inherit; overflow: hidden; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage" aria-label="LIGHTCHASER iOS Camera">
+      <section class="phone">
+        <div class="camera-app">
+
+          <!-- ===== VIEWFINDER ===== -->
+          <section class="viewfinder" aria-label="Camera viewfinder">
+            <img class="preview" src="./assets/viewfinder-preview.png" alt="" aria-hidden="true" />
+
+            <!-- 顶部工具栏 -->
+            <header class="top-bar" aria-label="Camera toolbar">
+              <button class="icon-button" id="flashBtn" aria-label="Flash">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M13 2 5.5 13h5L9 22l8.5-12h-5L13 2Z" />
+                </svg>
+              </button>
+
+              <button class="icon-button" id="aiCompositionBtn" aria-label="AI Composition">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                  <path d="M21 7V5a2 2 0 0 0-2-2h-2" />
+                  <path d="M3 17v2a2 2 0 0 0 2 2h2" />
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span class="ai-dot" id="aiCompositionDot" style="display:none"></span>
+              </button>
+
+              <button class="icon-button" id="aiFilterBtn" aria-label="AI Filter">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z" />
+                  <path d="M19 14l.7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7z" />
+                  <circle cx="6" cy="18" r="1.2" fill="currentColor" />
+                </svg>
+                <span class="ai-dot" id="aiFilterDot"></span>
+              </button>
+            </header>
+
+            <!-- 滤镜预览状态 chip -->
+            <div class="preview-chip" id="previewChip" aria-label="Filter preview">
+              <span class="dot"></span>
+              <span class="label" id="previewChipLabel">预览</span>
+              <span class="close">×</span>
+            </div>
+
+            <!-- Zoom Controls -->
+            <div class="zoom-controls" aria-label="Zoom controls">
+              <button type="button" data-zoom="0.5">.5</button>
+              <button type="button" class="active" data-zoom="1" aria-current="true">1</button>
+              <button type="button" data-zoom="2">2</button>
+            </div>
+
+            <!-- AI 构图比例建议框 -->
+            <div class="ai-frame" id="aiFrame">
+              <div class="ai-label" id="aiFrameLabel">AI 推荐 3:4</div>
+              <div class="grid-lines"></div>
+            </div>
+          </section>
+
+          <!-- ===== MODE CAROUSEL ===== -->
+          <nav class="mode-carousel" aria-label="Camera modes">
+            <span>CINEMATIC</span>
+            <span>VIDEO</span>
+            <span class="active" aria-current="page">PHOTO</span>
+            <span>PORTRAIT</span>
+            <span>PANO</span>
+          </nav>
+
+          <!-- ===== BOTTOM CONTROLS ===== -->
+          <section class="bottom-controls" aria-label="Capture controls">
+            <button class="thumbnail-button empty" id="thumbBtn" aria-label="Open recent photo"></button>
+
+            <button class="shutter-button" id="shutter" aria-label="Take photo">
+              <span></span>
+            </button>
+
+            <button class="flip-button" id="flipBtn" aria-label="Flip camera">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8.2 7.3a6.2 6.2 0 0 1 9.9 2.2" />
+                <path d="M18.3 5.5v4.2h-4.2" />
+                <path d="M15.8 16.7a6.2 6.2 0 0 1-9.9-2.2" />
+                <path d="M5.7 18.5v-4.2h4.2" />
+              </svg>
+            </button>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- 闪屏 -->
+    <div class="shutter-flash" id="shutterFlash"></div>
+
+    <!-- ===== AI 滤镜抽屉 ===== -->
+    <div class="filter-sheet" id="filterSheet" aria-label="AI Filter">
+      <div class="filter-handle"></div>
+      <div class="filter-sheet-header">
+        <div class="filter-sheet-title"><span class="ai-tag">AI</span>选择滤镜</div>
+        <button class="filter-sheet-close" id="filterSheetClose" aria-label="关闭">×</button>
+      </div>
+      <div class="filter-tabs" id="filterTabs" role="tablist"></div>
+      <div class="filter-scene" id="filterScene"></div>
+      <div class="filter-content">
+        <div class="filter-strip" id="filterStrip"></div>
+      </div>
+    </div>
+
+    <!-- ===== AI 处理 ===== -->
+    <div class="processing" id="processing">
+      <div class="radar">
+        <div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="ring"></div>
+        <div class="sweep"></div>
+        <div class="cross-h"></div><div class="cross-v"></div>
+      </div>
+      <div class="processing-label" id="processingLabel">AI 处理中</div>
+      <div class="processing-sub" id="processingSub">正在为你识别最佳光影</div>
+    </div>
+
+    <!-- ===== 回看 ===== -->
+    <div class="review" id="review">
+      <div class="review-header">
+        <button class="review-back" id="reviewBack" aria-label="Back">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div class="review-title">已保存</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="review-img-wrap">
+        <img src="./assets/viewfinder-preview.png" alt="" id="reviewImage" />
+        <div class="watermark">LIGHTCHASER · 追光</div>
+      </div>
+      <div class="review-meta">
+        <span class="filter-tag" id="reviewFilter">AI 推荐 · Velvia</span>
+        <div class="sub" id="reviewSub">ISO 200 · F2.0 · 1/250S · 18:42</div>
+      </div>
+      <div class="review-actions">
+        <button class="review-action">下载</button>
+        <button class="review-action primary">保存到相册</button>
+      </div>
+    </div>
+
+    <!-- ===== 启动屏 ===== -->
+    <div class="boot" id="boot">
+      <div class="boot-mark"><div class="core"></div></div>
+      <div class="boot-text">LIGHTCHASER</div>
+    </div>
+
+    <script>
+      /* ===== 滤镜数据(从 ai-camera-core 同步) ===== */
+      const BRANDS = [
+        { id: 'fuji',  label: '富士',     desc: '8 套' },
+        { id: 'kodak', label: '柯达',     desc: '5 套' },
+        { id: 'agfa',  label: 'Agfa',     desc: '4 套' },
+        { id: 'fresh', label: '清新人像', desc: '3 套' },
+        { id: 'mono',  label: '黑白',     desc: '3 套' },
+      ];
+
+      const FILTERS = {
+        fuji: [
+          { key: 'F_PROVIA',        label: 'PROVIA' },
+          { key: 'F_VELVIA',        label: 'Velvia' },
+          { key: 'F_C_CHROME',      label: 'Classic Chrome' },
+          { key: 'F_ASTIA',         label: 'ASTIA' },
+          { key: 'F_CLASSIC_NEG',   label: 'Classic Neg.' },
+          { key: 'F_ACROS',         label: 'ACROS' },
+          { key: 'F_NOSTALGIC_NEG', label: 'Nostalgic Neg.' },
+          { key: 'F_BLEACH_BYPASS', label: 'Bleach Bypass' },
+        ],
+        kodak: [
+          { key: 'K_PORTRA_160',    label: 'Portra 160' },
+          { key: 'K_PORTRA_400',    label: 'Portra 400' },
+          { key: 'K_EKTAR_100',     label: 'Ektar 100' },
+          { key: 'K_GOLD_200',      label: 'Gold 200' },
+          { key: 'K_TRI_X_400',     label: 'Tri-X 400' },
+        ],
+        agfa: [
+          { key: 'A_VISTA_PLUS_200', label: 'Vista Plus 200' },
+          { key: 'A_VISTA_200',     label: 'Vista 200' },
+          { key: 'A_OPTIMA_200',    label: 'Optima 200' },
+          { key: 'A_ULTRA_100',     label: 'Ultra 100' },
+        ],
+        fresh: [
+          { key: 'FRESH_GLOW',     label: '清新发光' },
+          { key: 'SOFT_SKIN',      label: '柔肤' },
+          { key: 'PORCELAIN_SKIN', label: '瓷肌' },
+        ],
+        mono: [
+          { key: 'MONO_CLASSIC', label: '经典黑白' },
+          { key: 'MONO_FADE',    label: '褪色黑白' },
+          { key: 'MONO_HIGH',    label: '高反差黑白' },
+        ],
+      };
+
+      const ICON_COLORS = {
+        F_PROVIA:        ['#ffd400', '#0b3b88'],
+        F_VELVIA:        ['#ffd400', '#1f8f3b'],
+        F_C_CHROME:      ['#ffd400', '#222222'],
+        F_ASTIA:         ['#ffd400', '#f4b3b3'],
+        F_CLASSIC_NEG:   ['#ffd400', '#7d3c14'],
+        F_ACROS:         ['#1a1a1a', '#cccccc'],
+        F_NOSTALGIC_NEG: ['#ffd400', '#d8a264'],
+        F_BLEACH_BYPASS: ['#ffd400', '#5d6371'],
+        K_PORTRA_160:    ['#f5e0b8', '#a86c2c'],
+        K_PORTRA_400:    ['#e8c987', '#3a2820'],
+        K_EKTAR_100:     ['#d75b29', '#1c1c1c'],
+        K_GOLD_200:      ['#e6a91a', '#7c1f10'],
+        K_TRI_X_400:     ['#1c1c1c', '#e4c5a0'],
+        A_VISTA_PLUS_200:['#0f6b56', '#e3edec'],
+        A_VISTA_200:     ['#1f8f7a', '#f6e98a'],
+        A_OPTIMA_200:    ['#bf2525', '#f5b830'],
+        A_ULTRA_100:     ['#9aa6a8', '#ffffff'],
+        FRESH_GLOW:      ['#9be0e8', '#fff7d8'],
+        SOFT_SKIN:       ['#fce0d4', '#f6a89b'],
+        PORCELAIN_SKIN:  ['#fff7f3', '#e3c4be'],
+        MONO_CLASSIC:    ['#222222', '#9a9a9a'],
+        MONO_FADE:       ['#5b5b5b', '#ffffff'],
+        MONO_HIGH:       ['#000000', '#ffffff'],
+      };
+
+      const SCENES = [
+        { key: 'portrait',  label: '人像' },
+        { key: 'food',      label: '美食' },
+        { key: 'night',     label: '夜景' },
+        { key: 'landscape', label: '风景' },
+        { key: 'indoor',    label: '室内' },
+        { key: 'street',    label: '街拍' },
+        { key: 'sunset',    label: '夕阳' },
+        { key: 'document',  label: '文档' },
+      ];
+
+      // 23 个滤镜的样片(从 ai-camera-core FILTER_DEMO_PATHS 同步)
+      const FILTER_DEMO_PATHS = {
+        F_PROVIA:        "../assets/filter-demos/f_provia.jpg",
+        F_VELVIA:        "../assets/filter-demos/f_velvia.jpg",
+        F_C_CHROME:      "../assets/filter-demos/f_c_chrome.jpg",
+        F_ASTIA:         "../assets/filter-demos/f_astia.jpg",
+        F_CLASSIC_NEG:   "../assets/filter-demos/f_classic_neg.jpg",
+        F_ACROS:         "../assets/filter-demos/f_acros.jpg",
+        F_NOSTALGIC_NEG: "../assets/filter-demos/f_nostalgic_neg.jpg",
+        F_BLEACH_BYPASS: "../assets/filter-demos/f_bleach_bypass.jpg",
+        K_PORTRA_160:    "../assets/filter-demos/k_portra_160.jpg",
+        K_PORTRA_400:    "../assets/filter-demos/k_portra_400.jpg",
+        K_EKTAR_100:     "../assets/filter-demos/k_ektar_100.jpg",
+        K_GOLD_200:      "../assets/filter-demos/k_gold_200.jpg",
+        K_TRI_X_400:     "../assets/filter-demos/k_tri_x_400.jpg",
+        A_VISTA_PLUS_200:"../assets/filter-demos/a_vista_plus_200.jpg",
+        A_VISTA_200:     "../assets/filter-demos/a_vista_200.jpg",
+        A_OPTIMA_200:    "../assets/filter-demos/a_optima_200.jpg",
+        A_ULTRA_100:     "../assets/filter-demos/a_ultra_100.jpg",
+        FRESH_GLOW:      "../assets/filter-demos/fresh_glow.jpg",
+        SOFT_SKIN:       "../assets/filter-demos/soft_skin.jpg",
+        PORCELAIN_SKIN:  "../assets/filter-demos/porcelain_skin.jpg",
+        MONO_CLASSIC:    "../assets/filter-demos/mono_classic.jpg",
+        MONO_FADE:       "../assets/filter-demos/mono_fade.jpg",
+        MONO_HIGH:       "../assets/filter-demos/mono_high.jpg",
+      };
+
+      /* ===== 状态 ===== */
+      let currentBrand = 'fuji';
+      let currentFilter = null;
+      let currentScene = null;
+      let aiCompositionOn = false;
+
+      /* ===== 渲染品牌 Tabs ===== */
+      const filterTabs = document.getElementById('filterTabs');
+      BRANDS.forEach(brand => {
+        const tab = document.createElement('button');
+        tab.className = 'filter-tab' + (brand.id === currentBrand ? ' active' : '');
+        tab.textContent = brand.label;
+        tab.dataset.brand = brand.id;
+        tab.addEventListener('click', () => {
+          currentBrand = brand.id;
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          renderFilterStrip();
+        });
+        filterTabs.appendChild(tab);
+      });
+
+      /* ===== 渲染场景推荐 chips ===== */
+      const filterScene = document.getElementById('filterScene');
+      SCENES.forEach(scene => {
+        const chip = document.createElement('button');
+        chip.className = 'filter-scene-chip';
+        chip.textContent = scene.label;
+        chip.addEventListener('click', () => {
+          if (currentScene === scene.key) {
+            currentScene = null;
+            chip.classList.remove('active');
+          } else {
+            currentScene = scene.key;
+            document.querySelectorAll('.filter-scene-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+          }
+        });
+        filterScene.appendChild(chip);
+      });
+
+      /* ===== 渲染滤镜卡(用真实样片) ===== */
+      function renderFilterStrip() {
+        const strip = document.getElementById('filterStrip');
+        strip.innerHTML = '';
+        const list = FILTERS[currentBrand] || [];
+        list.forEach(filter => {
+          const demoPath = FILTER_DEMO_PATHS[filter.key];
+          const brandTag = currentBrand === 'fuji' ? 'FUJIFILM' : currentBrand === 'kodak' ? 'KODAK' : currentBrand === 'agfa' ? 'AGFA' : currentBrand === 'fresh' ? 'FRESH' : 'B&W';
+          const card = document.createElement('div');
+          card.className = 'filter-card' + (currentFilter === filter.key ? ' active' : '');
+          card.dataset.key = filter.key;
+          card.innerHTML = `
+            <div class="filter-thumb">
+              <img src="${demoPath}" alt="${filter.label}" loading="lazy" />
+              <div class="badge">${brandTag}</div>
+            </div>
+            <div class="filter-name">${filter.label}</div>
+          `;
+          card.addEventListener('click', () => {
+            currentFilter = filter.key;
+            document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            document.getElementById('reviewFilter').textContent = `AI 推荐 · ${filter.label}`;
+            // 主取景画面切换为该样片(滤镜预览)
+            applyFilterPreview(demoPath, filter.label);
+          });
+          strip.appendChild(card);
+        });
+      }
+      renderFilterStrip();
+
+      /* ===== 滤镜预览:主取景画面临时显示该样片 ===== */
+      const previewImg = document.querySelector('.preview');
+      const originalPreviewSrc = previewImg.src;
+      const previewChip = document.getElementById('previewChip');
+      const previewChipLabel = document.getElementById('previewChipLabel');
+      let previewingFilter = null;
+
+      function applyFilterPreview(demoPath, label) {
+        previewImg.src = demoPath;
+        previewingFilter = label;
+        previewChip.classList.add('show');
+        previewChipLabel.textContent = label + ' · 预览';
+        // 关闭滤镜抽屉让用户看到预览效果
+        document.getElementById('filterSheet').classList.remove('open');
+      }
+
+      function clearFilterPreview() {
+        previewImg.src = originalPreviewSrc;
+        previewingFilter = null;
+        previewChip.classList.remove('show');
+      }
+      // 长按顶部预览 chip 关闭预览
+      let chipPressTimer = null;
+      previewChip.addEventListener('pointerdown', () => {
+        chipPressTimer = setTimeout(clearFilterPreview, 500);
+      });
+      previewChip.addEventListener('pointerup', () => clearTimeout(chipPressTimer));
+      previewChip.addEventListener('pointerleave', () => clearTimeout(chipPressTimer));
+      previewChip.addEventListener('click', clearFilterPreview);
+
+      /* ===== AI 滤镜抽屉打开/关闭 ===== */
+      const filterSheet = document.getElementById('filterSheet');
+      const aiFilterBtn = document.getElementById('aiFilterBtn');
+      const filterSheetClose = document.getElementById('filterSheetClose');
+      aiFilterBtn.addEventListener('click', () => filterSheet.classList.add('open'));
+      filterSheetClose.addEventListener('click', () => filterSheet.classList.remove('open'));
+
+      /* 拖拽关闭抽屉 */
+      let dragStartY = 0, dragging = false;
+      filterSheet.addEventListener('touchstart', e => {
+        dragStartY = e.touches[0].clientY;
+        dragging = true;
+        filterSheet.style.transition = 'none';
+      });
+      filterSheet.addEventListener('touchmove', e => {
+        if (!dragging) return;
+        const dy = e.touches[0].clientY - dragStartY;
+        if (dy > 0) filterSheet.style.transform = `translateY(${dy}px)`;
+      });
+      filterSheet.addEventListener('touchend', e => {
+        if (!dragging) return;
+        dragging = false;
+        filterSheet.style.transition = '';
+        const dy = (e.changedTouches[0]?.clientY || dragStartY) - dragStartY;
+        if (dy > 100) filterSheet.classList.remove('open');
+        filterSheet.style.transform = '';
+      });
+
+      /* ===== AI 构图开关 ===== */
+      const aiCompositionBtn = document.getElementById('aiCompositionBtn');
+      const aiFrame = document.getElementById('aiFrame');
+      const aiFrameLabel = document.getElementById('aiFrameLabel');
+      const aiCompositionDot = document.getElementById('aiCompositionDot');
+      aiCompositionBtn.addEventListener('click', () => {
+        aiCompositionOn = !aiCompositionOn;
+        aiCompositionBtn.classList.toggle('active', aiCompositionOn);
+        aiCompositionDot.style.display = aiCompositionOn ? 'block' : 'none';
+        aiFrame.classList.toggle('show', aiCompositionOn);
+
+        // 动态调整 AI 框比例
+        if (aiCompositionOn) {
+          const ratios = ['3:4', '4:3', '1:1', '16:9'];
+          const pick = ratios[Math.floor(Math.random() * ratios.length)];
+          aiFrameLabel.textContent = `AI 推荐 ${pick}`;
+          setFrameRatio(pick);
+        }
+      });
+
+      function setFrameRatio(ratio) {
+        const [w, h] = ratio.split(':').map(Number);
+        const vw = Math.min(window.innerWidth * 0.92, 430 - 32);
+        const vh = document.querySelector('.viewfinder').clientHeight - 80;
+        const padding = 24;
+        const maxW = vw - padding * 2;
+        const maxH = vh - padding * 2;
+        let frameW = maxW;
+        let frameH = frameW * (h / w);
+        if (frameH > maxH) {
+          frameH = maxH;
+          frameW = frameH * (w / h);
+        }
+        aiFrame.style.width = frameW + 'px';
+        aiFrame.style.height = frameH + 'px';
+      }
+
+      /* ===== 闪光灯循环 ===== */
+      const flashStates = ['关', '自动', '开'];
+      let flashIdx = 1;
+      const flashBtn = document.getElementById('flashBtn');
+      flashBtn.addEventListener('click', () => {
+        flashIdx = (flashIdx + 1) % flashStates.length;
+        // 视觉反馈: 切到"关"时加斜杠
+        flashBtn.style.opacity = flashIdx === 0 ? '0.5' : '1';
+      });
+
+      /* ===== Zoom 切换 ===== */
+      document.querySelectorAll('.zoom-controls button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.zoom-controls button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+
+      /* ===== Mode Carousel ===== */
+      document.querySelectorAll('.mode-carousel span').forEach(m => {
+        m.addEventListener('click', () => {
+          document.querySelectorAll('.mode-carousel span').forEach(x => x.classList.remove('active'));
+          m.classList.add('active');
+        });
+      });
+
+      /* ===== 快门: 闪屏 → AI 处理 → 回看 ===== */
+      const shutter = document.getElementById('shutter');
+      const flash = document.getElementById('shutterFlash');
+      const processing = document.getElementById('processing');
+      const processingLabel = document.getElementById('processingLabel');
+      const processingSub = document.getElementById('processingSub');
+      const review = document.getElementById('review');
+      const thumbBtn = document.getElementById('thumbBtn');
+
+      shutter.addEventListener('click', () => {
+        flash.style.transition = 'opacity 80ms ease-out';
+        flash.style.opacity = '1';
+        setTimeout(() => {
+          flash.style.transition = 'opacity 360ms cubic-bezier(0.16, 1, 0.3, 1)';
+          flash.style.opacity = '0';
+        }, 80);
+
+        setTimeout(() => {
+          if (aiCompositionOn || currentFilter) {
+            processingLabel.textContent = 'AI 处理中';
+            processingSub.textContent = currentFilter
+              ? `正在应用 ${FILTERS[currentBrand].find(f => f.key === currentFilter)?.label || ''}`
+              : '正在为你识别最佳光影';
+            processing.classList.add('show');
+            setTimeout(() => {
+              processing.classList.remove('show');
+              openReview();
+            }, 2200);
+          } else {
+            openReview();
+          }
+        }, 280);
+      });
+
+      function openReview() {
+        review.classList.add('open');
+        // 用当前选中的滤镜样片(或原图)作为回看图
+        const reviewImage = document.getElementById('reviewImage');
+        if (previewingFilter && currentFilter && FILTER_DEMO_PATHS[currentFilter]) {
+          reviewImage.src = FILTER_DEMO_PATHS[currentFilter];
+        } else {
+          reviewImage.src = './assets/viewfinder-preview.png';
+        }
+        // 更新缩略图
+        thumbBtn.classList.remove('empty');
+        thumbBtn.innerHTML = `<img src="${reviewImage.src}" alt="" />`;
+        // 关闭滤镜预览状态
+        clearFilterPreview();
+      }
+
+      thumbBtn.addEventListener('click', () => review.classList.add('open'));
+      document.getElementById('reviewBack').addEventListener('click', () => review.classList.remove('open'));
+
+      /* ===== 启动屏 ===== */
+      const boot = document.getElementById('boot');
+      setTimeout(() => boot.classList.add('hide'), 1500);
+    </script>
+  </body>
+</html>

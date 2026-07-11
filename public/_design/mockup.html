@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LIGHTCHASER · 徕卡/哈苏气质设计草案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&family=Spectral:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       DESIGN TOKENS — 哈苏琥珀/极简机械
+       ============================================ */
+    :root {
+      /* 色彩: 几乎只用黑,金属灰阶,琥珀点缀 */
+      --ink-deep:      #050505;
+      --ink-base:      #0A0A0A;
+      --ink-raise:     #131313;
+      --ink-rim:       #1F1F1F;
+      --ink-line:      rgba(255,255,255,0.06);
+      --ink-glass:     rgba(15,15,15,0.72);
+
+      --text-pri:      #E8E8E8;
+      --text-sec:      #888888;
+      --text-mute:     #555555;
+
+      /* 哈苏琥珀 */
+      --amber:         #C9963F;
+      --amber-bright:  #E2B261;
+      --amber-dim:     #6B5023;
+      --amber-glow:    rgba(201,150,63,0.4);
+
+      /* 节奏 */
+      --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-camera:   cubic-bezier(0.7, 0, 0.3, 1);
+
+      /* 字体 */
+      --font-sans:     'Inter', -apple-system, 'PingFang SC', sans-serif;
+      --font-mono:     'JetBrains Mono', 'SF Mono', monospace;
+      --font-serif:    'Spectral', 'Songti SC', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      background: #161616;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--text-pri);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 20px 60px;
+      min-height: 100vh;
+    }
+
+    /* ===== 顶部说明 ===== */
+    .caption {
+      max-width: 390px;
+      width: 100%;
+      padding: 0 4px 20px;
+      color: var(--text-sec);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .caption strong {
+      color: var(--text-pri);
+      font-weight: 500;
+      font-family: var(--font-sans);
+    }
+    .caption code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--amber-bright);
+      background: rgba(201,150,63,0.08);
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+
+    /* ===== 状态切换器 ===== */
+    .state-toggle {
+      display: flex;
+      gap: 6px;
+      padding: 4px 0 16px;
+      max-width: 390px;
+      width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .state-toggle::-webkit-scrollbar { display: none; }
+    .state-toggle button {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      background: var(--ink-raise);
+      border: 0.5px solid var(--ink-rim);
+      color: var(--text-sec);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 200ms var(--ease-out);
+    }
+    .state-toggle button.active {
+      background: var(--amber);
+      color: var(--ink-deep);
+      border-color: var(--amber);
+    }
+    .state-toggle button:hover { color: var(--text-pri); }
+    .state-toggle button.active:hover { color: var(--ink-deep); }
+
+    /* ===== 手机壳 ===== */
+    .phone {
+      width: 390px;
+      max-width: 100%;
+      aspect-ratio: 9 / 19.5;
+      background: var(--ink-deep);
+      border-radius: 56px;
+      border: 2px solid #2a2a2a;
+      box-shadow:
+        0 40px 100px rgba(0,0,0,0.6),
+        inset 0 0 0 6px #0a0a0a,
+        0 0 0 1px rgba(255,255,255,0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 灵动岛 */
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+    }
+
+    /* 屏幕 */
+    .screen {
+      position: absolute;
+      inset: 0;
+      border-radius: 56px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================
+       主取景界面
+       ============================================ */
+    .viewfinder {
+      flex: 1;
+      position: relative;
+      background: var(--ink-deep);
+      overflow: hidden;
+    }
+
+    /* 模拟取景画面: 追光夕阳场景 */
+    .scene {
+      position: absolute;
+      inset: 60px 16px 100px;
+      overflow: hidden;
+      border-radius: 1px;
+    }
+    .scene .sky {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        #1a1410 0%,
+        #2a1f15 18%,
+        #4a3220 32%,
+        #8a5a2e 45%,
+        #c9963f 58%,
+        #e8a847 64%,
+        #c9963f 72%,
+        #6a4525 88%,
+        #1a1208 100%);
+    }
+    .scene .sun {
+      position: absolute;
+      top: 56%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        #fff7e0 0%,
+        #ffd97a 25%,
+        rgba(255,217,122,0.4) 50%,
+        transparent 75%);
+      filter: blur(3px);
+    }
+    .scene .sun-core {
+      position: absolute;
+      top: 56%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fffbe8 0%, #ffe199 70%, transparent 100%);
+    }
+    .scene .horizon-glow {
+      position: absolute;
+      top: 56%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: 6px;
+      background: linear-gradient(90deg, transparent, #fff7e0, transparent);
+      filter: blur(2px);
+    }
+    .scene .city {
+      position: absolute;
+      bottom: 18%;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background-image:
+        linear-gradient(90deg,
+          transparent 0%, transparent 8%,
+          #0a0805 8%, #0a0805 22%,
+          transparent 22%, transparent 26%,
+          #0a0805 26%, #0a0805 40%,
+          transparent 40%, transparent 44%,
+          #0a0805 44%, #0a0805 64%,
+          transparent 64%, transparent 67%,
+          #0a0805 67%, #0a0805 82%,
+          transparent 82%);
+    }
+    .scene .ground {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 18%;
+      background: linear-gradient(180deg, #050302 0%, #000 100%);
+    }
+    .scene .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center,
+        transparent 35%,
+        rgba(0,0,0,0.35) 80%,
+        rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+    }
+    .scene .grain {
+      position: absolute;
+      inset: 0;
+      opacity: 0.05;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* 网格线 - 徕卡式极细 */
+    .grid {
+      position: absolute;
+      inset: 60px 16px 100px;
+      pointer-events: none;
+      opacity: 0.4;
+      transition: opacity 320ms var(--ease-out);
+    }
+    .grid.hidden { opacity: 0; }
+    .grid::before, .grid::after {
+      content: '';
+      position: absolute;
+    }
+    .grid::before {
+      left: 33.333%; right: 33.333%;
+      top: 0; bottom: 0;
+      border-left: 0.3px solid rgba(255,255,255,0.35);
+      border-right: 0.3px solid rgba(255,255,255,0.35);
+    }
+    .grid::after {
+      top: 33.333%; bottom: 33.333%;
+      left: 0; right: 0;
+      border-top: 0.3px solid rgba(255,255,255,0.35);
+      border-bottom: 0.3px solid rgba(255,255,255,0.35);
+    }
+    .grid .center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px; height: 16px;
+    }
+    .grid .center::before, .grid .center::after {
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,0.5);
+    }
+    .grid .center::before {
+      top: 50%; left: 0; right: 0;
+      height: 0.5px;
+      transform: translateY(-50%);
+    }
+    .grid .center::after {
+      left: 50%; top: 0; bottom: 0;
+      width: 0.5px;
+      transform: translateX(-50%);
+    }
+
+    /* 顶部 HUD */
+    .top-hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 56px 24px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      z-index: 10;
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+    }
+    .top-hud .left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-hud .mode {
+      color: var(--text-pri);
+      font-weight: 500;
+      letter-spacing: 0.16em;
+    }
+    .top-hud .mode .dot {
+      display: inline-block;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+      margin-right: 8px;
+      vertical-align: middle;
+      animation: dot-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes dot-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    .top-hud .brand {
+      color: var(--text-mute);
+      font-family: var(--font-serif);
+      font-size: 10px;
+      letter-spacing: 0.32em;
+      font-weight: 300;
+    }
+    .top-hud .params {
+      display: flex;
+      gap: 14px;
+      color: var(--text-pri);
+      font-variant-numeric: tabular-nums;
+    }
+    .top-hud .params span {
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .top-hud .params .key {
+      color: var(--text-mute);
+      font-size: 9px;
+      margin-right: 4px;
+      letter-spacing: 0.12em;
+    }
+
+    /* AI 状态芯片 */
+    .ai-chip {
+      position: absolute;
+      top: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 7px 14px 7px 12px;
+      background: var(--ink-glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--amber-glow);
+      border-radius: 100px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--amber-bright);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 5;
+    }
+    .ai-chip .pulse {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 6px var(--amber);
+      animation: chip-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes chip-pulse {
+      0%, 100% { opacity: 0.5; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    /* 底部控制区 */
+    .controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 24px 32px 36px;
+      background: linear-gradient(180deg, transparent 0%, rgba(5,5,5,0.85) 35%);
+    }
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    /* 缩略图按钮 */
+    .thumb {
+      width: 52px; height: 52px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #2a1f15, #1a1208);
+      border: 0.5px solid rgba(255,255,255,0.08);
+      position: relative;
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .thumb::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      background:
+        linear-gradient(180deg,
+          #4a3220 0%, #c9963f 50%, #c9963f 60%, #1a1208 100%);
+      border-radius: 2px;
+    }
+    .thumb:hover {
+      border-color: rgba(255,255,255,0.16);
+    }
+
+    /* 切换摄像头按钮 */
+    .flip {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--ink-raise);
+      border: 0.5px solid var(--ink-line);
+      color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 240ms var(--ease-out);
+    }
+    .flip:hover {
+      color: var(--text-pri);
+      border-color: rgba(255,255,255,0.16);
+    }
+
+    /* 快门按钮 - 机械感 */
+    .shutter {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      cursor: pointer;
+      transition: transform 200ms var(--ease-spring);
+    }
+    .shutter::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 28%, #2a2a2a 0%, #1a1a1a 35%, #050505 80%);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.06),
+        inset 0 -2px 4px rgba(0,0,0,0.6),
+        inset 0 2px 4px rgba(255,255,255,0.04),
+        0 10px 28px rgba(0,0,0,0.55);
+    }
+    .shutter::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, #1a1a1a 0%, #050505 75%);
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow:
+        inset 0 2px 6px rgba(0,0,0,0.85),
+        inset 0 -1px 2px rgba(255,255,255,0.04),
+        0 0 0 1px rgba(0,0,0,0.6);
+      transition: all 220ms var(--ease-spring);
+    }
+    .shutter:active {
+      transform: scale(0.94);
+    }
+    .shutter:active::after {
+      transform: scale(0.88);
+      inset: 11px;
+      box-shadow:
+        inset 0 4px 8px rgba(0,0,0,0.9),
+        inset 0 -1px 2px rgba(255,255,255,0.02);
+    }
+
+    /* 次要按钮行 */
+    .sub-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 8px;
+    }
+    .sub-btn {
+      background: none;
+      border: none;
+      color: var(--text-sec);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      padding: 6px 4px;
+      cursor: pointer;
+      transition: color 240ms var(--ease-out);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+    }
+    .sub-btn:hover { color: var(--text-pri); }
+    .sub-btn.active { color: var(--amber-bright); }
+    .sub-btn .icon {
+      width: 18px; height: 18px;
+      opacity: 0.9;
+    }
+    .sub-btn.active .icon {
+      filter: drop-shadow(0 0 4px var(--amber-glow));
+    }
+
+    /* ============================================
+       滤镜抽屉
+       ============================================ */
+    .filter-drawer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--ink-base);
+      border-top: 0.5px solid var(--ink-rim);
+      border-radius: 24px 24px 0 0;
+      padding: 10px 0 38px;
+      transform: translateY(100%);
+      transition: transform 480ms var(--ease-out);
+      z-index: 50;
+      box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+    }
+    .filter-drawer.open {
+      transform: translateY(0);
+    }
+    .drawer-handle {
+      width: 36px; height: 4px;
+      background: var(--ink-rim);
+      border-radius: 100px;
+      margin: 0 auto 18px;
+    }
+    .drawer-tabs {
+      display: flex;
+      padding: 0 24px;
+      border-bottom: 0.5px solid var(--ink-rim);
+      margin-bottom: 22px;
+    }
+    .drawer-tab {
+      flex: 1;
+      padding: 12px 6px;
+      background: none;
+      border: none;
+      color: var(--text-mute);
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 12px;
+      letter-spacing: 0.24em;
+      cursor: pointer;
+      position: relative;
+      transition: color 240ms var(--ease-out);
+    }
+    .drawer-tab.active {
+      color: var(--text-pri);
+      font-weight: 400;
+    }
+    .drawer-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -0.5px;
+      left: 25%; right: 25%;
+      height: 1px;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber-glow);
+    }
+    .filter-strip {
+      display: flex;
+      gap: 14px;
+      padding: 0 24px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-strip::-webkit-scrollbar { display: none; }
+    .filter-card {
+      flex-shrink: 0;
+      width: 78px;
+      cursor: pointer;
+      transition: transform 240ms var(--ease-out);
+    }
+    .filter-card:hover { transform: translateY(-2px); }
+    .filter-thumb {
+      width: 78px; height: 100px;
+      border-radius: 3px;
+      background: linear-gradient(135deg, #4a3220, #c9963f);
+      margin-bottom: 8px;
+      position: relative;
+      overflow: hidden;
+      border: 0.5px solid var(--ink-rim);
+      transition: all 240ms var(--ease-out);
+    }
+    .filter-card.active .filter-thumb {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 1px var(--amber), 0 8px 24px rgba(201,150,63,0.25);
+      transform: translateY(-3px);
+    }
+    .filter-name {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--text-sec);
+      text-align: center;
+      transition: color 240ms var(--ease-out);
+    }
+    .filter-card.active .filter-name {
+      color: var(--amber-bright);
+    }
+
+    /* ============================================
+       相册回看
+       ============================================ */
+    .review {
+      position: absolute;
+      inset: 0;
+      background: var(--ink-deep);
+      transform: translateX(100%);
+      transition: transform 540ms var(--ease-out);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+    }
+    .review.open {
+      transform: translateX(0);
+    }
+    .review-image-wrap {
+      flex: 1;
+      margin: 56px 16px 0;
+      position: relative;
+      border-radius: 1px;
+      overflow: hidden;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+    }
+    .review-image {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg,
+          #1a1410 0%, #2a1f15 18%, #4a3220 32%,
+          #c9963f 58%, #c9963f 72%,
+          #1a1208 100%);
+    }
+    .review-image .sun-mini {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fffbe8, #ffd97a 40%, transparent 70%);
+      filter: blur(4px);
+    }
+    .review-image .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.4) 100%);
+    }
+    .review-image .frame-corner {
+      position: absolute;
+      width: 24px; height: 24px;
+      border: 0.5px solid rgba(255,255,255,0.4);
+    }
+    .review-image .frame-corner.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+    .review-image .frame-corner.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+    .review-image .frame-corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+    .review-image .frame-corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+    .review-header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 60px 20px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+    .review-back {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(15,15,15,0.72);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 0.5px solid rgba(255,255,255,0.08);
+      color: var(--text-pri);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .review-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--text-pri);
+    }
+
+    .review-meta {
+      padding: 20px 24px 14px;
+      text-align: center;
+    }
+    .review-meta .title {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 20px;
+      color: var(--text-pri);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .review-meta .sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--text-sec);
+    }
+    .review-actions {
+      padding: 0 20px 32px;
+      display: flex;
+      gap: 10px;
+    }
+    .review-action {
+      flex: 1;
+      padding: 14px;
+      background: var(--ink-raise);
+      border: 0.5px solid var(--ink-rim);
+      border-radius: 3px;
+      color: var(--text-pri);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.24em;
+      cursor: pointer;
+      transition: all 200ms var(--ease-out);
+    }
+    .review-action.primary {
+      background: var(--amber);
+      color: var(--ink-deep);
+      border-color: var(--amber);
+      font-weight: 500;
+    }
+    .review-action:hover { transform: translateY(-1px); }
+    .review-action.primary:hover { background: var(--amber-bright); }
+
+    /* ============================================
+       AI 处理中 - 雷达扫描
+       ============================================ */
+    .processing {
+      position: absolute;
+      inset: 0;
+      background: rgba(5,5,5,0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 70;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 320ms var(--ease-out);
+    }
+    .processing.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .radar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      position: relative;
+      margin-bottom: 28px;
+    }
+    .radar .ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 0.5px solid var(--amber-glow);
+    }
+    .radar .ring:nth-child(1) { inset: 0; }
+    .radar .ring:nth-child(2) { inset: 14px; opacity: 0.7; }
+    .radar .ring:nth-child(3) { inset: 28px; opacity: 0.5; }
+    .radar .ring:nth-child(4) { inset: 42px; opacity: 0.3; }
+    .radar .sweep {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        var(--amber) 20deg,
+        transparent 60deg
+      );
+      animation: radar-sweep 2.2s linear infinite;
+      mask: radial-gradient(circle, transparent 8%, black 30%);
+      -webkit-mask: radial-gradient(circle, transparent 8%, black 30%);
+    }
+    @keyframes radar-sweep {
+      to { transform: rotate(360deg); }
+    }
+    .radar .cross-h, .radar .cross-v {
+      position: absolute;
+      background: var(--amber-glow);
+    }
+    .radar .cross-h {
+      top: 50%; left: 0; right: 0;
+      height: 0.5px;
+      transform: translateY(-50%);
+    }
+    .radar .cross-v {
+      left: 50%; top: 0; bottom: 0;
+      width: 0.5px;
+      transform: translateX(-50%);
+    }
+    .radar .center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+    }
+    .processing-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.32em;
+      color: var(--amber);
+      text-transform: uppercase;
+    }
+    .processing-sub {
+      margin-top: 10px;
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 12px;
+      color: var(--text-sec);
+      letter-spacing: 0.08em;
+    }
+    .processing-dots {
+      margin-top: 24px;
+      display: flex;
+      gap: 6px;
+    }
+    .processing-dots span {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--amber);
+      opacity: 0.3;
+      animation: dot-bounce 1.4s ease-in-out infinite;
+    }
+    .processing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .processing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-bounce {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-4px); }
+    }
+
+    /* ============================================
+       启动屏
+       ============================================ */
+    .boot {
+      position: absolute;
+      inset: 0;
+      background: var(--ink-deep);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 720ms var(--ease-out);
+    }
+    .boot.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .boot-aperture {
+      width: 110px;
+      height: 110px;
+      margin-bottom: 36px;
+      animation: aperture-in 1.6s var(--ease-out) forwards;
+      opacity: 0;
+    }
+    @keyframes aperture-in {
+      0%   { opacity: 0; transform: scale(1.5); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .boot-logo {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 26px;
+      letter-spacing: 0.4em;
+      color: var(--text-pri);
+      margin-bottom: 8px;
+      animation: fade-up 1.2s var(--ease-out) 0.6s both;
+    }
+    .boot-sub {
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 11px;
+      letter-spacing: 0.56em;
+      color: var(--text-mute);
+      animation: fade-up 1.2s var(--ease-out) 0.9s both;
+    }
+    .boot-version {
+      position: absolute;
+      bottom: 60px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.24em;
+      color: var(--text-mute);
+      animation: fade-up 1.2s var(--ease-out) 1.2s both;
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================
+       标注层 (开发预览用)
+       ============================================ */
+    .annotate {
+      max-width: 390px;
+      width: 100%;
+      margin-top: 32px;
+      padding: 18px 16px;
+      background: var(--ink-raise);
+      border: 0.5px solid var(--ink-rim);
+      border-radius: 3px;
+    }
+    .annotate h3 {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      color: var(--amber);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .annotate ul {
+      list-style: none;
+      color: var(--text-sec);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .annotate li::before {
+      content: '· ';
+      color: var(--amber);
+    }
+    .annotate code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--amber-bright);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="caption">
+    <strong>LIGHTCHASER · 徕卡/哈苏气质设计草案 v1</strong><br>
+    极简机械 · 哈苏琥珀 <code>#C9963F</code> · 字体: Inter / JetBrains Mono / Spectral · 平台: 手机 Web (390pt baseline)
+  </div>
+
+  <div class="state-toggle">
+    <button class="active" data-state="boot">01 · 启动</button>
+    <button data-state="main">02 · 主取景</button>
+    <button data-state="filter">03 · 滤镜抽屉</button>
+    <button data-state="processing">04 · AI 处理</button>
+    <button data-state="review">05 · 回看</button>
+  </div>
+
+  <div class="phone">
+    <div class="screen" id="screen">
+
+      <!-- 启动屏 -->
+      <div class="boot" id="boot">
+        <svg class="boot-aperture" viewBox="0 0 120 120">
+          <g fill="none" stroke="rgba(201,150,63,0.7)" stroke-width="0.5">
+            <circle cx="60" cy="60" r="58"/>
+            <circle cx="60" cy="60" r="44"/>
+            <circle cx="60" cy="60" r="30"/>
+            <circle cx="60" cy="60" r="16"/>
+            <line x1="60" y1="2" x2="60" y2="118"/>
+            <line x1="2" y1="60" x2="118" y2="60"/>
+            <line x1="20" y1="20" x2="100" y2="100"/>
+            <line x1="100" y1="20" x2="20" y2="100"/>
+            <line x1="60" y1="20" x2="60" y2="100" stroke-dasharray="2 4"/>
+            <line x1="20" y1="60" x2="100" y2="60" stroke-dasharray="2 4"/>
+          </g>
+          <circle cx="60" cy="60" r="3" fill="rgba(201,150,63,0.9)"/>
+        </svg>
+        <div class="boot-logo">LIGHTCHASER</div>
+        <div class="boot-sub">追 · 光</div>
+        <div class="boot-version">V 1.0 · HASSELBLAD EDITION</div>
+      </div>
+
+      <!-- 主取景 -->
+      <div class="viewfinder" id="viewfinder">
+        <div class="scene">
+          <div class="sky"></div>
+          <div class="horizon-glow"></div>
+          <div class="sun"></div>
+          <div class="sun-core"></div>
+          <div class="city"></div>
+          <div class="ground"></div>
+          <div class="vignette"></div>
+          <div class="grain"></div>
+        </div>
+
+        <div class="grid" id="grid">
+          <div class="center"></div>
+        </div>
+
+        <div class="top-hud">
+          <div class="left">
+            <span class="mode"><span class="dot"></span>M</span>
+            <span class="brand">LIGHTCHASER</span>
+          </div>
+          <div class="params">
+            <span><span class="key">ISO</span>200</span>
+            <span><span class="key">F</span>2.0</span>
+            <span><span class="key">1/</span>250</span>
+          </div>
+        </div>
+
+        <div class="ai-chip">
+          <span class="pulse"></span>
+          AI 构图中
+        </div>
+
+        <div class="controls">
+          <div class="controls-row">
+            <div class="thumb"></div>
+            <div class="shutter" id="shutter"></div>
+            <div class="flip">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 14.85-6.85L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-14.85 6.85L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="sub-row">
+            <button class="sub-btn" id="gridBtn">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                <rect x="3" y="3" width="18" height="18" rx="0.5"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="15" y1="3" x2="15" y2="21"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+              </svg>
+              网格
+            </button>
+            <button class="sub-btn active">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>
+              </svg>
+              AI 构图
+            </button>
+            <button class="sub-btn" id="filterBtn">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                <circle cx="12" cy="12" r="9"/>
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
+              </svg>
+              滤镜
+            </button>
+            <button class="sub-btn">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                <rect x="3" y="6" width="18" height="14" rx="0.5"/>
+                <path d="M3 6l3-3h12l3 3"/>
+              </svg>
+              比例
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 滤镜抽屉 -->
+      <div class="filter-drawer" id="filterDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-tabs">
+          <button class="drawer-tab active">经典</button>
+          <button class="drawer-tab">电影</button>
+          <button class="drawer-tab">胶片</button>
+          <button class="drawer-tab">人像</button>
+        </div>
+        <div class="filter-strip">
+          <div class="filter-card active">
+            <div class="filter-thumb"></div>
+            <div class="filter-name">琥珀时刻</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #1a1a1a, #5a5a5a);"></div>
+            <div class="filter-name">银盐</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #0a1a3a, #c8a050);"></div>
+            <div class="filter-name">深蓝</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #2a0a0a, #a04040);"></div>
+            <div class="filter-name">暗红</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #0a1a1a, #2a4a3a);"></div>
+            <div class="filter-name">森林</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #1a1208, #c8a050);"></div>
+            <div class="filter-name">哈苏经典</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 处理中 -->
+      <div class="processing" id="processing">
+        <div class="radar">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="sweep"></div>
+          <div class="cross-h"></div>
+          <div class="cross-v"></div>
+          <div class="center"></div>
+        </div>
+        <div class="processing-label">AI 处理中</div>
+        <div class="processing-sub">正在为你识别最佳光影</div>
+        <div class="processing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- 回看 -->
+      <div class="review" id="review">
+        <div class="review-header">
+          <div class="review-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5"/>
+              <path d="M12 19l-7-7 7-7"/>
+            </svg>
+          </div>
+          <div class="review-count">011 / 247</div>
+          <div style="width:36px"></div>
+        </div>
+        <div class="review-image-wrap">
+          <div class="review-image">
+            <div class="sun-mini"></div>
+            <div class="vignette"></div>
+            <div class="frame-corner tl"></div>
+            <div class="frame-corner tr"></div>
+            <div class="frame-corner bl"></div>
+            <div class="frame-corner br"></div>
+          </div>
+        </div>
+        <div class="review-meta">
+          <div class="title">追光时刻</div>
+          <div class="sub">ISO 200 · F2.0 · 1/250S · 18:42</div>
+        </div>
+        <div class="review-actions">
+          <button class="review-action">下载</button>
+          <button class="review-action primary">保存到相册</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="annotate">
+    <h3>设计注释</h3>
+    <ul>
+      <li>取景画面带极轻噪点 + 暗角 + 颗粒,模拟胶片质感</li>
+      <li>顶部 HUD 用等宽数字,机械感刻度</li>
+      <li>快门按钮是真双层金属,按下时内圈物理下沉</li>
+      <li>滤镜抽屉从底部"弹出",带弹性曲线</li>
+      <li>AI 处理用雷达扫描,不是普通 spinner</li>
+      <li>回看页用右侧滑入(带透视暗示的 540ms 慢归位)</li>
+      <li>启动时光圈图标的非对称性 + 衬线字标 = 哈苏开机仪式</li>
+    </ul>
+  </div>
+
+  <div class="caption" style="padding: 18px 4px 0; color: var(--text-mute);">
+    切换顶部状态查看不同界面 · 所有动画采用 <code>cubic-bezier(0.16, 1, 0.3, 1)</code> 慢归位曲线 · 真机体验更佳
+  </div>
+
+  <script>
+    /* ============================================
+       状态切换
+       ============================================ */
+    const buttons = document.querySelectorAll('.state-toggle button');
+    const states = {
+      boot: () => {
+        boot.classList.remove('hide');
+        filterDrawer.classList.remove('open');
+        processing.classList.remove('show');
+        review.classList.remove('open');
+      },
+      main: () => {
+        boot.classList.add('hide');
+        filterDrawer.classList.remove('open');
+        processing.classList.remove('show');
+        review.classList.remove('open');
+      },
+      filter: () => {
+        boot.classList.add('hide');
+        filterDrawer.classList.add('open');
+        processing.classList.remove('show');
+        review.classList.remove('open');
+      },
+      processing: () => {
+        boot.classList.add('hide');
+        filterDrawer.classList.remove('open');
+        processing.classList.add('show');
+        review.classList.remove('open');
+      },
+      review: () => {
+        boot.classList.add('hide');
+        filterDrawer.classList.remove('open');
+        processing.classList.remove('show');
+        review.classList.add('open');
+      }
+    };
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        states[btn.dataset.state]();
+      });
+    });
+
+    /* ============================================
+       内部交互
+       ============================================ */
+    const boot = document.getElementById('boot');
+    const filterDrawer = document.getElementById('filterDrawer');
+    const processing = document.getElementById('processing');
+    const review = document.getElementById('review');
+    const filterBtn = document.getElementById('filterBtn');
+    const gridBtn = document.getElementById('gridBtn');
+    const shutter = document.getElementById('shutter');
+    const grid = document.getElementById('grid');
+
+    // 滤镜按钮打开抽屉
+    filterBtn.addEventListener('click', () => {
+      filterDrawer.classList.add('open');
+    });
+
+    // 网格切换
+    gridBtn.addEventListener('click', () => {
+      grid.classList.toggle('hidden');
+      gridBtn.classList.toggle('active');
+    });
+
+    // 快门按下: 拍照反馈
+    shutter.addEventListener('click', () => {
+      // 全屏过曝闪
+      const flash = document.createElement('div');
+      flash.style.cssText = `
+        position: absolute; inset: 0;
+        background: radial-gradient(circle at center, #fff7e0, transparent 70%);
+        opacity: 0; pointer-events: none;
+        z-index: 200;
+        transition: opacity 80ms ease-out;
+      `;
+      document.getElementById('screen').appendChild(flash);
+      requestAnimationFrame(() => { flash.style.opacity = '1'; });
+      setTimeout(() => {
+        flash.style.transition = 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)';
+        flash.style.opacity = '0';
+      }, 80);
+      setTimeout(() => flash.remove(), 500);
+
+      // 进入 AI 处理
+      setTimeout(() => {
+        processing.classList.add('show');
+        setTimeout(() => {
+          processing.classList.remove('show');
+          review.classList.add('open');
+        }, 2400);
+      }, 320);
+    });
+
+    // 回看返回
+    document.querySelector('.review-back').addEventListener('click', () => {
+      review.classList.remove('open');
+    });
+
+    // 启动 2.4s 后自动跳到主取景
+    setTimeout(() => {
+      document.querySelector('[data-state="main"]').click();
+    }, 2400);
+  </script>
+
+</body>
+</html>

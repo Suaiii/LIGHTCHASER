@@ -3,41 +3,44 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
 <title>追·光相机</title>
 <style>
   :root {
     color-scheme: dark;
-    --bg: #050609;
-    --text: #fffaf2;
-    --muted: rgba(255,250,242,.68);
+    --bg: #000000;
+    --text: #ffffff;
+    --muted: rgba(255,255,255,.62);
     --line: rgba(255,255,255,.18);
-    --glass: rgba(10,12,18,.62);
-    --glass-strong: rgba(10,12,18,.82);
+    --line-strong: rgba(255,255,255,.32);
+    --glass: rgba(0,0,0,.42);
+    --glass-strong: rgba(0,0,0,.66);
     --accent: #ffb13b;
     --accent-2: #61d394;
     --danger: #ff6d6d;
-    --shadow: 0 18px 60px rgba(0,0,0,.42);
+    --radius: 14px;
+    --radius-sm: 10px;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     width: 100%;
     min-height: 100%;
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   }
   body { overflow: hidden; }
-  button, input { font: inherit; }
+  button, input { font: inherit; color: inherit; }
   button {
     border: 0;
-    color: inherit;
     background: none;
     cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
   }
-  button:disabled { cursor: not-allowed; opacity: .45; }
+  button:disabled { cursor: not-allowed; opacity: .4; }
   [hidden] { display: none !important; }
+
+  /* ============ APP SHELL ============ */
   .camera-app {
     position: fixed;
     inset: 0;
@@ -45,6 +48,8 @@
     background: #000;
     overflow: hidden;
   }
+
+  /* ============ VIEWFINDER ============ */
   .viewfinder {
     position: absolute;
     inset: 0;
@@ -52,7 +57,7 @@
     place-items: center;
     background: #000;
   }
-  video, canvas.capture-buffer {
+  video {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -60,158 +65,275 @@
     object-fit: cover;
     background: #000;
   }
-  canvas.capture-buffer {
-    visibility: hidden;
+
+  /* top/bottom legibility gradients (sit above video, below chrome) */
+  .vf-gradient-top, .vf-gradient-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
     pointer-events: none;
+    z-index: 1;
   }
+  .vf-gradient-top {
+    top: 0;
+    height: 22vh;
+    background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.18) 60%, transparent 100%);
+  }
+  .vf-gradient-bottom {
+    bottom: 0;
+    height: 26vh;
+    background: linear-gradient(0deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,.3) 55%, transparent 100%);
+  }
+
+  /* ratio mask: letterbox the viewfinder area.
+     3:4 default = portrait 3:4 (w:h). On a landscape viewport we letterbox
+     left/right so the visible capture area is exactly 3:4. */
   .ratio-mask {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    box-shadow: inset 0 0 0 999px rgba(0,0,0,0);
-    transition: box-shadow .2s ease;
+    z-index: 1;
   }
   .camera-app[data-ratio="1:1"] .ratio-mask {
-    box-shadow: inset 0 15vh 0 rgba(0,0,0,.42), inset 0 -15vh 0 rgba(0,0,0,.42);
+    box-shadow: inset 0 15vh 0 rgba(0,0,0,.5), inset 0 -15vh 0 rgba(0,0,0,.5);
   }
   .camera-app[data-ratio="16:9"] .ratio-mask {
-    box-shadow: inset 0 7vh 0 rgba(0,0,0,.32), inset 0 -7vh 0 rgba(0,0,0,.32);
+    box-shadow: inset 0 7vh 0 rgba(0,0,0,.42), inset 0 -7vh 0 rgba(0,0,0,.42);
   }
+  .camera-app[data-ratio="3:4"] .ratio-mask {
+    background:
+      linear-gradient(to right,
+        rgba(0,0,0,.5) 0%,
+        rgba(0,0,0,.5) calc(50% - 37.5vh),
+        transparent calc(50% - 37.5vh),
+        transparent calc(50% + 37.5vh),
+        rgba(0,0,0,.5) calc(50% + 37.5vh),
+        rgba(0,0,0,.5) 100%);
+  }
+  .camera-app[data-ratio="4:3"] .ratio-mask {
+    background:
+      linear-gradient(to right,
+        rgba(0,0,0,.5) 0%,
+        rgba(0,0,0,.5) calc(50% - 66.67vh),
+        transparent calc(50% - 66.67vh),
+        transparent calc(50% + 66.67vh),
+        rgba(0,0,0,.5) calc(50% + 66.67vh),
+        rgba(0,0,0,.5) 100%);
+  }
+  @media (orientation: portrait) {
+    /* 竖屏设备：3:4 竖幅几乎占满高度，仅做极小上下遮幅以提示画幅 */
+    .camera-app[data-ratio="3:4"] .ratio-mask {
+      background:
+        linear-gradient(to bottom,
+          rgba(0,0,0,.5) 0%,
+          rgba(0,0,0,.5) calc(50% - 66.67vw),
+          transparent calc(50% - 66.67vw),
+          transparent calc(50% + 66.67vw),
+          rgba(0,0,0,.5) calc(50% + 66.67vw),
+          rgba(0,0,0,.5) 100%);
+    }
+    .camera-app[data-ratio="4:3"] .ratio-mask {
+      background:
+        linear-gradient(to bottom,
+          rgba(0,0,0,.5) 0%,
+          rgba(0,0,0,.5) calc(50% - 37.5vw),
+          transparent calc(50% - 37.5vw),
+          transparent calc(50% + 37.5vw),
+          rgba(0,0,0,.5) calc(50% + 37.5vw),
+          rgba(0,0,0,.5) 100%);
+    }
+  }
+
+  /* grid lines */
   .grid-lines {
     position: absolute;
     inset: 0;
     display: none;
     pointer-events: none;
+    z-index: 2;
     background-image:
-      linear-gradient(to right, transparent 33.2%, rgba(255,255,255,.28) 33.2%, rgba(255,255,255,.28) 33.6%, transparent 33.6%, transparent 66.4%, rgba(255,255,255,.28) 66.4%, rgba(255,255,255,.28) 66.8%, transparent 66.8%),
-      linear-gradient(to bottom, transparent 33.2%, rgba(255,255,255,.28) 33.2%, rgba(255,255,255,.28) 33.6%, transparent 33.6%, transparent 66.4%, rgba(255,255,255,.28) 66.4%, rgba(255,255,255,.28) 66.8%, transparent 66.8%);
+      linear-gradient(to right, transparent 33.2%, rgba(255,255,255,.22) 33.2%, rgba(255,255,255,.22) 33.6%, transparent 33.6%, transparent 66.4%, rgba(255,255,255,.22) 66.4%, rgba(255,255,255,.22) 66.8%, transparent 66.8%),
+      linear-gradient(to bottom, transparent 33.2%, rgba(255,255,255,.22) 33.2%, rgba(255,255,255,.22) 33.6%, transparent 33.6%, transparent 66.4%, rgba(255,255,255,.22) 66.4%, rgba(255,255,255,.22) 66.8%, transparent 66.8%);
   }
   .camera-app.grid-on .grid-lines { display: block; }
+
+  /* AI crop box */
   .crop-box {
     position: absolute;
-    border: 2px solid var(--accent);
-    box-shadow: 0 0 24px rgba(255,177,59,.35);
+    border: 1.5px solid var(--accent);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 0 18px rgba(255,177,59,.3);
     pointer-events: none;
+    z-index: 3;
     transition: all .22s ease;
   }
+
+  /* focus reticle (native-style square with L-corners) */
   .focus-ring {
     position: absolute;
-    width: 78px;
-    height: 78px;
-    border: 2px solid var(--accent);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(.72);
+    width: 84px;
+    height: 84px;
+    transform: translate(-50%, -50%) scale(.8);
     opacity: 0;
     pointer-events: none;
+    z-index: 3;
   }
+  .focus-ring::before, .focus-ring::after,
+  .focus-ring > i:nth-child(1), .focus-ring > i:nth-child(2) {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--accent);
+  }
+  .focus-ring::before { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+  .focus-ring::after { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+  .focus-ring > i:nth-child(1) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+  .focus-ring > i:nth-child(2) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
   .focus-ring.active {
-    animation: focus-pulse .72s ease forwards;
+    animation: focus-pulse .8s ease forwards;
   }
   @keyframes focus-pulse {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
-    28% { opacity: 1; transform: translate(-50%, -50%) scale(.86); }
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(.9); }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
   }
-  .top-hud, .bottom-controls, .ai-group {
+
+  /* ============ TOP CHROME ============ */
+  .top-hud {
     position: absolute;
-    z-index: 4;
-  }
-  .top-hud, .bottom-controls {
+    top: max(12px, env(safe-area-inset-top));
     left: max(14px, env(safe-area-inset-left));
     right: max(14px, env(safe-area-inset-right));
-  }
-  .top-hud {
-    top: max(12px, env(safe-area-inset-top));
-    display: grid;
-    gap: 10px;
-  }
-  .top-row, .bottom-controls, .review-actions, .variant-tabs {
+    z-index: 4;
     display: flex;
-    align-items: center;
-  }
-  .top-row {
     justify-content: space-between;
+    align-items: flex-start;
     gap: 10px;
   }
-  .chip-row {
+  .status-stack {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .chip, .icon-button, .ratio-button, .ai-button {
-    border: 1px solid var(--line);
-    background: var(--glass);
-    backdrop-filter: blur(18px);
-    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    flex-direction: column;
+    gap: 6px;
+    max-width: 62%;
   }
   .chip {
-    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     max-width: 100%;
-    padding: 8px 10px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     color: var(--text);
     font-size: 12px;
-    line-height: 1.35;
+    line-height: 1.3;
+    font-weight: 500;
+    border: 0.5px solid var(--line);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .chip.good { border-color: rgba(97,211,148,.54); color: #ceffdf; }
-  .chip.warn { border-color: rgba(255,177,59,.58); color: #ffe0a3; }
-  .icon-button {
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    font-size: 18px;
-    font-weight: 800;
+  .chip.good { color: var(--accent); border-color: rgba(255,177,59,.4); }
+  .chip.warn { color: #ffd58a; border-color: rgba(255,177,59,.34); }
+  /* secondary chips: smaller, less prominent */
+  .status-stack .chip:nth-child(n+2) {
+    font-size: 11px;
+    padding: 5px 10px;
+    color: var(--muted);
+    background: var(--glass);
+    font-weight: 400;
   }
+  .status-stack .chip.good:nth-child(n+2) { color: #ffcf8e; }
+
   .tool-group {
     display: flex;
     gap: 8px;
     align-items: center;
   }
-  .ratio-group {
-    display: flex;
-    gap: 6px;
-    padding: 4px;
-    border: 1px solid var(--line);
-    background: rgba(0,0,0,.24);
-    backdrop-filter: blur(18px);
+  .icon-button {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 0.5px solid var(--line);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
   }
-  .ratio-button, .ai-button {
-    min-width: 46px;
-    height: 34px;
-    padding: 0 10px;
-    font-size: 12px;
-    font-weight: 800;
+  .icon-button[aria-pressed="true"] {
+    color: var(--accent);
+    border-color: rgba(255,177,59,.5);
   }
-  .ratio-button.active, .ai-button[aria-pressed="true"] {
-    color: #15110a;
-    background: var(--accent);
-    border-color: rgba(255,177,59,.8);
-  }
+
+  /* ============ AI RAIL (right vertical segmented) ============ */
   .ai-group {
+    position: absolute;
     right: max(14px, env(safe-area-inset-right));
     top: 50%;
     transform: translateY(-50%);
-    display: grid;
-    gap: 10px;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   .ai-button {
-    width: 66px;
-    height: 52px;
-    border-radius: 8px;
+    width: 54px;
+    height: 46px;
+    border-radius: var(--radius-sm);
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 0.5px solid var(--line);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
     line-height: 1.15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
+  .ai-button[aria-pressed="true"] {
+    color: #1a1206;
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ============ BOTTOM DECK ============ */
   .bottom-controls {
-    bottom: max(18px, env(safe-area-inset-bottom));
-    justify-content: space-between;
-    gap: 18px;
+    position: absolute;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 44px;
+    padding: 14px 28px;
+    border-radius: 999px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 0.5px solid var(--line);
   }
   .thumbnail-button {
-    width: 58px;
-    height: 58px;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid var(--line);
-    background: var(--glass);
+    background: rgba(255,255,255,.08);
+    border: 0.5px solid var(--line-strong);
+    flex: none;
+    display: grid;
+    place-items: center;
   }
   .thumbnail-button img {
     width: 100%;
@@ -225,81 +347,140 @@
     width: 100%;
     height: 100%;
     color: var(--muted);
-    font-size: 22px;
+    font-size: 20px;
   }
   .shutter {
-    width: 86px;
-    height: 86px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
-    border: 4px solid rgba(255,255,255,.94);
-    background: rgba(255,255,255,.2);
-    box-shadow: var(--shadow);
+    border: 3px solid rgba(255,255,255,.92);
+    background: transparent;
     display: grid;
     place-items: center;
+    flex: none;
+    transition: transform .1s ease;
   }
   .shutter::after {
     content: "";
-    width: 64px;
-    height: 64px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
-    background: rgba(255,255,255,.94);
-    transition: transform .12s ease;
+    background: rgba(255,255,255,.92);
+    transition: transform .12s ease, background .12s ease;
   }
-  .shutter:active::after { transform: scale(.86); }
-  .start-gate, .busy-layer, .review-layer {
+  .shutter:active { transform: scale(.94); }
+  .shutter:active::after { transform: scale(.86); background: rgba(255,255,255,.8); }
+  .switch-deck {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    border: 0.5px solid var(--line-strong);
+    color: var(--text);
+    font-size: 18px;
+    flex: none;
+    display: grid;
+    place-items: center;
+  }
+
+  /* ============ START GATE ============ */
+  .start-gate {
     position: absolute;
     inset: 0;
     z-index: 7;
-  }
-  .start-gate {
     display: grid;
     place-items: center;
     padding: 24px;
     background:
-      linear-gradient(180deg, rgba(5,6,9,.18), rgba(5,6,9,.84)),
-      radial-gradient(circle at 50% 18%, rgba(255,177,59,.24), transparent 34%),
-      #050609;
+      radial-gradient(circle at 50% 22%, rgba(255,177,59,.18), transparent 40%),
+      #06070a;
   }
   .start-card {
     width: min(420px, 100%);
     display: grid;
-    gap: 16px;
+    gap: 14px;
     text-align: center;
   }
-  .start-card h1 { margin: 0; font-size: clamp(34px, 10vw, 58px); letter-spacing: 0; }
-  .start-card p { margin: 0; color: var(--muted); line-height: 1.7; }
+  .start-card h1 {
+    margin: 0;
+    font-size: clamp(34px, 10vw, 56px);
+    font-weight: 200;
+    letter-spacing: .08em;
+  }
+  .start-card h1 b { font-weight: 600; color: var(--accent); }
+  .start-card p { margin: 0; color: var(--muted); line-height: 1.7; font-size: 13px; }
   .primary-button, .secondary-button, .danger-button {
-    min-height: 46px;
-    padding: 0 18px;
-    font-weight: 850;
+    min-height: 48px;
+    padding: 0 20px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 15px;
   }
   .primary-button {
-    color: #15110a;
+    color: #1a1206;
     background: var(--accent);
   }
   .secondary-button {
-    border: 1px solid var(--line);
+    border: 0.5px solid var(--line-strong);
     background: var(--glass);
   }
   .danger-button {
-    border: 1px solid rgba(255,109,109,.44);
-    color: #ffd1d1;
-    background: rgba(90,16,20,.7);
+    border: 0.5px solid rgba(255,109,109,.4);
+    color: #ffb3b3;
+    background: rgba(90,16,20,.6);
   }
+
+  /* ============ BUSY LAYER ============ */
   .busy-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
     display: none;
     place-items: center;
-    background: rgba(0,0,0,.34);
-    backdrop-filter: blur(2px);
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(3px);
     color: var(--text);
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 15px;
+    font-weight: 600;
   }
   .busy-layer.active { display: grid; }
+
+  /* ============ UNDO TOAST ============ */
+  .undo-toast {
+    position: absolute;
+    left: 50%;
+    bottom: max(100px, calc(env(safe-area-inset-bottom) + 100px));
+    transform: translateX(-50%);
+    z-index: 9;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 0.5px solid var(--line);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .undo-toast:not([hidden]) { display: flex; }
+  .undo-toast button {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 2px 4px;
+  }
+
+  /* ============ REVIEW LAYER ============ */
   .review-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
     display: none;
     grid-template-rows: 1fr auto;
-    background: #050609;
+    background: #06070a;
   }
   .review-layer.active { display: grid; }
   .review-image-wrap {
@@ -314,15 +495,15 @@
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    box-shadow: 0 20px 70px rgba(0,0,0,.46);
   }
   .review-panel {
     display: grid;
     gap: 12px;
-    padding: 14px max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
-    border-top: 1px solid var(--line);
+    padding: 16px max(16px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    border-top: 0.5px solid var(--line);
     background: var(--glass-strong);
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
   .review-title {
     display: flex;
@@ -330,29 +511,34 @@
     gap: 12px;
     align-items: flex-start;
   }
-  .review-title h2 { margin: 0; font-size: 18px; }
-  .review-title p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .review-title h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .review-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
   .variant-tabs {
+    display: flex;
+    align-items: center;
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 2px;
   }
   .variant-tab {
     flex: none;
-    min-height: 38px;
-    padding: 0 12px;
-    border: 1px solid var(--line);
-    background: rgba(255,255,255,.08);
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 0.5px solid var(--line-strong);
+    background: rgba(255,255,255,.06);
     color: var(--text);
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 600;
   }
   .variant-tab.active {
-    color: #15110a;
+    color: #1a1206;
     background: var(--accent);
     border-color: var(--accent);
   }
   .review-actions {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
   }
@@ -361,75 +547,393 @@
     display: grid;
     place-items: center;
     min-height: 44px;
+    border-radius: 12px;
     text-decoration: none;
     color: inherit;
     font-size: 13px;
+    font-weight: 600;
   }
+
+  /* ============ DEBUG PANEL ============ */
   .debug-panel {
     position: absolute;
     right: max(14px, env(safe-area-inset-right));
-    top: 112px;
+    top: 120px;
     z-index: 8;
     display: none;
-    width: min(360px, calc(100% - 28px));
-    max-height: calc(100vh - 180px);
+    width: min(340px, calc(100% - 28px));
+    max-height: calc(100vh - 200px);
     overflow: auto;
     padding: 12px;
-    border: 1px solid var(--line);
+    border-radius: var(--radius);
     background: var(--glass-strong);
     backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 0.5px solid var(--line);
   }
   .camera-app.debug-on .debug-panel { display: grid; gap: 10px; }
+  .debug-panel { pointer-events: none; }
+  .debug-panel button, .debug-panel input { pointer-events: auto; }
+  .debug-panel strong { font-size: 13px; font-weight: 600; }
   .debug-panel code {
     display: block;
     max-height: 220px;
     overflow: auto;
     white-space: pre-wrap;
-    color: #d9e1ff;
+    color: #c9d4ff;
     font-size: 11px;
     line-height: 1.5;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
   }
-  .debug-panel input { width: 100%; color: var(--text); }
+  .debug-panel input { width: 100%; color: var(--text); background: rgba(255,255,255,.06); border: 0.5px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+
+  /* ============ RESPONSIVE ============ */
   @media (max-width: 720px) {
-    .top-row { align-items: flex-start; }
-    .tool-group { flex-wrap: wrap; justify-content: flex-end; padding-right: 76px; }
-    .ai-group { right: max(10px, env(safe-area-inset-right)); }
-    .ai-button { width: 58px; height: 48px; font-size: 11px; }
-    .chip-row { max-width: 100%; }
-    .chip { font-size: 11px; }
-    .shutter { width: 78px; height: 78px; }
-    .shutter::after { width: 58px; height: 58px; }
-    .thumbnail-button { width: 52px; height: 52px; }
-    .icon-button { width: 42px; height: 42px; }
+    .status-stack { max-width: 56%; }
+    .chip { font-size: 11px; padding: 5px 9px; }
+    .status-stack .chip:nth-child(n+2) { font-size: 10px; padding: 4px 8px; }
+    .icon-button { width: 34px; height: 34px; font-size: 13px; }
+    .ai-button { width: 48px; height: 42px; font-size: 10px; }
+    .bottom-controls { gap: 30px; padding: 11px 20px; }
+    .thumbnail-button { width: 40px; height: 40px; }
+    .shutter { width: 64px; height: 64px; }
+    .shutter::after { width: 50px; height: 50px; }
+    .switch-deck { width: 40px; height: 40px; font-size: 16px; }
+  }
+  @media (max-width: 380px) {
+    .bottom-controls { gap: 22px; padding: 10px 16px; }
+    .ai-group { gap: 6px; }
+    .ai-button { width: 44px; height: 38px; font-size: 9px; }
+  }
+
+  /* ============ FILTER DRAWER (抖音风 胶片滤镜选择器) ============ */
+  .filter-drawer {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: min(390px, 52dvh);
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10,10,12,.94);
+    border-top: .5px solid rgba(255,255,255,.16);
+    box-shadow: 0 -20px 40px rgba(0,0,0,.34);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    transform: translateY(100%);
+    transition: transform .26s cubic-bezier(.2,.85,.2,1);
+    will-change: transform;
+  }
+  .filter-drawer.active { transform: translateY(0); }
+  .filter-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px max(14px, env(safe-area-inset-right)) 4px max(14px, env(safe-area-inset-left));
+  }
+  .filter-drawer-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .filter-drawer-title small {
+    display: none;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .filter-drawer-close {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 0.5px solid var(--line);
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  /* brand tabs */
+  .filter-tabs {
+    display: flex;
+    gap: 22px;
+    padding: 4px max(20px, env(safe-area-inset-right)) 8px max(20px, env(safe-area-inset-left));
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab {
+    flex: none;
+    padding: 5px 2px 7px;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+    white-space: nowrap;
+  }
+  .filter-tab[aria-pressed="true"] {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .filter-tab[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -2px;
+    width: 22px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--text);
+  }
+
+  /* horizontal strip */
+  .filter-strip {
+    display: flex;
+    gap: 14px;
+    padding: 4px max(16px, env(safe-area-inset-right)) 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    align-items: flex-start;
+  }
+  .filter-strip::-webkit-scrollbar { display: none; }
+  .filter-strip.is-native {
+    justify-content: center;
+    align-items: center;
+  }
+  .filter-card {
+    flex: none;
+    width: 130px;
+    display: flex;
+    flex-direction: column;
+    scroll-snap-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: transform .18s ease;
+    position: relative;
+  }
+  .filter-card:active { transform: scale(.97); }
+  .filter-card[aria-pressed="true"] .filter-card-frame {
+    box-shadow: 0 0 0 2px var(--accent), 0 14px 28px rgba(255,177,59,.22);
+  }
+  .filter-card-frame {
+    position: relative;
+    background: var(--card-bg, #f3eee3);
+    border-radius: 8px;
+    padding: 5px 5px 4px;
+    display: grid;
+    gap: 5px;
+    transition: box-shadow .22s ease;
+  }
+  .filter-card-sprocket {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 2px 0 0;
+  }
+  .sprocket-hole {
+    width: 9px;
+    height: 4px;
+    border-radius: 1.5px;
+    background: rgba(0,0,0,.85);
+  }
+  .filter-card-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+  }
+  .filter-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .filter-card-detail {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #fff;
+    border: 0.5px solid rgba(255,255,255,.3);
+    font-size: 11px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+  }
+  .filter-card-meta {
+    padding: 4px 2px 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .filter-card-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: .02em;
+  }
+  .filter-card-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .filter-card-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .filter-card-pack {
+    flex: none;
+    width: 28px;
+    height: 42px;
+    border-radius: 4px;
+    background: #000;
+    background-size: cover;
+    background-position: center;
+    border: 0.5px solid rgba(255,255,255,.18);
+    box-shadow: 0 3px 8px rgba(0,0,0,.5);
+  }
+
+  /* 原生特殊卡片 (大圆 + 中间 logo) */
+  .filter-card.is-native .filter-card-frame {
+    background: linear-gradient(135deg, #23232a, #0e0e12);
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    border: 0.5px solid var(--line-strong);
+  }
+  .filter-card.is-native .filter-card-native-circle {
+    width: 78%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 0.5px solid rgba(255,255,255,.4);
+    display: grid;
+    place-items: center;
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: .14em;
+    background: radial-gradient(circle at 30% 30%, rgba(255,177,59,.16), transparent 60%);
+  }
+  .filter-card.is-native .filter-card-meta {
+    padding-top: 10px;
+  }
+
+  /* footer */
+  .filter-drawer-foot {
+    padding: 5px max(14px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .filter-drawer-foot .now-applied {
+    flex: 1;
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .filter-drawer-foot .now-applied b {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  @media (max-width: 720px) {
+    .filter-drawer { height: min(350px, 48dvh); }
+    .filter-card { width: 118px; }
+    .filter-tab { font-size: 13px; }
+    .filter-tabs { gap: 18px; }
+  }
+  @media (max-width: 380px) {
+    .filter-card { width: 108px; }
+    .filter-tab { font-size: 12px; }
+  }
+
+  /* detail overlay (弹出参数说明) */
+  .filter-detail-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    place-items: center;
+    padding: 24px;
+  }
+  .filter-detail-overlay.active { display: grid; }
+  .filter-detail-card {
+    width: min(360px, 100%);
+    background: var(--glass-strong);
+    border: 0.5px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    color: var(--text);
+  }
+  .filter-detail-card h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+  .filter-detail-card .sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .filter-detail-card .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 12px 0;
+    font-size: 12px;
+  }
+  .filter-detail-card .preset-grid dt { color: var(--muted); }
+  .filter-detail-card .preset-grid dd { margin: 0; font-weight: 600; }
+  .filter-detail-card .desc { font-size: 13px; line-height: 1.55; color: #e7e7eb; }
+  .filter-detail-card .close-btn {
+    width: 100%;
+    margin-top: 14px;
+    min-height: 42px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #1a1206;
+    font-weight: 600;
+    font-size: 14px;
+    border: 0;
   }
 </style>
 </head>
 <body>
-  <main class="camera-app" id="cameraApp" data-ratio="4:3">
+  <main class="camera-app" id="cameraApp" data-ratio="3:4">
     <section class="viewfinder" id="viewfinder" aria-label="相机取景器">
       <video id="camera" playsinline autoplay muted></video>
-      <canvas id="preview" class="capture-buffer"></canvas>
+      <div class="vf-gradient-top" aria-hidden="true"></div>
+      <div class="vf-gradient-bottom" aria-hidden="true"></div>
       <div class="ratio-mask" aria-hidden="true"></div>
       <div class="grid-lines" aria-hidden="true"></div>
       <div id="cropBox" class="crop-box" hidden></div>
-      <div id="focusRing" class="focus-ring" aria-hidden="true"></div>
+      <div id="focusRing" class="focus-ring" aria-hidden="true"><i></i><i></i></div>
     </section>
 
     <header class="top-hud">
-      <div class="top-row">
-        <div class="chip-row">
-          <div class="chip good" id="sunsetChip">追光状态载入中</div>
-          <div class="chip" id="scenePill">等待取景</div>
-          <div class="chip" id="tipChip">打开相机后即可拍摄</div>
-        </div>
-        <div class="tool-group">
-          <button class="icon-button" id="gridButton" type="button" aria-pressed="true" title="网格线">#</button>
-          <div class="ratio-group" aria-label="拍摄比例">
-            <button class="ratio-button active" type="button" data-ratio="4:3">4:3</button>
-            <button class="ratio-button" type="button" data-ratio="1:1">1:1</button>
-            <button class="ratio-button" type="button" data-ratio="16:9">16:9</button>
-          </div>
-        </div>
+      <div class="status-stack">
+        <div class="chip good" id="sunsetChip">追光状态载入中</div>
+        <div class="chip" id="scenePill">等待取景</div>
+        <div class="chip" id="tipChip">打开相机后即可拍摄</div>
+      </div>
+      <div class="tool-group">
+        <button class="icon-button" id="gridButton" type="button" aria-pressed="true" title="网格线" aria-label="网格线">#</button>
       </div>
     </header>
 
@@ -439,17 +943,17 @@
     </nav>
 
     <footer class="bottom-controls">
-      <button class="thumbnail-button" id="thumbnailButton" type="button" title="最近照片">
+      <button class="thumbnail-button" id="thumbnailButton" type="button" title="最近照片" aria-label="最近照片">
         <span class="thumbnail-empty">□</span>
       </button>
       <button class="shutter" id="captureButton" type="button" aria-label="拍照" disabled></button>
-      <button class="icon-button" id="switchButton" type="button" title="切换摄像头" disabled>↺</button>
+      <button class="switch-deck" id="switchButton" type="button" title="切换摄像头" aria-label="切换摄像头" disabled>↺</button>
     </footer>
 
     <section class="start-gate" id="startGate">
       <div class="start-card">
-        <h1>追·光相机</h1>
-        <p>实时取景、即时快门，可在右侧手动开启 AI 构图和 AI 滤镜。拍照不会等待 AI 倒计时，AI 结果会在拍后完成。</p>
+        <h1>追·<b>光</b></h1>
+        <p>实时取景、即时快门，可在右侧开启 AI 构图与 AI 滤镜。拍照不等待 AI，成片在拍后完成。</p>
         <button id="startButton" type="button" class="primary-button">启动相机</button>
         <button id="retryButton" type="button" class="secondary-button" hidden>重新授权</button>
         <p id="status">等待摄像头授权。</p>
@@ -457,6 +961,11 @@
     </section>
 
     <div class="busy-layer" id="busyLayer">正在处理照片</div>
+
+    <div class="undo-toast" id="undoToast" hidden>
+      <span id="undoToastText">已删除</span>
+      <button type="button" id="undoButton">撤销</button>
+    </div>
 
     <section class="review-layer" id="reviewLayer" aria-label="照片回看">
       <div class="review-image-wrap">
@@ -468,9 +977,9 @@
             <h2 id="reviewTitle">刚刚拍摄</h2>
             <p id="reviewMeta">AI 正在整理成片</p>
           </div>
-          <button class="icon-button" id="closeReviewButton" type="button" title="返回取景">×</button>
+          <button class="icon-button" id="closeReviewButton" type="button" title="返回取景" aria-label="返回取景">×</button>
         </div>
-        <div class="variant-tabs" id="variantTabs"></div>
+        <div class="variant-tabs" id="variantTabs" hidden></div>
         <div class="review-actions">
           <a id="downloadLink" class="secondary-button" download="lightchaser-photo.jpg" href="#">下载</a>
           <button id="deletePhotoButton" class="danger-button" type="button">删除</button>
@@ -485,10 +994,37 @@
       <button id="downloadMetadataButton" type="button" class="secondary-button" disabled>下载 metadata.json</button>
       <code id="debugJson">{}</code>
     </aside>
+
+    <!-- ============ FILTER DRAWER (抖音风 胶片滤镜) ============ -->
+    <section class="filter-drawer" id="filterDrawer" aria-hidden="true">
+      <header class="filter-drawer-head">
+        <div class="filter-drawer-title">胶片风格<small>23 套经典模拟,实时跑在浏览器</small></div>
+        <button class="filter-drawer-close" id="filterDrawerClose" type="button" aria-label="关闭">×</button>
+      </header>
+      <nav class="filter-tabs" id="filterTabs" role="tablist" aria-label="滤镜品牌"></nav>
+      <div class="filter-strip" id="filterStrip" role="listbox" aria-label="滤镜列表"></div>
+      <div class="filter-drawer-foot">
+        <div class="now-applied" id="filterDrawerApplied">当前未应用</div>
+        <button class="primary-button" id="filterDrawerApply" type="button">关闭</button>
+      </div>
+    </section>
+
+    <div class="filter-detail-overlay" id="filterDetailOverlay" aria-hidden="true">
+      <div class="filter-detail-card" id="filterDetailCard">
+        <h3 id="filterDetailName">F PROVIA</h3>
+        <div class="sub" id="filterDetailSub">富士 · 通用百搭</div>
+        <p class="desc" id="filterDetailDesc">真实准确的色彩还原,风景和日常的基准负片</p>
+        <dl class="preset-grid" id="filterDetailGrid"></dl>
+        <button class="close-btn" id="filterDetailClose" type="button">关闭</button>
+      </div>
+    </div>
   </main>
 
   <script src="./vendor/filterous2.min.js"></script>
+  <script src="./vision-engine.js"></script>
   <script src="./ai-camera-core.browser.js"></script>
+  <script src="./ai-camera-luts.js"></script>
+  <script src="./ai-camera-filter-layers.js"></script>
   <script src="./ai-camera.js"></script>
 </body>
 </html>

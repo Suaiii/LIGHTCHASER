@@ -40,13 +40,14 @@ http://127.0.0.1:5174/api/sunset?demo=low
 - The route screen now reads `recommendation.spot`, `recommendation.direction`, `recommendation.distance`, and `peakTime`.
 - The community screen now reacts to the backend score and recommended spot.
 - The quick shoot screen now reads backend `score`, `peakTime`, `peakDuration`, `recommendation.spot`, and `shootingTips`.
+- The standalone AI camera at `/ai-camera.html` now uses a real camera workflow: full-screen viewfinder, instant shutter, ratio/grid controls, local recent-photo review, and post-shot AI variants.
 - Row 0, Row 2, and Row 3 use local mp4 backgrounds and keep the original gradient fallback if video loading fails.
 
 ## Not Connected Yet
 
 - Real map navigation is still a console hook through `window.GuangbaoHooks.openNavigation`.
 - Community posts are still mock content, only lightly personalized by backend score and spot.
-- Quick shoot camera is still a visual prototype, not real camera capture.
+- The in-deck quick shoot panel is still a visual prototype; the real camera workflow lives in the standalone `/ai-camera.html` page.
 - The frontend remains HTML + Babel CDN for hackathon speed; no Vite/build pipeline has been introduced.
 
 ## Demo Notes

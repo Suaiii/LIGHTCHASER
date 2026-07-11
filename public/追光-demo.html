@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>追光 — lightchaser · follow the light, miss nothing</title>
+<meta name="description" content="A sunset companion. We score every sunset, route you to the right place, and tell you when to look up." />
+
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     DESIGN TOKENS — 克制第一，黑 + 白透明度梯度 + 一个琥珀锚点
+     ============================================================ */
+  :root {
+    --bg: #000000;
+    --t-90: rgba(255,255,255,0.90);
+    --t-70: rgba(255,255,255,0.70);
+    --t-40: rgba(255,255,255,0.40);
+    --t-20: rgba(255,255,255,0.20);
+    --t-10: rgba(255,255,255,0.10);
+    --t-04: rgba(255,255,255,0.04);
+
+    --amber:        #D97706;
+    --amber-bright: #F59E0B;
+    --amber-soft:   #FBBF24;
+    --amber-deep:   #92400E;
+    --amber-glow:   rgba(217,119,6,0.35);
+  }
+
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: #fff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--amber); color: #000; }
+
+  /* ============================================================
+     TYPE — 流体优先 (vw / clamp)
+     ============================================================ */
+  .font-display { font-family: 'Space Grotesk', -apple-system, sans-serif; letter-spacing: -0.04em; }
+  .font-mono    { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  .hero-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(5rem, 26vw, 28rem);
+    line-height: 0.82;
+    letter-spacing: -0.07em;
+    font-weight: 300;
+  }
+  .display-xl {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(3.5rem, 14vw, 14rem);
+    line-height: 0.86;
+    letter-spacing: -0.05em;
+    font-weight: 300;
+  }
+  .display-l {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2.5rem, 9vw, 8rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-weight: 300;
+  }
+  .display-m {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.75rem, 4vw, 3.5rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-weight: 400;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* ============================================================
+     LIQUID GLASS — Design System 工具类
+     ============================================================ */
+  .liquid-glass {
+    position: relative;
+    background: var(--t-04);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--t-10);
+    border-radius: 9999px;
+  }
+  .liquid-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 50%, rgba(255,255,255,0.04));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  .liquid-glass-strong {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  .liquid-glass-card {
+    position: relative;
+    background: var(--t-04);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--t-10);
+    border-radius: 24px;
+  }
+  .liquid-glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 50%, rgba(255,255,255,0.04));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Pill default for buttons */
+  .pill { border-radius: 9999px; }
+
+  /* ============================================================
+     DIAGONAL DIVIDER — language identifier (rotate -20°)
+     ============================================================ */
+  .diag {
+    display: inline-block;
+    width: 56px;
+    height: 1px;
+    background: var(--t-40);
+    transform: rotate(-20deg);
+    transform-origin: left center;
+  }
+  .diag-amber {
+    background: linear-gradient(90deg, var(--amber), transparent);
+  }
+
+  /* ============================================================
+     ENTRANCE SIGNATURE — blur(10px) + opacity + y
+     ============================================================ */
+  @keyframes blur-in {
+    from { filter: blur(10px); opacity: 0; transform: translateY(20px); }
+    to   { filter: blur(0);    opacity: 1; transform: translateY(0); }
+  }
+  .reveal { opacity: 0; }
+  .reveal.in {
+    animation: blur-in 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Stagger — 严格 0.1s 递增 */
+  .d-0  { animation-delay: 0.0s; }
+  .d-1  { animation-delay: 0.1s; }
+  .d-2  { animation-delay: 0.2s; }
+  .d-3  { animation-delay: 0.3s; }
+  .d-4  { animation-delay: 0.4s; }
+  .d-5  { animation-delay: 0.5s; }
+  .d-6  { animation-delay: 0.6s; }
+  .d-7  { animation-delay: 0.7s; }
+  .d-8  { animation-delay: 0.8s; }
+  .d-9  { animation-delay: 0.9s; }
+  .d-10 { animation-delay: 1.0s; }
+  .d-11 { animation-delay: 1.1s; }
+  .d-12 { animation-delay: 1.2s; }
+  .d-13 { animation-delay: 1.3s; }
+  .d-14 { animation-delay: 1.4s; }
+  .d-15 { animation-delay: 1.5s; }
+  .d-16 { animation-delay: 1.6s; }
+  .d-17 { animation-delay: 1.7s; }
+  .d-18 { animation-delay: 1.8s; }
+  .d-19 { animation-delay: 1.9s; }
+  .d-20 { animation-delay: 2.0s; }
+
+  /* ============================================================
+     BOUNCE ARROW — scroll invitation
+     ============================================================ */
+  @keyframes bounce-y {
+    0%, 100% { transform: translateY(0);   opacity: 0.55; }
+    50%      { transform: translateY(10px); opacity: 1; }
+  }
+  .bounce-arrow { animation: bounce-y 2.4s ease-in-out infinite; }
+
+  /* ============================================================
+     PULSE DOT — live indicator
+     ============================================================ */
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 var(--amber-glow); }
+    50%      { opacity: 0.65; transform: scale(1.15); box-shadow: 0 0 0 10px rgba(217,119,6,0); }
+  }
+  .pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+
+  /* ============================================================
+     VIDEO AMBIENT — bg-black 兜底 + amber grade
+     ============================================================ */
+  .video-wrap {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #000;
+  }
+  .video-wrap video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.55) saturate(1.25) contrast(1.05);
+  }
+  .video-wrap .vignette {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%),
+      linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+  }
+  .video-wrap .amber-grade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(217,119,6,0.22) 0%, rgba(217,119,6,0) 40%, rgba(0,0,0,0.6) 100%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  /* ============================================================
+     AMBER ACCENT — 唯一的暖色锚点
+     ============================================================ */
+  .text-amber    { color: var(--amber); }
+  .text-amber-soft { color: var(--amber-soft); }
+  .bg-amber      { background-color: var(--amber); }
+  .bg-amber-glow { background: radial-gradient(circle, var(--amber) 0%, transparent 70%); }
+  .border-amber  { border-color: var(--amber); }
+
+  /* score progress */
+  .score-fill {
+    background: linear-gradient(90deg, var(--amber-deep) 0%, var(--amber) 50%, var(--amber-soft) 100%);
+  }
+
+  /* ============================================================
+     PROGRESS BAR — sunset timeline
+     ============================================================ */
+  .timeline-track {
+    background: var(--t-10);
+    height: 1px;
+    position: relative;
+  }
+  .timeline-now {
+    position: absolute;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    background: var(--amber);
+    border-radius: 9999px;
+    box-shadow: 0 0 12px var(--amber);
+  }
+  .timeline-sunset {
+    position: absolute;
+    top: -4px;
+    width: 9px;
+    height: 9px;
+    background: var(--amber-soft);
+    border-radius: 9999px;
+    box-shadow: 0 0 16px var(--amber-bright);
+  }
+
+  /* ============================================================
+     SCROLLBAR
+     ============================================================ */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--t-20); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--t-40); }
+
+  /* ============================================================
+     SECTION UTIL
+     ============================================================ */
+  .section {
+    padding-left: clamp(1.25rem, 5vw, 6rem);
+    padding-right: clamp(1.25rem, 5vw, 6rem);
+  }
+
+  /* 视频 section 第一行永远是 bg-black（兜底） */
+  .video-section { background: #000; }
+
+  /* Nav blur over content */
+  .nav-blur {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(0,0,0,0.45);
+    border-bottom: 1px solid var(--t-10);
+  }
+
+  /* ============================================================
+     RUMBLE — hero 上的字微微震动，模拟镜头的呼吸感
+     ============================================================ */
+  @keyframes idle-breathe {
+    0%, 100% { transform: translate3d(0,0,0); }
+    50%      { transform: translate3d(0, -1px, 0); }
+  }
+  .breathe { animation: idle-breathe 6s ease-in-out infinite; }
+
+  /* ============================================================
+     POI CARD hover
+     ============================================================ */
+  .poi-card {
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                background 500ms ease,
+                border-color 500ms ease;
+  }
+  .poi-card:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-2px);
+  }
+  .poi-card:hover .poi-arrow { transform: translate(2px, -2px); opacity: 1; }
+  .poi-arrow { transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease; opacity: 0.4; }
+
+  /* Reduce motion respect */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .bounce-arrow, .pulse-dot, .breathe { animation: none !important; opacity: 1 !important; }
+    .reveal { filter: none !important; transform: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAV — 液态玻璃 sticky
+     ============================================================ -->
+<nav class="fixed top-0 left-0 right-0 z-50 nav-blur">
+  <div class="section flex items-center justify-between" style="height: 64px;">
+
+    <!-- Logo -->
+    <a href="#top" class="flex items-center gap-3 group">
+      <span class="font-display text-[18px] font-medium tracking-tight text-white">追光</span>
+      <span class="diag hidden md:inline-block"></span>
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">lightchaser</span>
+    </a>
+
+    <!-- Center links -->
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#tonight"  class="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-white transition" style="color: var(--t-70);">tonight</a>
+      <a href="#science"  class="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-white transition" style="color: var(--t-70);">science</a>
+      <a href="#places"   class="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-white transition" style="color: var(--t-70);">places</a>
+      <a href="#story"    class="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-white transition" style="color: var(--t-70);">story</a>
+    </div>
+
+    <!-- Live pill -->
+    <div class="liquid-glass flex items-center gap-2 px-4 py-2">
+      <span class="pulse-dot inline-block w-1.5 h-1.5 rounded-full" style="background: var(--amber);"></span>
+      <span class="font-mono text-[11px] tracking-[0.1em]" style="color: var(--t-90);">19:32</span>
+      <span class="font-mono text-[11px] tracking-[0.1em]" style="color: var(--t-40);">·</span>
+      <span class="font-mono text-[11px] tracking-[0.1em]" style="color: var(--t-70);">shanghai</span>
+    </div>
+
+  </div>
+</nav>
+
+
+<!-- ============================================================
+     HERO — 首屏单视觉锚点（巨型排版 + 视频氛围）
+     ============================================================ -->
+<section id="top" class="relative video-section" style="min-height: 100vh; padding-top: 64px;">
+
+  <!-- bg-black 兜底已由 .video-section 给出 -->
+
+  <div class="video-wrap">
+    <video autoplay muted loop playsinline preload="auto" poster="">
+      <source src="assets/videos/d2e53f3bad4d95ca349f8a8d39ca3c43.mp4" type="video/mp4">
+    </video>
+    <div class="amber-grade"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <!-- 内容层 -->
+  <div class="relative z-10 section flex flex-col" style="min-height: calc(100vh - 64px);">
+
+    <!-- 顶部 eyebrow -->
+    <div class="flex items-center justify-between pt-10 md:pt-16">
+      <div class="reveal in d-0 flex items-center gap-3">
+        <span class="font-mono text-[11px] tracking-[0.2em] uppercase text-amber">01</span>
+        <span class="diag diag-amber"></span>
+        <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">a sunset companion</span>
+      </div>
+      <div class="reveal in d-1 hidden md:flex items-center gap-2 font-mono text-[11px] tracking-[0.1em]" style="color: var(--t-40);">
+        <span>scroll</span>
+        <span class="opacity-50">·</span>
+        <span>↓</span>
+      </div>
+    </div>
+
+    <!-- 主标题 -->
+    <div class="flex-1 flex flex-col justify-center -mt-6 md:-mt-12">
+      <h1 class="hero-text text-white breathe reveal in d-3">
+        追光
+      </h1>
+      <div class="mt-3 md:mt-6 flex items-baseline gap-4 md:gap-6 reveal in d-7">
+        <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-40);">lightchaser</span>
+        <span class="diag diag-amber"></span>
+        <span class="hero-sub font-mono" style="color: var(--t-90);">follow the light · miss nothing</span>
+      </div>
+    </div>
+
+    <!-- 底部数据带 -->
+    <div class="pb-10 md:pb-16">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8 reveal in d-10">
+        <div>
+          <div class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-40);">tonight in shanghai</div>
+          <div class="mt-2 flex items-baseline gap-3">
+            <span class="font-display text-[44px] md:text-[56px] font-light text-amber-soft leading-none">19:32</span>
+            <span class="font-mono text-[12px] tracking-[0.1em]" style="color: var(--t-70);">sunset</span>
+          </div>
+          <div class="mt-1 font-mono text-[12px] tracking-[0.05em]" style="color: var(--t-70);">
+            golden hour <span class="text-amber">18:45</span> → <span class="text-amber">19:32</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <a href="#tonight" class="liquid-glass flex items-center gap-2 px-5 py-3 group hover:bg-white/[0.08] transition">
+            <span class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-90);">see tonight</span>
+            <span class="font-mono text-[14px]">↓</span>
+          </a>
+          <a href="#places" class="liquid-glass flex items-center gap-2 px-5 py-3 group hover:bg-white/[0.08] transition">
+            <span class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-90);">find a place</span>
+            <span class="font-mono text-[14px]">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     TONIGHT — 数据 hero：巨型时刻 + 评分 + 时间轴
+     ============================================================ -->
+<section id="tonight" class="relative video-section" style="min-height: 100vh;">
+  <div class="relative z-10 section flex flex-col" style="min-height: 100vh;">
+
+    <!-- eyebrow -->
+    <div class="pt-20 md:pt-28 flex items-center gap-3 reveal">
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase text-amber">02</span>
+      <span class="diag diag-amber"></span>
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">tonight · 2026.07.04</span>
+    </div>
+
+    <!-- 主数据 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mt-12 md:mt-20">
+
+      <!-- 左：巨型时刻 -->
+      <div class="lg:col-span-7 flex flex-col justify-center">
+        <div class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-40);">sunset / 黄昏</div>
+        <div class="mt-3 reveal">
+          <div class="display-xl text-white">19:32</div>
+        </div>
+        <div class="mt-6 flex items-center gap-4 reveal">
+          <span class="font-mono text-[12px] tracking-[0.1em]" style="color: var(--t-40);">sunrise 04:52</span>
+          <span class="font-mono text-[12px]" style="color: var(--t-20);">—</span>
+          <span class="font-mono text-[12px] tracking-[0.1em] text-amber">daylight 14h 40m</span>
+        </div>
+
+        <!-- 时间轴 -->
+        <div class="mt-12 md:mt-16 reveal">
+          <div class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-40);">timeline / 时间轴</div>
+          <div class="mt-5 relative">
+            <div class="timeline-track w-full"></div>
+            <div class="timeline-now" style="left: 78%;"></div>
+            <div class="timeline-sunset" style="left: 81.8%;"></div>
+            <div class="flex justify-between mt-4 font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+              <span>04:52</span>
+              <span>12:00</span>
+              <span class="text-amber">19:32</span>
+              <span>23:59</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：评分 + 环境 -->
+      <div class="lg:col-span-5 flex flex-col justify-center">
+
+        <!-- Quality score -->
+        <div class="reveal">
+          <div class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-40);">score / 今日评分</div>
+          <div class="mt-3 flex items-baseline gap-4">
+            <div class="font-display text-[88px] md:text-[120px] font-light leading-none text-amber">0.78</div>
+            <div class="flex flex-col gap-1">
+              <span class="font-mono text-[11px] tracking-[0.2em] uppercase text-amber">high</span>
+              <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">top 12% this month</span>
+            </div>
+          </div>
+          <div class="mt-5 h-[2px] w-full bg-white/10 rounded-full overflow-hidden">
+            <div class="score-fill h-full rounded-full" style="width: 78%;"></div>
+          </div>
+        </div>
+
+        <!-- 环境数据 -->
+        <div class="mt-12 grid grid-cols-2 gap-x-6 gap-y-6 reveal">
+          <div>
+            <div class="font-mono text-[10px] tracking-[0.18em] uppercase" style="color: var(--t-40);">cloud cover</div>
+            <div class="mt-2 font-display text-[28px] font-light">32<span class="text-[16px] ml-1" style="color: var(--t-40);">%</span></div>
+            <div class="mt-1 font-mono text-[10px]" style="color: var(--t-70);">breaks expected</div>
+          </div>
+          <div>
+            <div class="font-mono text-[10px] tracking-[0.18em] uppercase" style="color: var(--t-40);">humidity</div>
+            <div class="mt-2 font-display text-[28px] font-light">68<span class="text-[16px] ml-1" style="color: var(--t-40);">%</span></div>
+            <div class="mt-1 font-mono text-[10px]" style="color: var(--t-70);">soft diffusion</div>
+          </div>
+          <div>
+            <div class="font-mono text-[10px] tracking-[0.18em] uppercase" style="color: var(--t-40);">visibility</div>
+            <div class="mt-2 font-display text-[28px] font-light">14<span class="text-[16px] ml-1" style="color: var(--t-40);">km</span></div>
+            <div class="mt-1 font-mono text-[10px]" style="color: var(--t-70);">clear horizon</div>
+          </div>
+          <div>
+            <div class="font-mono text-[10px] tracking-[0.18em] uppercase" style="color: var(--t-40);">aqi</div>
+            <div class="mt-2 font-display text-[28px] font-light text-amber-soft">54</div>
+            <div class="mt-1 font-mono text-[10px]" style="color: var(--t-70);">moderate · warm tone</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部 mark -->
+    <div class="mt-auto pt-20 pb-10 flex items-center justify-between reveal">
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+        data · open-meteo + suncalc
+      </div>
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+        updated · 14:02 local
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     SCIENCE — 视频氛围 + 算法叙事
+     ============================================================ -->
+<section id="science" class="relative video-section" style="min-height: 100vh;">
+  <!-- bg-black 兜底 -->
+
+  <div class="video-wrap">
+    <video autoplay muted loop playsinline preload="auto">
+      <source src="assets/videos/6a9a18fae770dc501bdd92751eb1f58b.mp4" type="video/mp4">
+    </video>
+    <div class="amber-grade"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <div class="relative z-10 section flex flex-col" style="min-height: 100vh;">
+
+    <div class="pt-20 md:pt-28 flex items-center gap-3 reveal">
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase text-amber">03</span>
+      <span class="diag diag-amber"></span>
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">the science / 算法</span>
+    </div>
+
+    <div class="flex-1 flex flex-col justify-center max-w-5xl">
+
+      <h2 class="display-l text-white reveal">
+        we score every sunset
+        <span class="block" style="color: var(--t-70);">from zero to one.</span>
+      </h2>
+
+      <div class="mt-10 md:mt-14 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+        <div class="reveal">
+          <div class="font-mono text-[10px] tracking-[0.2em] uppercase text-amber">01 — geometry</div>
+          <p class="mt-3 font-display text-[18px] md:text-[20px] leading-[1.4]" style="color: var(--t-90);">
+            solar elevation, azimuth, and twilight bands from suncalc.
+          </p>
+        </div>
+        <div class="reveal">
+          <div class="font-mono text-[10px] tracking-[0.2em] uppercase text-amber">02 — atmosphere</div>
+          <p class="mt-3 font-display text-[18px] md:text-[20px] leading-[1.4]" style="color: var(--t-90);">
+            cloud cover, humidity, visibility and aqi from open-meteo.
+          </p>
+        </div>
+        <div class="reveal">
+          <div class="font-mono text-[10px] tracking-[0.2em] uppercase text-amber">03 — score</div>
+          <p class="mt-3 font-display text-[18px] md:text-[20px] leading-[1.4]" style="color: var(--t-90);">
+            weighted blend. when score crosses 0.6 we wake up.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="mt-auto pt-16 pb-10 flex items-center justify-between reveal">
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+        ↓ scroll for places
+      </div>
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+        /api/sunset · live
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     PLACES — POI 推荐列表
+     ============================================================ -->
+<section id="places" class="relative video-section" style="padding-top: 8rem; padding-bottom: 8rem;">
+
+  <div class="relative z-10 section">
+
+    <div class="flex items-center gap-3 reveal">
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase text-amber">04</span>
+      <span class="diag diag-amber"></span>
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">where to watch / 今晚去哪追</span>
+    </div>
+
+    <h2 class="mt-8 md:mt-12 display-l text-white max-w-4xl reveal">
+      six places, <span style="color: var(--t-70);">one sun.</span>
+      <span class="block text-amber">pick your angle.</span>
+    </h2>
+
+    <!-- 列表 -->
+    <div class="mt-16 md:mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+
+      <!-- 01 外滩 -->
+      <article class="poi-card liquid-glass-card p-6 md:p-7 reveal">
+        <div class="flex items-start justify-between">
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-40);">01</div>
+          <div class="font-mono text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-full" style="background: rgba(217,119,6,0.12); color: var(--amber-soft); border: 1px solid rgba(217,119,6,0.25);">classic</div>
+        </div>
+        <div class="mt-8">
+          <div class="font-display text-[28px] font-light leading-[1.1] text-white">外滩</div>
+          <div class="mt-1 font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">the bund · 黄浦江</div>
+        </div>
+        <div class="mt-6 flex items-center gap-5 font-mono text-[11px]" style="color: var(--t-70);">
+          <span>1.2 km</span>
+          <span style="color: var(--t-20);">·</span>
+          <span>bearing 281°</span>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+          <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">crowd · high</span>
+          <span class="poi-arrow font-mono text-[14px] text-amber">↗</span>
+        </div>
+      </article>
+
+      <!-- 02 陆家嘴 -->
+      <article class="poi-card liquid-glass-card p-6 md:p-7 reveal">
+        <div class="flex items-start justify-between">
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-40);">02</div>
+          <div class="font-mono text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--t-70); border: 1px solid rgba(255,255,255,0.12);">elevated</div>
+        </div>
+        <div class="mt-8">
+          <div class="font-display text-[28px] font-light leading-[1.1] text-white">陆家嘴</div>
+          <div class="mt-1 font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">lujiazui · 滨江</div>
+        </div>
+        <div class="mt-6 flex items-center gap-5 font-mono text-[11px]" style="color: var(--t-70);">
+          <span>3.4 km</span>
+          <span style="color: var(--t-20);">·</span>
+          <span>bearing 268°</span>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+          <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">crowd · mid</span>
+          <span class="poi-arrow font-mono text-[14px] text-amber">↗</span>
+        </div>
+      </article>
+
+      <!-- 03 苏州河 -->
+      <article class="poi-card liquid-glass-card p-6 md:p-7 reveal">
+        <div class="flex items-start justify-between">
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-40);">03</div>
+          <div class="font-mono text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--t-70); border: 1px solid rgba(255,255,255,0.12);">calm</div>
+        </div>
+        <div class="mt-8">
+          <div class="font-display text-[28px] font-light leading-[1.1] text-white">苏州河</div>
+          <div class="mt-1 font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">suzhou creek · 长寿路桥</div>
+        </div>
+        <div class="mt-6 flex items-center gap-5 font-mono text-[11px]" style="color: var(--t-70);">
+          <span>4.1 km</span>
+          <span style="color: var(--t-20);">·</span>
+          <span>bearing 274°</span>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+          <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">crowd · low</span>
+          <span class="poi-arrow font-mono text-[14px] text-amber">↗</span>
+        </div>
+      </article>
+
+      <!-- 04 徐汇滨江 -->
+      <article class="poi-card liquid-glass-card p-6 md:p-7 reveal">
+        <div class="flex items-start justify-between">
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-40);">04</div>
+          <div class="font-mono text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--t-70); border: 1px solid rgba(255,255,255,0.12);">west</div>
+        </div>
+        <div class="mt-8">
+          <div class="font-display text-[28px] font-light leading-[1.1] text-white">徐汇滨江</div>
+          <div class="mt-1 font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">west bund · 龙美术馆</div>
+        </div>
+        <div class="mt-6 flex items-center gap-5 font-mono text-[11px]" style="color: var(--t-70);">
+          <span>7.8 km</span>
+          <span style="color: var(--t-20);">·</span>
+          <span>bearing 261°</span>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+          <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">crowd · mid</span>
+          <span class="poi-arrow font-mono text-[14px] text-amber">↗</span>
+        </div>
+      </article>
+
+      <!-- 05 复兴岛 -->
+      <article class="poi-card liquid-glass-card p-6 md:p-7 reveal">
+        <div class="flex items-start justify-between">
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-40);">05</div>
+          <div class="font-mono text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-full" style="background: var(--amber-glow); color: var(--amber-soft); border: 1px solid rgba(217,119,6,0.4);">hidden</div>
+        </div>
+        <div class="mt-8">
+          <div class="font-display text-[28px] font-light leading-[1.1] text-white">复兴岛</div>
+          <div class="mt-1 font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">fuxing island · 黄浦江畔</div>
+        </div>
+        <div class="mt-6 flex items-center gap-5 font-mono text-[11px]" style="color: var(--t-70);">
+          <span>9.2 km</span>
+          <span style="color: var(--t-20);">·</span>
+          <span>bearing 286°</span>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+          <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">crowd · none</span>
+          <span class="poi-arrow font-mono text-[14px] text-amber">↗</span>
+        </div>
+      </article>
+
+      <!-- 06 滨江森林公园 -->
+      <article class="poi-card liquid-glass-card p-6 md:p-7 reveal">
+        <div class="flex items-start justify-between">
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-40);">06</div>
+          <div class="font-mono text-[10px] tracking-[0.15em] uppercase px-2.5 py-1 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--t-70); border: 1px solid rgba(255,255,255,0.12);">horizon</div>
+        </div>
+        <div class="mt-8">
+          <div class="font-display text-[28px] font-light leading-[1.1] text-white">滨江森林公园</div>
+          <div class="mt-1 font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">binjiang forest · 吴淞口</div>
+        </div>
+        <div class="mt-6 flex items-center gap-5 font-mono text-[11px]" style="color: var(--t-70);">
+          <span>16 km</span>
+          <span style="color: var(--t-20);">·</span>
+          <span>bearing 295°</span>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+          <span class="font-mono text-[10px] tracking-[0.15em] uppercase" style="color: var(--t-40);">crowd · low</span>
+          <span class="poi-arrow font-mono text-[14px] text-amber">↗</span>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- 底部 mark -->
+    <div class="mt-16 flex items-center justify-between reveal">
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+        6 places · curated daily
+      </div>
+      <a href="#" class="liquid-glass flex items-center gap-2 px-5 py-3 group hover:bg-white/[0.08] transition">
+        <span class="font-mono text-[11px] tracking-[0.18em] uppercase" style="color: var(--t-90);">open map</span>
+        <span class="font-mono text-[14px]">↗</span>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     STORY — 一句话宣言
+     ============================================================ -->
+<section id="story" class="relative video-section" style="min-height: 100vh;">
+  <div class="relative z-10 section flex flex-col" style="min-height: 100vh;">
+
+    <div class="pt-20 md:pt-28 flex items-center gap-3 reveal">
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase text-amber">05</span>
+      <span class="diag diag-amber"></span>
+      <span class="font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">the story / 故事</span>
+    </div>
+
+    <div class="flex-1 flex items-center">
+      <div class="max-w-6xl">
+        <p class="display-l text-white reveal" style="line-height: 1.05;">
+          light is the only thing
+          <span style="color: var(--t-70);">that disappears</span>
+          <span class="text-amber">on schedule.</span>
+          <span class="block" style="color: var(--t-70);">we built lightchaser</span>
+          <span>so you never miss it.</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-auto pt-16 pb-10 flex items-center justify-between reveal">
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase" style="color: var(--t-40);">
+        — for everyone who's ever looked up too late
+      </div>
+      <div class="font-mono text-[11px] tracking-[0.15em] uppercase text-amber">
+        shanghai · 2024 — present
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="relative video-section" style="padding-top: 4rem; padding-bottom: 3rem;">
+
+  <!-- 顶部分割线 -->
+  <div class="section">
+    <div class="h-px w-full" style="background: var(--t-10);"></div>
+  </div>
+
+  <div class="section mt-12 md:mt-16">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
+
+      <div class="md:col-span-5">
+        <div class="font-display text-[44px] md:text-[64px] font-light leading-[0.9] text-white">追光</div>
+        <div class="mt-2 font-mono text-[11px] tracking-[0.2em] uppercase" style="color: var(--t-70);">lightchaser · v0.4.2</div>
+        <p class="mt-5 max-w-sm font-display text-[15px] leading-[1.5]" style="color: var(--t-70);">
+          a sunset companion that scores the sky, routes you to a place, and tells you when to look up.
+        </p>
+      </div>
+
+      <div class="md:col-span-4 grid grid-cols-2 gap-6">
+        <div>
+          <div class="font-mono text-[10px] tracking-[0.2em] uppercase" style="color: var(--t-40);">product</div>
+          <ul class="mt-4 space-y-2">
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">tonight</a></li>
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">places</a></li>
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">ai camera</a></li>
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">api</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="font-mono text-[10px] tracking-[0.2em] uppercase" style="color: var(--t-40);">data</div>
+          <ul class="mt-4 space-y-2">
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">open-meteo</a></li>
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">suncalc</a></li>
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">poi set</a></li>
+            <li><a href="#" class="font-mono text-[12px] tracking-[0.05em] hover:text-white transition" style="color: var(--t-70);">fallback</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="md:col-span-3">
+        <div class="font-mono text-[10px] tracking-[0.2em] uppercase" style="color: var(--t-40);">build</div>
+        <ul class="mt-4 space-y-2">
+          <li class="font-mono text-[12px]" style="color: var(--t-70);">2026.07.04 · 18:45</li>
+          <li class="font-mono text-[12px]" style="color: var(--t-70);">commit · 3f2b78b</li>
+          <li class="font-mono text-[12px]" style="color: var(--t-70);">region · shanghai</li>
+        </ul>
+        <div class="mt-6 flex items-center gap-2">
+          <span class="pulse-dot inline-block w-1.5 h-1.5 rounded-full" style="background: var(--amber);"></span>
+          <span class="font-mono text-[10px] tracking-[0.2em] uppercase" style="color: var(--t-70);">all systems · live</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- bottom mark -->
+    <div class="mt-16 flex items-center justify-between">
+      <div class="font-mono text-[10px] tracking-[0.2em] uppercase" style="color: var(--t-40);">
+        © 追光 · made for shanghai
+      </div>
+      <div class="font-mono text-[10px] tracking-[0.2em] uppercase" style="color: var(--t-40);">
+        follow the light · miss nothing
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ============================================================
+     NOTES — 反例清单（约束 / 禁止项）
+     ------------------------------------------------------------
+     - 所有正文 lowercase，title case 仅出现在 proper noun / 上海地名
+     - 调色板：bg-black + 白透明度梯度 + 唯一暖色 amber #D97706
+     - 禁止 purple / indigo / 任何冷色调
+     - 所有 video section 第一行 CSS 必须是 background: #000
+     - 入场动画统一签名: blur(10px) → 0, opacity 0 → 1, y 20 → 0
+     - stagger 严格 0.1s 递增，无"略晚一点"
+     - 视频淡入淡出用 CSS filter（不在 video 元素上挂 transition）
+     - 字体：Space Grotesk (display) + Inter (body) + JetBrains Mono (mono)
+     - 圆角默认 pill (9999px)
+     - 不堆按钮 / stats / logo / CTA 在首屏
+     - 倾斜分割线 (rotate -20°) 作为语言识别度
+     ============================================================ -->
+
+
+<script>
+  // ============================================================
+  // REVEAL — IntersectionObserver 触发入场动画
+  // ============================================================
+  (function() {
+    const els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) {
+      els.forEach(el => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          // 给同一批进场的元素加上 stagger delay
+          const target = entry.target;
+          const siblings = Array.from(target.parentElement.querySelectorAll('.reveal'))
+            .filter(s => s.getBoundingClientRect().top < window.innerHeight + 100);
+          const idx = siblings.indexOf(target);
+          if (idx >= 0) {
+            target.style.animationDelay = (0.1 * idx) + 's';
+          }
+          target.classList.add('in');
+          io.unobserve(target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    els.forEach(el => io.observe(el));
+  })();
+
+
+  // ============================================================
+  // FADING VIDEO — 状态机 + cooldown (idle | animating | cooldown)
+  // 视频淡入淡出用 rAF 控制 opacity，避免 CSS transition 抖动
+  // ============================================================
+  (function() {
+    const videos = document.querySelectorAll('.video-wrap video');
+    const FADE_MS = 800;
+    const COOLDOWN_MS = 800;
+
+    const fadeIn = (v) => {
+      const start = performance.now();
+      v.style.opacity = '0';
+      v.play().catch(() => {});
+      const tick = (now) => {
+        const t = Math.min((now - start) / FADE_MS, 1);
+        v.style.opacity = String(t);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    videos.forEach((v, i) => {
+      v.style.opacity = '0';
+      v.addEventListener('canplay', () => fadeIn(v), { once: true });
+      // 如果 canplay 已经触发（缓存命中），手动启动
+      if (v.readyState >= 3) fadeIn(v);
+    });
+  })();
+
+
+  // ============================================================
+  // NAV — scroll 时加深 blur
+  // ============================================================
+  (function() {
+    const nav = document.querySelector('nav');
+    let ticking = false;
+    const update = () => {
+      const y = window.scrollY;
+      if (y > 8) {
+        nav.style.background = 'rgba(0,0,0,0.72)';
+        nav.style.borderBottomColor = 'rgba(255,255,255,0.10)';
+      } else {
+        nav.style.background = 'rgba(0,0,0,0.45)';
+        nav.style.borderBottomColor = 'rgba(255,255,255,0.10)';
+      }
+      ticking = false;
+    };
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+    update();
+  })();
+
+
+  // ============================================================
+  // POI CARD — hover 时给 hero 中的 "follow the light" 加微光
+  // ============================================================
+  (function() {
+    const cards = document.querySelectorAll('.poi-card');
+    cards.forEach(c => {
+      c.addEventListener('mouseenter', () => {
+        c.style.borderColor = 'rgba(217,119,6,0.35)';
+      });
+      c.addEventListener('mouseleave', () => {
+        c.style.borderColor = '';
+      });
+    });
+  })();
+
+
+  // ============================================================
+  // TIME — nav 中的实时时间（每分钟更新一次，作为活感提示）
+  // ============================================================
+  (function() {
+    const timeEl = document.querySelectorAll('nav .font-mono');
+    // 仅修改 nav 里那个 19:32 的值
+    const navTimePill = document.querySelector('nav .liquid-glass');
+    if (!navTimePill) return;
+    const tick = () => {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const spans = navTimePill.querySelectorAll('span');
+      // spans: [dot, time, dot, city]
+      if (spans[1]) spans[1].textContent = `${hh}:${mm}`;
+    };
+    tick();
+    setInterval(tick, 60 * 1000);
+  })();
+</script>
+
+</body>
+</html>

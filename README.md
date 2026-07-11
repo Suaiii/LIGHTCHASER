@@ -28,13 +28,17 @@ Open the integrated frontend and backend preview:
 http://127.0.0.1:5174/
 ```
 
-Open the AI camera demo:
+Open the AI camera:
 
 ```text
 http://127.0.0.1:5174/ai-camera.html
 ```
 
-The AI camera demo uses the browser camera as the primary input. With AI features off it behaves like a normal camera. With AI composition or AI filters on, capture starts a 3-second observation window, then exports the original image, AI crop, AI crop + filter, and `metadata.json`.
+The AI camera uses the browser camera as the primary input. It presents a full-screen viewfinder with instant shutter capture, grid and ratio controls, camera switching when available, local recent-photo review, and AI composition/filter variants generated after the shot. Developer-only media upload and `metadata.json` export are available with:
+
+```text
+http://127.0.0.1:5174/ai-camera.html?debug=1
+```
 
 The same local server also handles:
 

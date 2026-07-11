@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LIGHTCHASER · 原生相机布局</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Spectral:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000;
+      --glass: rgba(20,20,20,0.55);
+      --glass-strong: rgba(28,28,28,0.72);
+      --rim: rgba(255,255,255,0.08);
+      --text: #FFFFFF;
+      --text-sec: rgba(255,255,255,0.6);
+      --text-mute: rgba(255,255,255,0.35);
+      --amber: #C9963F;
+      --amber-bright: #E2B261;
+      --amber-glow: rgba(201,150,63,0.4);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: #1a1a1a; }
+    body {
+      font-family: 'Inter', -apple-system, 'PingFang SC', sans-serif;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 60px;
+    }
+
+    .caption {
+      max-width: 390px;
+      width: 100%;
+      padding: 0 4px 16px;
+      color: var(--text-sec);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .caption strong { color: var(--text); font-weight: 500; }
+
+    /* === 手机壳 === */
+    .phone {
+      width: 390px;
+      max-width: 100%;
+      aspect-ratio: 9 / 19.5;
+      background: #000;
+      border-radius: 56px;
+      border: 2px solid #2a2a2a;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), inset 0 0 0 6px #0a0a0a;
+      position: relative;
+      overflow: hidden;
+    }
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 200;
+    }
+
+    /* === 相机界面 === */
+    .cam {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* === 取景画面 === */
+    .vf {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+
+    /* 模拟取景画面: 暗调特写 */
+    .scene {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(165deg,
+          #1a1208 0%, #2a1f15 25%, #3a2818 45%,
+          #1a1208 70%, #0a0604 100%);
+    }
+    .scene .surface {
+      position: absolute;
+      inset: 8% -10% -8% -10%;
+      background:
+        radial-gradient(ellipse at 40% 30%, #4a4035 0%, #2a2520 35%, #1a1612 70%);
+      transform: perspective(800px) rotateX(8deg);
+      filter: blur(0.5px);
+    }
+    .scene .keys {
+      position: absolute;
+      top: 18%;
+      left: 5%;
+      right: 5%;
+      height: 25%;
+      background: linear-gradient(180deg, #e8e3da 0%, #b8b3aa 100%);
+      border-radius: 6px 6px 12px 12px;
+      box-shadow:
+        0 8px 30px rgba(0,0,0,0.6),
+        inset 0 -4px 12px rgba(0,0,0,0.2);
+    }
+    .scene .keys::before, .scene .keys::after {
+      content: '';
+      position: absolute;
+      top: 14%;
+      height: 35%;
+      width: 22%;
+      background: linear-gradient(180deg, #f5f0e8 0%, #c8c2b8 100%);
+      border-radius: 4px;
+      box-shadow: inset 0 -2px 4px rgba(0,0,0,0.15);
+    }
+    .scene .keys::before { left: 12%; }
+    .scene .keys::after { right: 12%; }
+    .scene .red-thread {
+      position: absolute;
+      bottom: 26%;
+      left: -10%;
+      right: -10%;
+      height: 22px;
+      background:
+        repeating-linear-gradient(90deg,
+          #c9963f 0px, #c9963f 6px,
+          #a04030 6px, #a04030 10px);
+      transform: rotate(-2deg);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      filter: blur(0.3px);
+    }
+    .scene .leather {
+      position: absolute;
+      bottom: 0;
+      left: -10%;
+      right: -10%;
+      height: 28%;
+      background:
+        linear-gradient(180deg,
+          #1a1208 0%, #2a1810 30%, #1a1008 100%);
+      transform: perspective(600px) rotateX(-6deg);
+    }
+    .scene .vignette {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.55) 85%);
+      pointer-events: none;
+    }
+
+    /* === 顶部工具栏 === */
+    .toolbar {
+      position: absolute;
+      top: 56px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+    .tool-btn {
+      background: var(--glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--rim);
+      border-radius: 18px;
+      padding: 7px 11px;
+      color: var(--text);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 200ms var(--ease);
+      height: 32px;
+    }
+    .tool-btn .badge {
+      color: var(--amber);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      font-weight: 500;
+    }
+    .tool-btn.icon-only {
+      width: 32px;
+      padding: 0;
+      justify-content: center;
+    }
+    .tool-btn:hover {
+      background: rgba(40,40,40,0.72);
+    }
+
+    /* === 右上角取景框图标 === */
+    .vf-corner {
+      position: absolute;
+      top: 100px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      background: var(--glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--rim);
+      border-radius: 50%;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 200ms var(--ease);
+    }
+    .vf-corner:hover {
+      background: rgba(40,40,40,0.72);
+    }
+
+    /* === 右下角 AI 魔法 === */
+    .vf-magic {
+      position: absolute;
+      bottom: 80px;
+      right: 16px;
+      width: 38px;
+      height: 38px;
+      background: var(--glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--rim);
+      border-radius: 50%;
+      color: var(--amber-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 200ms var(--ease);
+    }
+    .vf-magic:hover {
+      border-color: var(--amber-glow);
+      box-shadow: 0 0 16px rgba(201,150,63,0.25);
+    }
+
+    /* === 变焦切换 === */
+    .zoom-pills {
+      position: absolute;
+      bottom: 78px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0;
+      background: var(--glass-strong);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 0.5px solid var(--rim);
+      border-radius: 100px;
+      padding: 3px;
+      z-index: 10;
+    }
+    .zoom-pills button {
+      padding: 7px 14px;
+      background: transparent;
+      border: none;
+      color: var(--text-sec);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 400;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 320ms var(--ease);
+      min-width: 38px;
+    }
+    .zoom-pills button.active {
+      background: rgba(255,255,255,0.16);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .zoom-pills button:hover:not(.active) {
+      color: var(--text);
+    }
+
+    /* === 底部主控 === */
+    .primary {
+      padding: 12px 24px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    /* 富士胶片缩略图 - 产品记忆点 */
+    .thumb {
+      width: 50px;
+      height: 64px;
+      border-radius: 4px;
+      background:
+        linear-gradient(180deg,
+          #e8b87a 0%, #c9963f 30%, #6b4a25 80%, #2a1810 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: all 200ms var(--ease);
+    }
+    .thumb::before {
+      content: 'FUJIFILM';
+      position: absolute;
+      bottom: 5px;
+      left: 0;
+      right: 0;
+      font-family: 'Spectral', serif;
+      font-size: 6px;
+      letter-spacing: 0.08em;
+      color: rgba(20,10,5,0.75);
+      text-align: center;
+      font-weight: 600;
+    }
+    .thumb::after {
+      content: 'CA 64';
+      position: absolute;
+      top: 4px;
+      left: 0;
+      right: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5px;
+      letter-spacing: 0.12em;
+      color: rgba(20,10,5,0.6);
+      text-align: center;
+    }
+    .thumb:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+    }
+
+    /* 快门 - 纯白简洁圆环 */
+    .shutter {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid rgba(255,255,255,0.45);
+      cursor: pointer;
+      transition: all 200ms var(--ease-spring);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.25),
+        0 6px 18px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+    }
+    .shutter:active {
+      transform: scale(0.88);
+      background: #e8e8e8;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.3),
+        0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    /* AI 构图按钮 - 右下角琥珀 */
+    .ai-btn {
+      width: 60px;
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--rim);
+      border-radius: 12px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 240ms var(--ease);
+      flex-shrink: 0;
+    }
+    .ai-btn.active {
+      border-color: var(--amber-glow);
+      background: rgba(201,150,63,0.12);
+      box-shadow: 0 0 18px rgba(201,150,63,0.2);
+    }
+    .ai-btn .label {
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      color: var(--text-sec);
+    }
+    .ai-btn.active .label { color: var(--amber-bright); }
+    .ai-btn .icon {
+      color: var(--text);
+      transition: color 240ms var(--ease);
+    }
+    .ai-btn.active .icon {
+      color: var(--amber-bright);
+      filter: drop-shadow(0 0 6px var(--amber-glow));
+    }
+
+    /* === Tab Bar === */
+    .tabbar {
+      margin: 0 16px 18px;
+      padding: 4px;
+      background: var(--glass-strong);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 0.5px solid var(--rim);
+      border-radius: 100px;
+      display: flex;
+      flex-shrink: 0;
+    }
+    .tabbar button {
+      flex: 1;
+      padding: 11px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-sec);
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 320ms var(--ease);
+    }
+    .tabbar button.active {
+      background: rgba(255,255,255,0.14);
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* === 滤镜抽屉 (底部弹层) === */
+    .filter-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15,15,15,0.96);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-top: 0.5px solid var(--rim);
+      border-radius: 24px 24px 0 0;
+      padding: 12px 0 28px;
+      transform: translateY(100%);
+      transition: transform 480ms var(--ease);
+      z-index: 50;
+    }
+    .filter-sheet.open { transform: translateY(0); }
+    .filter-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(255,255,255,0.16);
+      border-radius: 100px;
+      margin: 0 auto 18px;
+    }
+    .filter-tabs {
+      display: flex;
+      padding: 0 20px;
+      border-bottom: 0.5px solid var(--rim);
+      margin-bottom: 18px;
+    }
+    .filter-tab {
+      flex: 1;
+      padding: 11px 6px;
+      background: none;
+      border: none;
+      color: var(--text-mute);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      cursor: pointer;
+      position: relative;
+      transition: color 240ms var(--ease);
+    }
+    .filter-tab.active {
+      color: var(--text);
+    }
+    .filter-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -0.5px;
+      left: 28%; right: 28%;
+      height: 1px;
+      background: var(--amber);
+      box-shadow: 0 0 6px var(--amber-glow);
+    }
+    .filter-strip {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-strip::-webkit-scrollbar { display: none; }
+    .filter-card {
+      flex-shrink: 0;
+      width: 70px;
+      cursor: pointer;
+      transition: transform 240ms var(--ease);
+    }
+    .filter-card:hover { transform: translateY(-2px); }
+    .filter-thumb {
+      width: 70px;
+      height: 90px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #4a3220, #c9963f);
+      margin-bottom: 7px;
+      position: relative;
+      overflow: hidden;
+      border: 1.5px solid transparent;
+      transition: all 240ms var(--ease);
+    }
+    .filter-card.active .filter-thumb {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 1px var(--amber), 0 6px 20px rgba(201,150,63,0.25);
+    }
+    .filter-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--text-sec);
+      text-align: center;
+    }
+    .filter-card.active .filter-name { color: var(--amber-bright); }
+
+    /* === 回看 === */
+    .review {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      transform: translateX(100%);
+      transition: transform 540ms var(--ease);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+    }
+    .review.open { transform: translateX(0); }
+    .review-img-wrap {
+      flex: 1;
+      margin: 60px 16px 0;
+      position: relative;
+      border-radius: 4px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg,
+          #2a1f15 0%, #4a3220 30%, #c9963f 55%, #c9963f 70%, #1a1208 100%);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+    }
+    .review-img-wrap .sun-mini {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fffbe8, #ffd97a 40%, transparent 70%);
+      filter: blur(5px);
+    }
+    .review-img-wrap .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%);
+    }
+    .review-img-wrap .watermark {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      font-family: 'Spectral', serif;
+      font-size: 11px;
+      letter-spacing: 0.32em;
+      color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    .review-header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 60px 20px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+    .review-back {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--glass-strong);
+      backdrop-filter: blur(24px);
+      border: 0.5px solid var(--rim);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .review-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--text);
+    }
+    .review-meta {
+      padding: 18px 24px 14px;
+      text-align: center;
+    }
+    .review-meta .title {
+      font-family: 'Spectral', serif;
+      font-weight: 300;
+      font-size: 19px;
+      color: var(--text);
+      margin-bottom: 4px;
+      letter-spacing: 0.04em;
+    }
+    .review-meta .sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--text-sec);
+    }
+    .review-actions {
+      padding: 0 16px 28px;
+      display: flex;
+      gap: 10px;
+    }
+    .review-action {
+      flex: 1;
+      padding: 13px;
+      background: rgba(30,30,30,0.7);
+      backdrop-filter: blur(20px);
+      border: 0.5px solid var(--rim);
+      border-radius: 100px;
+      color: var(--text);
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: all 200ms var(--ease);
+    }
+    .review-action.primary {
+      background: var(--amber);
+      color: #1a1008;
+      border-color: var(--amber);
+      font-weight: 500;
+    }
+    .review-action:hover { transform: translateY(-1px); }
+
+    /* === AI 处理中 === */
+    .processing {
+      position: absolute;
+      inset: 0;
+      background: rgba(5,5,5,0.94);
+      backdrop-filter: blur(12px);
+      z-index: 70;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 320ms var(--ease);
+    }
+    .processing.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .radar {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .radar .ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 0.5px solid var(--amber-glow);
+    }
+    .radar .ring:nth-child(2) { inset: 12px; opacity: 0.7; }
+    .radar .ring:nth-child(3) { inset: 24px; opacity: 0.5; }
+    .radar .ring:nth-child(4) { inset: 36px; opacity: 0.3; }
+    .radar .sweep {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, transparent 0deg, var(--amber) 20deg, transparent 60deg);
+      animation: radar-sweep 2.2s linear infinite;
+      mask: radial-gradient(circle, transparent 8%, black 30%);
+      -webkit-mask: radial-gradient(circle, transparent 8%, black 30%);
+    }
+    @keyframes radar-sweep { to { transform: rotate(360deg); } }
+    .radar .cross-h, .radar .cross-v {
+      position: absolute;
+      background: var(--amber-glow);
+    }
+    .radar .cross-h { top: 50%; left: 0; right: 0; height: 0.5px; transform: translateY(-50%); }
+    .radar .cross-v { left: 50%; top: 0; bottom: 0; width: 0.5px; transform: translateX(-50%); }
+    .processing-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.32em;
+      color: var(--amber);
+    }
+    .processing-sub {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-sec);
+    }
+
+    /* === 状态切换器 === */
+    .state-toggle {
+      display: flex;
+      gap: 6px;
+      padding: 4px 0 12px;
+      max-width: 390px;
+      width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .state-toggle::-webkit-scrollbar { display: none; }
+    .state-toggle button {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      background: #1a1a1a;
+      border: 0.5px solid #2a2a2a;
+      color: rgba(255,255,255,0.6);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      border-radius: 100px;
+      cursor: pointer;
+    }
+    .state-toggle button.active {
+      background: var(--amber);
+      color: #000;
+      border-color: var(--amber);
+    }
+
+    /* 闪屏 */
+    .flash {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, #fff7e0, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 250;
+      transition: opacity 80ms ease-out;
+    }
+    .flash.flash-show {
+      opacity: 1;
+    }
+    .flash.flash-fade {
+      transition: opacity 320ms var(--ease);
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="caption">
+    <strong>LIGHTCHASER · 原生相机布局 v2</strong><br>
+    按图片布局还原 · 富士胶片作为产品记忆点 · 玻璃药丸化 · 琥珀克制点缀
+  </div>
+
+  <div class="state-toggle">
+    <button class="active" data-state="main">01 · 主取景</button>
+    <button data-state="filter">02 · 滤镜</button>
+    <button data-state="review">03 · 回看</button>
+  </div>
+
+  <div class="phone">
+    <div class="cam" id="cam">
+
+      <!-- 取景画面 -->
+      <div class="vf">
+        <div class="scene">
+          <div class="surface"></div>
+          <div class="keys"></div>
+          <div class="red-thread"></div>
+          <div class="leather"></div>
+          <div class="vignette"></div>
+        </div>
+
+        <!-- 顶部工具栏 -->
+        <div class="toolbar">
+          <button class="tool-btn">
+            <span class="badge">BETA</span>
+          </button>
+          <button class="tool-btn icon-only">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 4v3M12 17v3M5 12H2M22 12h-3M6.3 6.3 4.2 4.2M19.8 19.8l-2.1-2.1M6.3 17.7l-2.1 2.1M19.8 4.2l-2.1 2.1"/>
+            </svg>
+          </button>
+          <button class="tool-btn icon-only">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/>
+            </svg>
+          </button>
+          <div style="flex:1"></div>
+          <button class="tool-btn">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">3:4</span>
+          </button>
+          <button class="tool-btn icon-only">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 14.85-6.85L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-14.85 6.85L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 右上角取景框 -->
+        <button class="vf-corner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+            <path d="M21 7V5a2 2 0 0 0-2-2h-2"/>
+            <path d="M3 17v2a2 2 0 0 0 2 2h2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+          </svg>
+        </button>
+
+        <!-- 右下角 AI 魔法 -->
+        <button class="vf-magic">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>
+            <path d="M19 14l.7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7z"/>
+            <circle cx="6" cy="18" r="1" fill="currentColor"/>
+          </svg>
+        </button>
+
+        <!-- 变焦切换 -->
+        <div class="zoom-pills">
+          <button>.6</button>
+          <button class="active">1x</button>
+          <button>2</button>
+          <button>3</button>
+        </div>
+      </div>
+
+      <!-- 底部主控 -->
+      <div class="primary">
+        <div class="thumb"></div>
+        <button class="shutter" id="shutter"></button>
+        <button class="ai-btn active" id="aiBtn">
+          <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>
+            <path d="M19 14l.7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7z"/>
+            <circle cx="6" cy="18" r="1.2" fill="currentColor"/>
+          </svg>
+          <span class="label">AI 构图</span>
+        </button>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tabbar">
+        <button class="active">相机</button>
+        <button>相册</button>
+        <button>我的</button>
+      </div>
+
+      <!-- 滤镜抽屉 -->
+      <div class="filter-sheet" id="filterSheet">
+        <div class="filter-handle"></div>
+        <div class="filter-tabs">
+          <button class="filter-tab active">经典</button>
+          <button class="filter-tab">电影</button>
+          <button class="filter-tab">胶片</button>
+          <button class="filter-tab">人像</button>
+        </div>
+        <div class="filter-strip">
+          <div class="filter-card active">
+            <div class="filter-thumb"></div>
+            <div class="filter-name">琥珀</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #1a1a1a, #6a6a6a);"></div>
+            <div class="filter-name">银盐</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #0a1a3a, #c8a050);"></div>
+            <div class="filter-name">深蓝</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #2a0a0a, #a04040);"></div>
+            <div class="filter-name">暗红</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #0a1a1a, #2a4a3a);"></div>
+            <div class="filter-name">森林</div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-thumb" style="background: linear-gradient(135deg, #1a1208, #c8a050);"></div>
+            <div class="filter-name">哈苏</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 处理 -->
+      <div class="processing" id="processing">
+        <div class="radar">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="sweep"></div>
+          <div class="cross-h"></div>
+          <div class="cross-v"></div>
+        </div>
+        <div class="processing-label">AI 处理中</div>
+        <div class="processing-sub">正在为你识别最佳光影</div>
+      </div>
+
+      <!-- 回看 -->
+      <div class="review" id="review">
+        <div class="review-header">
+          <div class="review-back" id="reviewBack">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5"/>
+              <path d="M12 19l-7-7 7-7"/>
+            </svg>
+          </div>
+          <div class="review-count">011 / 247</div>
+          <div style="width:36px"></div>
+        </div>
+        <div class="review-img-wrap">
+          <div class="sun-mini"></div>
+          <div class="vignette"></div>
+          <div class="watermark">LIGHTCHASER · 追光</div>
+        </div>
+        <div class="review-meta">
+          <div class="title">追光时刻</div>
+          <div class="sub">ISO 200 · F2.0 · 1/250S · 18:42</div>
+        </div>
+        <div class="review-actions">
+          <button class="review-action">下载</button>
+          <button class="review-action primary">保存到相册</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="flash" id="flash"></div>
+  </div>
+
+  <script>
+    const buttons = document.querySelectorAll('.state-toggle button');
+    const filterSheet = document.getElementById('filterSheet');
+    const processing = document.getElementById('processing');
+    const review = document.getElementById('review');
+    const cam = document.getElementById('cam');
+    const flash = document.getElementById('flash');
+    const shutter = document.getElementById('shutter');
+    const aiBtn = document.getElementById('aiBtn');
+    const reviewBack = document.getElementById('reviewBack');
+
+    const states = {
+      main: () => {
+        filterSheet.classList.remove('open');
+        processing.classList.remove('show');
+        review.classList.remove('open');
+      },
+      filter: () => {
+        filterSheet.classList.add('open');
+        processing.classList.remove('show');
+        review.classList.remove('open');
+      },
+      review: () => {
+        filterSheet.classList.remove('open');
+        processing.classList.remove('show');
+        review.classList.add('open');
+      }
+    };
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        states[btn.dataset.state]();
+      });
+    });
+
+    // AI 构图切换
+    aiBtn.addEventListener('click', () => {
+      aiBtn.classList.toggle('active');
+    });
+
+    // 变焦切换
+    document.querySelectorAll('.zoom-pills button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.zoom-pills button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // 快门
+    shutter.addEventListener('click', () => {
+      flash.classList.remove('flash-fade');
+      flash.classList.add('flash-show');
+      setTimeout(() => {
+        flash.classList.add('flash-fade');
+        flash.classList.remove('flash-show');
+      }, 80);
+
+      setTimeout(() => {
+        processing.classList.add('show');
+        setTimeout(() => {
+          processing.classList.remove('show');
+          review.classList.add('open');
+          document.querySelector('[data-state="review"]').click();
+        }, 2200);
+      }, 280);
+    });
+
+    // 回看返回
+    reviewBack.addEventListener('click', () => {
+      review.classList.remove('open');
+      document.querySelector('[data-state="main"]').click();
+    });
+  </script>
+
+</body>
+</html>

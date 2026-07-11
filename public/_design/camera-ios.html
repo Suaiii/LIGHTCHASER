@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>相机</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #000000;
+      --vf-bg: #1c1c1e;
+      --mode-yellow: #FFD60A;
+      --text-dim: rgba(255,255,255,0.62);
+      --glass: rgba(0,0,0,0.5);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: #000; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+      font-feature-settings: "tnum" 1;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    /* SVG 图标默认 stroke */
+    .icon { stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* === 取景器占位风景 === */
+    .vf-scene {
+      background:
+        linear-gradient(180deg,
+          #1a2a3a 0%,
+          #2c4a5a 12%,
+          #5a7a7a 28%,
+          #8a9a8a 45%,
+          #6a7a5a 60%,
+          #4a5a3a 75%,
+          #2a3a2a 90%,
+          #1a2a1a 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .vf-scene::before {
+      content: '';
+      position: absolute;
+      top: 30%; left: 60%;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,240,200,0.6), rgba(255,200,150,0.3) 40%, transparent 70%);
+      filter: blur(8px);
+      transform: translate(-50%, -50%);
+    }
+    .vf-scene::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%);
+    }
+
+    /* === 快门按钮 — iOS 18 风格 === */
+    .shutter {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: transparent;
+      border: 3.5px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 220ms var(--ease-spring);
+      box-sizing: border-box;
+    }
+    .shutter:active {
+      transform: scale(0.92);
+    }
+    .shutter-inner {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 220ms var(--ease-spring), background 200ms var(--ease);
+    }
+    .shutter:active .shutter-inner {
+      background: #f0f0f0;
+      transform: scale(0.96);
+    }
+
+    /* === Mode Carousel === */
+    .mode-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      width: 100%;
+      user-select: none;
+    }
+    .mode-item {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+      transition: color 240ms var(--ease), transform 240ms var(--ease);
+      text-transform: uppercase;
+      padding: 4px 8px;
+    }
+    .mode-item.active {
+      color: var(--mode-yellow);
+      transform: scale(1.08);
+    }
+
+    /* === Zoom 控件 === */
+    .zoom-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 240ms var(--ease);
+      letter-spacing: -0.02em;
+    }
+    .zoom-btn.active {
+      background: #fff;
+      color: #000;
+      transform: scale(1.05);
+    }
+
+    /* === Top Bar === */
+    .top-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 200ms var(--ease);
+      opacity: 0.92;
+    }
+    .top-btn:active { opacity: 0.6; }
+
+    /* === 相册缩略图 === */
+    .thumb-rect {
+      width: 50px;
+      height: 50px;
+      border-radius: 6px;
+      background:
+        linear-gradient(135deg, #5a7a8a 0%, #3a5a6a 50%, #1a2a3a 100%);
+      border: 0.5px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform 200ms var(--ease);
+    }
+    .thumb-rect:active { transform: scale(0.94); }
+    .thumb-rect::after {
+      content: '';
+      position: absolute;
+      top: 35%; left: 30%;
+      width: 40%;
+      height: 35%;
+      background: radial-gradient(circle, rgba(255,230,180,0.6), transparent 70%);
+      border-radius: 50%;
+      filter: blur(3px);
+    }
+
+    /* === 翻转按钮 === */
+    .flip-btn {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0.92;
+      transition: opacity 200ms var(--ease), transform 240ms var(--ease);
+    }
+    .flip-btn:active { opacity: 0.6; transform: scale(0.94) rotate(180deg); }
+    .flip-icon { stroke: #fff; }
+
+    /* === Live Photo === */
+    .live-dot {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* === 闪光灯标签 === */
+    .flash-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      margin-top: 1px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* === 闪屏效果 === */
+    .shutter-flash {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* === 取景比例遮罩 (3:4 等) === */
+    .vf-mask {
+      position: absolute;
+      pointer-events: none;
+      transition: opacity 320ms var(--ease);
+    }
+  </style>
+</head>
+<body class="bg-black text-white">
+
+  <div class="fixed inset-0 flex flex-col bg-black overflow-hidden">
+
+    <!-- ===== TOP BAR ===== -->
+    <div class="relative z-20 flex items-start justify-between px-6 pt-3"
+         style="padding-top: calc(env(safe-area-inset-top, 0px) + 12px);">
+      <!-- 闪光灯 -->
+      <button class="top-btn" id="flashBtn">
+        <svg class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.6">
+          <path d="M13 2L4 14h7l-2 8 9-12h-7l2-8z"/>
+        </svg>
+        <span class="flash-label" id="flashLabel">自动</span>
+      </button>
+
+      <!-- 向上箭头 (更多设置) -->
+      <button class="top-btn" id="moreBtn">
+        <svg class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.6">
+          <path d="M18 15l-6-6-6 6"/>
+        </svg>
+      </button>
+
+      <!-- Live Photo -->
+      <button class="top-btn" id="liveBtn">
+        <svg class="icon" width="22" height="22" viewBox="0 0 24 24" stroke-width="1.6">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle class="live-dot" cx="12" cy="12" r="2" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ===== VIEWFINDER ===== -->
+    <div class="relative flex-1 overflow-hidden bg-[#1c1c1e]" id="viewfinder">
+      <div class="vf-scene absolute inset-0"></div>
+
+      <!-- 顶部/底部渐变保证图标可读 -->
+      <div class="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 to-transparent pointer-events-none"></div>
+      <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+
+      <!-- 取景比例遮罩 (示例: 4:3 时两侧黑边) -->
+      <div id="ratioMask" class="hidden absolute inset-y-0 left-0 right-0 bg-black pointer-events-none"></div>
+
+      <!-- Zoom Controls - 悬浮在取景器底部 -->
+      <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3"
+           style="bottom: 14px;">
+        <button class="zoom-btn" data-zoom="0.5">.5</button>
+        <button class="zoom-btn active" data-zoom="1">1</button>
+        <button class="zoom-btn" data-zoom="2">2</button>
+      </div>
+    </div>
+
+    <!-- ===== MODE CAROUSEL ===== -->
+    <div class="bg-black py-3">
+      <div class="mode-strip">
+        <div class="mode-item">CINEMATIC</div>
+        <div class="mode-item">VIDEO</div>
+        <div class="mode-item active">PHOTO</div>
+        <div class="mode-item">PORTRAIT</div>
+        <div class="mode-item">PANO</div>
+      </div>
+    </div>
+
+    <!-- ===== BOTTOM CONTROL ===== -->
+    <div class="bg-black pb-2 pt-2"
+         style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);">
+      <div class="flex items-center justify-between px-6">
+        <!-- 相册缩略图 -->
+        <div class="thumb-rect" id="thumbRect"></div>
+
+        <!-- 快门 -->
+        <button class="shutter" id="shutter" aria-label="拍照">
+          <div class="shutter-inner"></div>
+        </button>
+
+        <!-- 翻转 -->
+        <button class="flip-btn" id="flipBtn" aria-label="切换摄像头">
+          <svg class="flip-icon" width="28" height="28" viewBox="0 0 32 32" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12a11 11 0 0 1 18.3-8.3L25 6"/>
+            <path d="M27 3v3h-3"/>
+            <path d="M27 12a11 11 0 0 1-18.3 8.3L7 18"/>
+            <path d="M5 21v-3h3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 闪屏 -->
+  <div class="shutter-flash" id="shutterFlash"></div>
+
+  <script>
+    /* ===== 闪光灯循环: 关 → 自动 → 开 ===== */
+    const flashStates = [
+      { key: 'off', label: '关' },
+      { key: 'auto', label: '自动' },
+      { key: 'on', label: '开' }
+    ];
+    let flashIdx = 1;
+    const flashLabel = document.getElementById('flashLabel');
+    const flashBtn = document.getElementById('flashBtn');
+    flashBtn.addEventListener('click', () => {
+      flashIdx = (flashIdx + 1) % flashStates.length;
+      flashLabel.textContent = flashStates[flashIdx].label;
+    });
+
+    /* ===== Live Photo 切换 ===== */
+    const liveBtn = document.getElementById('liveBtn');
+    let liveOn = true;
+    liveBtn.addEventListener('click', () => {
+      liveOn = !liveOn;
+      const dot = liveBtn.querySelector('.live-dot');
+      if (liveOn) {
+        dot.style.display = 'block';
+      } else {
+        dot.style.display = 'none';
+      }
+    });
+
+    /* ===== Zoom 切换 ===== */
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    /* ===== Mode Carousel ===== */
+    const modes = document.querySelectorAll('.mode-item');
+    modes.forEach((m, i) => {
+      m.addEventListener('click', () => {
+        modes.forEach(x => x.classList.remove('active'));
+        m.classList.add('active');
+      });
+    });
+
+    /* ===== 快门拍照 (闪屏反馈) ===== */
+    const shutter = document.getElementById('shutter');
+    const flash = document.getElementById('shutterFlash');
+    shutter.addEventListener('click', () => {
+      flash.style.transition = 'opacity 80ms ease-out';
+      flash.style.opacity = '1';
+      setTimeout(() => {
+        flash.style.transition = 'opacity 360ms cubic-bezier(0.16, 1, 0.3, 1)';
+        flash.style.opacity = '0';
+      }, 80);
+    });
+
+    /* ===== 翻转按钮旋转反馈 ===== */
+    const flipBtn = document.getElementById('flipBtn');
+    flipBtn.addEventListener('click', () => {
+      // CSS 已经处理 :active 状态
+    });
+  </script>
+
+</body>
+</html>
