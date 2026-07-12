@@ -1,109 +1,99 @@
-# LIGHTCHASER
+# 追·光 LIGHTCHASER
 
-A repository for the Douyin hackathon project.
+> **抖音大区赛 · 赛道三「AI体验：刷到懂你的瞬间」参赛作品**（深圳 · 7.31–8.2 · 40h 黑客松）
+>
+> 一张出现在抖音信息流里的卡片：刷到的那一瞬间，你就知道**今晚值不值得为天空出门**——评分、机位、路线、拍法一次给齐。发现 → 判断 → 抵达 → 拍摄 → 发布，全程不离开信息流。
 
-## Role B Bootstrap
+**产品结构**：抖音制造心动 → 追·光判断此刻是否值得行动并给最短路径 → 可颂承接机位/攻略/作品沉淀。
+**最终交付形态**：抖音AI平台（douyin-ai.bytedance.net）Vibecoding 产出的 **feed 卡 + 小程序**（7.24 平台开放）。本仓库承载两件事：**① 初赛原型**（React 网页模拟，作为体验蓝本）；**② 大区赛弹药**（数据 / 算法 / 规格 / 提示词——"让平台 AI 写对代码的话"）。
 
-This branch adds the initial Role B data layer:
+---
 
-- `/api/sunset` serverless endpoint
-- Open-Meteo live weather integration
-- SunCalc golden hour and sunset timing
-- Sunset scoring logic
-- `high / mid / low` demo datasets
-- Shanghai POI recommendation set, with Los Angeles kept as backup
-- Fallback demo payload when live fetch fails
-
-## Quick Start
+## 快速开始
 
 ```bash
 npm install
-npm test
-npm run dev:preview
+npm run dev:preview        # http://127.0.0.1:5174/  抖音 feed 模拟（上下滑视频/左右滑卡片）
+npm run test:api           # API 响应形状断言
 ```
 
-Open the integrated frontend and backend preview:
+| 入口 | 地址 |
+|---|---|
+| 追·光 feed 原型 | `http://127.0.0.1:5174/` |
+| **AI 相机** | `http://127.0.0.1:5174/ai-camera.html`（开发调试加 `?debug=1`） |
+| 晚霞评分 API | `/api/sunset?city=shanghai` · `/api/sunset?lat=…&lng=…` · `/api/sunset?demo=high\|mid\|low` |
+| 步行路线 API | `/api/route?startLat=…&startLng=…&endLat=…&endLng=…` |
 
-```text
-http://127.0.0.1:5174/
-```
-
-Open the AI camera:
-
-```text
-http://127.0.0.1:5174/ai-camera.html
-```
-
-The AI camera uses the browser camera as the primary input. It presents a full-screen viewfinder with instant shutter capture, grid and ratio controls, camera switching when available, local recent-photo review, and AI composition/filter variants generated after the shot. Developer-only media upload and `metadata.json` export are available with:
-
-```text
-http://127.0.0.1:5174/ai-camera.html?debug=1
-```
-
-The same local server also handles:
-
-```text
-http://127.0.0.1:5174/api/sunset?city=shanghai
-http://127.0.0.1:5174/api/sunset?demo=high
-```
-
-## API Examples
+**数据/算法弹药自检**（仓库根执行）：
 
 ```bash
-/api/sunset
-/api/sunset?city=shanghai
-/api/sunset?lat=31.2304&lng=121.4737
-/api/sunset?demo=high
-/api/sunset?demo=mid
-/api/sunset?demo=low
+# 机位库校验（25 个深圳机位）
+PYTHONUTF8=1 python agents_output/01/validate_spots.py agents_output/01/spots.v1.json
+# 太阳事件预计算（25 机位 × 18 天）
+node agents_output/02/gen_sun_events.mjs
+# 光线评分引擎自检（高/中/低三档 + 顺逆光判定）
+node agents_output/02/light_engine.js --selftest
+# 文案引擎盲测（需 agents_output/03/ark.env，见下"密钥"）
+node agents_output/03/blind_test.mjs
 ```
 
-See [docs/role-b-handoff.md](/E:/aNB/Hackson/LIGHTCHASER/docs/role-b-handoff.md) for the Role B handoff details.
-
-Frontend integration details are in [docs/frontend-api-guide.md](/E:/aNB/Hackson/LIGHTCHASER/docs/frontend-api-guide.md).
-
-The current frontend prototype lives in [public/追·光.html](/E:/aNB/Hackson/LIGHTCHASER/public/追·光.html) and loads the React/Babel JSX files in [public/](/E:/aNB/Hackson/LIGHTCHASER/public). Local video assets are under [public/assets/videos](/E:/aNB/Hackson/LIGHTCHASER/public/assets/videos).
-
-Deployment and roadshow notes:
-
-- [docs/deployment-runbook.md](/E:/aNB/Hackson/LIGHTCHASER/docs/deployment-runbook.md)
-- [docs/roadshow-tech-script.md](/E:/aNB/Hackson/LIGHTCHASER/docs/roadshow-tech-script.md)
-
 ---
 
-## 追·光 2.0 · 大区赛导航
+## 仓库结构
 
-> 抖音大区赛 **赛道三｜AI体验：刷到懂你的瞬间**（深圳 · 40 小时黑客松）参赛项目。
-> 一句话：一张真实出现在抖音信息流里的卡片，让人刷到的那一瞬间就被"今晚深圳值不值得为天空出门"打动，并顺手完成一次互动——**发现→判断→抵达→拍摄→发布，全程不离开信息流**。
+```
+├── api/  lib/  public/  scripts/    # 原型：feed 模拟、sunset/route API、AI 相机、光线演算
+├── agents_output/                   # 大区赛弹药（每份交付带 checks/ 检查报告）
+│   ├── 01/   机位库    深圳 25 机位 JSON + 校验脚本 + 坐标核验
+│   ├── 02/   光线引擎  太阳预计算表 + 评分公式 v2 + 天气双预案
+│   ├── 03/   文案引擎  豆包提示词 + few-shot + 27 格兜底 + ARK 盲测
+│   └── 07/   外联工具  授权模板 + 台账 + 7.28 实拍路线 + 可颂采集 SOP
+├── Thoughts/                        # 作战计划：AGENT_00–08 任务卡 + 总设计蓝图 v2（源头真理）
+├── docs/                            # 文档（见下"文档导航"）
+├── assets/                          # 初赛素材（大 zip 不入库）
+├── _archive/                        # 已取代的历史文件（只读参考）
+├── CLAUDE.md                        # 工程约定：技术栈/编码规范/检查清单/当前状态快照
+└── DEVLOG.md                        # 开发日志（dated 流水，新条目置顶）
+```
 
----
-
-## 从哪读起
+## 文档导航
 
 | 想了解… | 读这个 |
 |---|---|
-| **项目是什么、立意** | `docs/立意/思路.md` · `docs/立意/中文故事.md` |
-| **赛道规则/评审维度** | `docs/赛道细则/instruction.md`（正文为截图） |
-| **怎么开发、规范** | `docs/追光_Agent开发规范.md`（16 节流程与治理）· `CLAUDE.md`（工程约定/技术栈/怎么跑） |
-| **作战计划** | `Thoughts/AGENT_00_总控.md`（宪法）· `Thoughts/追光_总设计蓝图_v2.md`（蓝图） |
-| **已交付的数据/算法** | `agents_output/01/`（机位库）· `agents_output/02/`（光线引擎） |
-| **进度流水** | `DEVLOG.md` |
+| 产品立意 / 商业分析 | `docs/立意/思路.md` · `docs/立意/中文故事.md` |
+| 赛道规则 / 评审维度 | `docs/赛道细则/instruction.md`（评审五维：体验完整性 30% 最高） |
+| 开发流程 / 治理规范 | `docs/追光_Agent开发规范.md`（16 节） |
+| 作战总纲 / Gate 判定 | `Thoughts/AGENT_00_总控.md` · `Thoughts/追光_总设计蓝图_v2.md` |
+| 各切片任务卡 | `Thoughts/AGENT_01…08_*.md`（目标/交付物/DoD/检查任务/红线） |
+| 初赛交接 / 部署 | `docs/role-b-*.md` · `docs/deployment-runbook.md` 等 |
+| 工程约定 / 环境 | `CLAUDE.md` |
+| 进度 / 历史决策 | `DEVLOG.md` + [Issues](../../issues) |
 
-## 快速跑
+---
 
-```bash
-# 原型预览（仓库根即原型根）
-npm install && npm run dev:preview   # → http://127.0.0.1:5174/
+## 开发工作流
 
-# 数据/算法弹药自检（仓库根执行）
-PYTHONUTF8=1 /e/anaconda/python.exe agents_output/01/validate_spots.py agents_output/01/spots.v1.json
-node agents_output/02/light_engine.js --selftest
-node agents_output/02/gen_sun_events.mjs
+```
+GitHub issue → feat/* 分支 → 产出 + checks/检查报告 → PR(main) → 人工审阅合并
 ```
 
-## 现状（2026-07-12）
+- 每个切片对应一个 issue；PR body 链接检查报告；**AI 不自行 merge**。
+- 动原型代码（`api/ lib/ public/ scripts/`）必须 `npm run test:api` 绿。
+- **红线**（详见规范 §2）：不编造地点/数据；不搬他人样张/文案（授权三件套制度）；密钥不入库；交付无检查报告 = 未交付。
 
-- ✅ 已交付：`AGENT_01 机位库`（深圳 25 机位，坐标经反查核验）、`AGENT_02 光线引擎`（评分公式 v2 + 太阳预计算 + 天气双预案）。
-- ✅ 已产：`docs/追光_Agent开发规范.md`（16 节开发规范）。
-- 🔜 下一步候选：`AGENT_03 文案引擎` / `AGENT_04 体验规格`。详见 `DEVLOG.md` 与开发规范 §16。
-- ⏳ 关键节点：**7.24 抖音AI平台开放** → 现场 40h 黑客松。最终产品在平台上以 vibecoding 产出（feed 卡 + 小程序），本仓库产出的是"让平台 AI 写对代码的话"。
+**密钥**：`agents_output/03/ark.env`（火山 ARK API key）已被 gitignore，**不在仓库里**——需要跑盲测的队友找 key 持有人私下获取，格式见 `agents_output/03/blind_test.mjs` 头部注释。
+
+## 关键日历
+
+| 节点 | 日期 | 内容 |
+|---|---|---|
+| Gate 0 | **7.23** | 弹药齐备（AGENT_01/02/03/04/05 DoD 全勾 + 授权 ≥15 或降级） |
+| 平台开放 | **7.24** | 抖音AI平台权限开放；当天完成十二问能力测绘（AGENT_06） |
+| Gate 1 | **7.27** | 真机抖音扫码四页跑通（一票否决） |
+| 抵深实拍 | **7.28** | 深圳湾—人才公园线 5 机位（路线：`agents_output/07/reshoot_plan_0728.md`） |
+| Gate 2 | **7.30** | 陌生人盲测：5 秒看懂、60 秒完成一次互动 |
+| 现场赛 | **7.31–8.2** | D1 20:00 开赛 → D2 18:00 海报截止 → D3 12:00 提交、14–17 游园会 |
+
+## 团队
+
+2 人协作（H1 工程线 / H2 数据内容线）+ AI agent 编队产弹药。分工与运行规则见 `Thoughts/AGENT_00_总控.md §3/§5`。
