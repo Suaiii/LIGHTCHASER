@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-07-12 (三) · AGENT_04 体验规格 + v1.1 原型（3D 光影地图）
+
+### 用户拍板（口径变更，覆盖旧文档）
+- **P1 封面不动，时间条弃用**——推翻 AGENT_00 §2/v2"时间条=初赛灵魂"旧口径。
+- **P2 = 主战场**：实时 3D 光影地图（backlog #12 愿景提前落地）。
+- **P4 直接嵌 vision-engine**。改 UI 必须保留 1.0。
+
+### 做了什么
+1. **v1.0 释出**：GitHub Release `lightchaser-v1.0`（tag 于合流前 347b4d9）+ `public/legacy-v1/` 物理快照——1.0 双保险可回。
+2. **设计 skill 迁移**：按用户指引考察 awesome-claude-code，从 StyleSeed（74规则/连贯性法则/评分门）与 UI Craft（Nielsen评分）精选改编为 `.claude/skills/zhuiguang-design`（MIT 注明出处）；按 F1 重加权——前5秒信息效率 30 分、payload 永不动画化。
+3. **规格四件套**：tokens.md（8锚点色卡实测/字阶/圆角6级/动效三档）、first5s_spec.md（时序表+K5 反检出初赛封面 3 处违规）、page_specs.md（四页字段绑定+边界态）、fidelity_scorecard.md（逐页10项×3档）。
+4. **P2 3D 光影地图**（`public/light-map-3d.jsx`，Three.js r128 vendored）：真实太阳方位/高度角驱动 DirectionalLight，建筑投影切出光可见区；OSRM 路线发光带；机位信标+演示光点（标注"演示"）；拖拽旋转/缩放/闲置自转；三层降级（WebGL失败→经典版/reduced-motion/Tweaks 手动切）。
+5. **P4 嵌 vision-engine**：AI 场景识别 chip（失败回退"构图引擎"口径不冒充）+ 滤镜排 4 档（复用队友授权胶片缩略图，CSS 实时预览）。
+6. **验证**：7 jsx Babel 预编译全过、test:api 绿。
+
+### 遗留
+P1 三处前5秒违规修复边界待用户确认；真机走查/评分卡试填等人工项（~15min）；Figma 稿待排。
+
+---
+
 ## 2026-07-12 (二) · 仓库合流：唯一仓库 = LIGHTCHASER
 
 ### 背景

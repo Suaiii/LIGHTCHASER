@@ -6,27 +6,36 @@
 
 ## P1 封面详情（feed 卡本体，前 5 秒的战场）
 
+> **⚠️ 口径变更（2026-07-12 用户拍板，覆盖旧文档）**：**P1 封面保持 1.0 现状，不动**；**时间条交互弃用**——推翻 `AGENT_00 §2`"时间条色卡互动"与 v2 蓝图"时间条=初赛灵魂，一帧不能丢"的旧口径。平台 vibecoding 时 P1 按 1.0 封面原样还原，无时间条。
+
 | 区块 | 内容 | 字段绑定 |
 |---|---|---|
 | 背景 | 天空渐变（随当前时刻插值）+ 城市剪影 | `skyColor(t)`，t 由 now 相对 `sun_events.golden_start→blue_end` 归一 |
-| 主信息 | 评分大数字(96px display) + 等级标签 | `light_engine.score()` / `score_label` |
+| 主信息 | 评分大数字 + 等级标签 | `light_engine.score()` / `score_label` |
 | 副信息 | 峰值时刻 + 倒计时 + 场景标签 | `sun_events.sunset`(+offset)、now 差值、`spots.scene` |
 | 行动句 | AI 一句话（≤26字） | 豆包(prompt_pack) / 兜底 `fallback_matrix[scene][bucket][weather]` |
-| **核心交互** | **时间条拖动**：拖动 → 背景沿 8 锚点色卡连续变化 + 显示对应时刻与光况文案 | 拖动 t → `skyColor(t)` + `azimuth_10min` 最近采样的高度角→光况 |
-| 交互暗示 | 左滑微光箭头 + 页点 | 静态（时序见 first5s §1） |
+| 交互暗示 | 左滑暗示 + 页点 | 静态 |
 
-**交互**：时间条 snap 跟手（120ms）；松手回弹到"现在"用 silk。**降级链**（平台动效受限时，AGENT_06 测绘后落子）：完整拖动 → 点按分段切换（golden/日落/峰值/蓝调 4 档）→ 自动播放色彩过渡+关键帧停留。三种形态"光在变化"的叙事都成立。
+**遗留待拍板**：`first5s_spec.md §3` 找出的三处前 5 秒违规（cardFloatIn 动画化评分/ScrollHint 挡首屏/加载分数跳变）属 bug 级修复，但"封面不动"的边界是否含它们——**待用户确认后再动**，未确认前 1.0 原样。
 
-## P2 轻导航
+## P2 实时 3D 光影地图（v1.1 主升级 · 用户指定的主战场 · **原型已实现** `public/light-map-3d.jsx`）
+
+> issue #12 愿景的第一落地：真实太阳方位驱动光影。经典地图版（1.0）保留为 Tweaks 切换项 + WebGL 失败自动兜底。
 
 | 区块 | 内容 | 字段绑定 |
 |---|---|---|
-| 地图 | 当前位置→机位 步行路线 | 起点=GPS（降级：默认深圳+城市选择器）；终点=`spots.lat/lng`；线=route API `geometry`（降级：直线+距离） |
-| 顶部 | 倒计时"距峰值 XX 分钟" | `sun_events.sunset` − now |
-| 底部结论句 | "步行 12 分钟 · 18:31 到达 · 正好赶上" | route `durationSeconds` + now 推算到达 vs `golden_start`（三态：赶得上/正好/来不及→建议明晚） |
-| 机位切换 | 附近机位横滑选择 | `getNearbyPois()` 前 4 + `spots.name/distance` |
+| **3D 场景** | 城市体块 + 地面网格，**DirectionalLight 从真实太阳方位/高度角投光**，建筑投影自然切出"此刻能看到光的区域" | `meta.sun.current.azimuthDeg/altitudeDeg`（初赛 API 已有；平台版走 `sun_events.azimuth_10min`） |
+| 路线发光带 | OSRM 真实几何 → 3D 发光管（追光橘） | route `geometry[]`（降级：起终点直线） |
+| 太阳盘 + 光晕 | 天空中可见的光源锚点，颜色随当前天色 | `currentSkyColor` + 方位向量 |
+| 机位信标 | 终点光柱（脉动）+ 起点白点 | `recommendation.coordinates` / `meta.coordinates` |
+| **附近追光者** | 4 个脉动光点，**HUD 明确标注"演示"**（不冒充真实数据） | 演示数据（真实版待社交数据接入） |
+| 顶部 HUD | 倒计时 pill + 太阳读数"☀ 289° · 高 5.2°"（mono） | `peakTime` − now；`meta.sun.current` |
+| 底部结论句 | 三态："正好赶上 / 抓紧或看明晚 / 已过峰值·明晚见" | 步行分钟 + now 推算 vs peak |
+| 机位切换 chips | 横滑切换，切换即重算路线与场景 | `nearbySpots` + `onSelectSpot` |
 
-**边界**：到达时刻晚于 `blue_end` → 结论句转"今晚来不及，明晚 `golden_start` 见"并给收藏。
+**交互**：canvas 拖拽=旋转视角（snap 跟手）、滚轮缩放、闲置 2.6s 后慢速自转（silk）；`prefers-reduced-motion` 关自转与脉动。**手势边界**：仅 canvas 锁滑动（`data-swipe-lock`），底部结论卡区域保留换页通道，防导航陷阱。
+**边界**：太阳高度角 ≤0 → 微光模式 + HUD 标"已日落"（不假装有太阳）；到达晚于峰值 → 结论句转明晚。
+**"随行走旋转"**（愿景第 2 项）：原型用拖拽/自转近似；真机版接 DeviceOrientation（平台能力待 AGENT_06 测绘）。
 
 ## P3 机位攻略（吸收社区页；"最后 100 米"主战场）
 
@@ -41,16 +50,17 @@
 
 **空态（AGENT_07 降级预案联动）**：`sample_img` 为空 → 样张位显示天空渐变底 + "待你来拍下第一张"（UGC 叙事，不是缺陷是邀请）。
 
-## P4 快拍（与队友 AI 相机系统的接合点）
+## P4 快拍（**已直接嵌入 vision-engine** · 用户拍板：嵌入而非跳转）
 
-| 区块 | 内容 | 字段绑定 / 能力接入 |
+| 区块 | 内容 | 实现状态 |
 |---|---|---|
-| 取景层 | 构图模板线（三分/引导线/剪影/框景 按机位自动选） | `spots.compose_template` → 模板线叠加 |
-| 滤镜排 | 3 预设缩略图横排切换 | `spots.filters[]` → **AI 相机滤镜系统**（`vision-engine.js` + `filter-thumbnails/`，main 已有授权滤镜） |
-| AI 建议 | 一句拍摄建议（≤15字×最多3条） | 豆包 tips / `copy_slots.tip1-3` 兜底；光位描述来自 `lightRelation()` |
-| 快门→发布 | 拍摄 → 预览 → "发布"带话题与定位浮层 | **AI 相机 capture 流**（`/ai-camera.html` 的取景/快门/AI 构图变体能力）；发布到浮层为止（演示不真发） |
+| **AI 场景识别 chip** | `window.LightchaserVision.init()/.detect()` 对取景画面跑 COCO-SSD → "AI 识别 87% · 街景：引导线交给车流"；**失败静默回退"构图引擎"口径（不冒充 AI）** | ✅ 已嵌（`subpanels.jsx` SceneQuickShoot） |
+| **滤镜排** | 4 档（原生/柯达金/维尔维亚/经典负片），缩略图复用 AI 相机授权胶片资产 `filter-thumbnails/`，取景层 CSS 实时预览（snap 150ms） | ✅ 已嵌；正式成像走 filterous2（与 ai-camera.html 同语言） |
+| AI 建议 | tips 三条 | 沿用 `shootingTips`（豆包/兜底） |
+| 快门→发布 | 快门 → 成片视频 → 发布浮层（演示闭环） | 1.0 已有，保持 |
+| 构图模板线 | `spots.compose_template` → 模板线叠加 | ⏳ 平台版实现（原型 ViewfinderOverlay 已有九宫格） |
 
-**整合原则**：P4 不重造相机——原型 v1.1 里 P4 是"带机位上下文的 AI 相机"：机位数据（模板/滤镜/建议）注入队友的相机壳。接口：`?spot=<id>` 进入相机时预载该机位的 compose_template/filters/tips。
+**场景→构图映射**（与 AI 相机 8 场景口径一致）：portrait→剪影压天空 / street→引导线车流 / food→贴近留天色 / landscape→地平线下三分 / general→三分线锁天际。
 
 ## 边界态总表（四种，每页都要能渲染）
 

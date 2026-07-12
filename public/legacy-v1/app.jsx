@@ -213,8 +213,7 @@ const DEFAULTS = /*EDITMODE-BEGIN*/{
   "scenario": "live",
   "accentColor": "#ff8a3d",
   "showChrome": true,
-  "palette": "refined",
-  "routeStyle": "3d"
+  "palette": "refined"
 }/*EDITMODE-END*/;
 
 const DEMO_SCENARIOS = ["high", "mid", "low"];
@@ -511,12 +510,10 @@ function App() {
   const feed = [
     // Row 0: 普通视频
     [() => <SceneVlog score={score} sunsetPayload={displayPayload} />],
-    // Row 1: 追·光卡片（4 子页）— 封面 → 路线(v1.1: 3D光影地图, 经典版可切) → 社区 → 拍摄
+    // Row 1: 追·光卡片（4 子页）— 封面 → 路线 → 社区 → 拍摄
     [
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
-      () => t.routeStyle === "classic"
-        ? <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />
-        : <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />,
+      () => <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />,
       () => <SceneCommunity sunsetPayload={displayPayload} />,
       () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
@@ -618,21 +615,6 @@ function App() {
           <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
             数据：{sunsetLoading ? "加载中" : sunsetMode}
             {sunsetError ? " · 已使用本地兜底" : ""}
-          </div>
-        </TweakSection>
-
-        <TweakSection label="路线页形态 (P2)">
-          <TweakRadio
-            label="P2 渲染"
-            value={t.routeStyle || "3d"}
-            onChange={(v) => setTweak("routeStyle", v)}
-            options={[
-              { value: "3d",      label: "3D 光影地图 (v1.1)" },
-              { value: "classic", label: "经典地图 (1.0)" },
-            ]}
-          />
-          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
-            3D：太阳实时方位驱动光影，拖拽旋转视角。WebGL 失败自动回退经典版。
           </div>
         </TweakSection>
 
