@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "schema_version": "1.0",
+    "agent": "AGENT_03",
+    "usage": "few-shot 黄金样例：input(结构化JSON) → output(hook+3tips)。≥3 组机位取自 agents_output/01/spots.v1.json 真实数据（szw-001/004/012/002/013, sze-001/003）。语气金标准取初赛精修稿。",
+    "constraints": { "hook_max": 26, "tip_max": 15, "tips_count": 3 },
+    "coverage": ["high×3", "mid×2", "low劝退×1", "雨天×1", "展览×2", "夜间明日预告×1"]
+  },
+  "samples": [
+    {
+      "id": "fs-01", "tag": "high-sunset-1",
+      "input": { "scene": "sunset", "score": 87, "score_label": "值得跑出门", "now": "17:42", "peak_time": "19:08", "spot": { "name": "深圳湾公园 · 日出剧场看台", "direction": "西南", "distance": "步行 16 分钟", "compose_template": "leading" }, "light_relation": "逆光", "weather": "clear", "context": "normal" },
+      "output": { "hook": "往西南走，深圳湾还来得及", "tips": ["把弧形台阶引进画面", "等一只飞鸟压住天空", "对岸亮灯前按下快门"] }
+    },
+    {
+      "id": "fs-02", "tag": "high-sunset-2-real-spot",
+      "input": { "scene": "sunset", "score": 92, "score_label": "值得跑出门", "now": "18:20", "peak_time": "19:08", "spot": { "name": "人才公园 · 求贤阁湖景平台", "direction": "西", "distance": "步行 12 分钟", "compose_template": "thirds" }, "light_relation": "逆光", "weather": "clear", "context": "normal" },
+      "output": { "hook": "18:55到人才公园，湖面替你发光", "tips": ["倒影占画面下一半", "等湖面完全静下来", "楼群亮灯那一分钟"] }
+    },
+    {
+      "id": "fs-03", "tag": "high-sunset-3-bluehour",
+      "input": { "scene": "sunset", "score": 81, "score_label": "值得跑出门", "now": "19:05", "peak_time": "19:08", "spot": { "name": "深圳湾体育中心 · 春茧滨海连廊", "direction": "西南", "distance": "步行 8 分钟", "compose_template": "frame" }, "light_relation": "侧逆光", "weather": "clear", "context": "normal" },
+      "output": { "hook": "日落后别走，春茧的蓝调刚开始", "tips": ["钢架当前景框", "楼群亮灯后再拍", "长曝十秒抹平人流"] }
+    },
+    {
+      "id": "fs-04", "tag": "mid-sunset-1",
+      "input": { "scene": "sunset", "score": 58, "score_label": "顺路看看", "now": "18:00", "peak_time": "19:08", "spot": { "name": "深圳湾公园 · 北湾鹭港观景平台", "direction": "西南", "distance": "步行 20 分钟", "compose_template": "thirds" }, "light_relation": "逆光", "weather": "cloudy", "context": "normal" },
+      "output": { "hook": "今晚一般，顺路可以去鹭港看看", "tips": ["退潮才有反光带", "低角度贴近水面", "白鹭起飞就连拍"] }
+    },
+    {
+      "id": "fs-05", "tag": "mid-sunset-2",
+      "input": { "scene": "sunset", "score": 52, "score_label": "顺路看看", "now": "18:30", "peak_time": "19:08", "spot": { "name": "欢乐海岸 · 曲水湾水岸", "direction": "西", "distance": "步行 6 分钟", "compose_template": "thirds" }, "light_relation": "侧光", "weather": "cloudy", "context": "normal" },
+      "output": { "hook": "不用专程，逛街顺路看一眼水岸", "tips": ["拱桥入镜做对称", "倒影收进下半幅", "亮灯后再补一张"] }
+    },
+    {
+      "id": "fs-06", "tag": "low-persuade-off",
+      "input": { "scene": "sunset", "score": 25, "score_label": "今天歇着", "now": "17:50", "peak_time": "19:08", "spot": { "name": "深圳湾公园 · 日出剧场看台", "direction": "西南", "distance": "步行 16 分钟", "compose_template": "leading" }, "light_relation": "逆光", "weather": "cloudy", "context": "normal" },
+      "output": { "hook": "今晚云太厚，歇着，明晚有戏", "tips": ["明晚黄金时刻再来", "先收藏这个机位", "睡前再看眼预报"] }
+    },
+    {
+      "id": "fs-07", "tag": "rain-now",
+      "input": { "scene": "sunset", "score": 18, "score_label": "今天歇着", "now": "18:10", "peak_time": "19:08", "spot": { "name": "人才公园 · 求贤阁湖景平台", "direction": "西", "distance": "步行 12 分钟", "compose_template": "thirds" }, "light_relation": "逆光", "weather": "rain", "context": "rain_now" },
+      "output": { "hook": "今晚看雨，明晚把霞补回来", "tips": ["雨后能见度更好", "明晚同一时间提醒", "窗边先练练构图"] }
+    },
+    {
+      "id": "fs-08", "tag": "exhibition-1-real-spot",
+      "input": { "scene": "exhibition", "score": 74, "score_label": "顺路看看", "now": "15:30", "peak_time": "17:30", "spot": { "name": "OCT-LOFT 华侨城创意园 · 北区红砖巷", "direction": "南", "distance": "步行 10 分钟", "compose_template": "leading" }, "light_relation": "侧光", "weather": "clear", "context": "normal" },
+      "output": { "hook": "下午的红砖巷，墙面正好吃光", "tips": ["巷道纵深做引导", "人物穿亮色衣服", "侧光拍墙面肌理"] }
+    },
+    {
+      "id": "fs-09", "tag": "exhibition-2-real-spot",
+      "input": { "scene": "exhibition", "score": 78, "score_label": "值得跑出门", "now": "16:40", "peak_time": "18:30", "spot": { "name": "海上世界文化艺术中心 · 屋顶花园", "direction": "西南", "distance": "步行 9 分钟", "compose_template": "leading" }, "light_relation": "侧逆光", "weather": "clear", "context": "normal" },
+      "output": { "hook": "白色台阶尽头是海，现在人少", "tips": ["阶梯线引向海面", "人物坐低留天空", "黄昏前光线最柔"] }
+    },
+    {
+      "id": "fs-10", "tag": "night-tomorrow-preview",
+      "input": { "scene": "sunset", "score": 66, "score_label": "顺路看看", "now": "21:40", "peak_time": "19:08", "spot": { "name": "深圳湾公园 · 日出剧场看台", "direction": "西南", "distance": "步行 16 分钟", "compose_template": "leading" }, "light_relation": "顺光", "weather": "clear", "context": "night_after_21" },
+      "output": { "hook": "今晚结束了，明晚黄金时刻见", "tips": ["明晚评分早知道", "收藏离你近的机位", "定个傍晚的闹钟"] }
+    }
+  ]
+}

@@ -10,3 +10,11 @@ dev-preview*.log
 # SSH / deploy keys — never commit
 *.pem
 *.key
+
+# === 追光2.0 合流(2026-07-12) ===
+assets/*.zip
+**/ark.env
+.claude/
+Thumbs.db
+start.bat
+dev-preview.out.log
