@@ -45,12 +45,13 @@ function zgWalkMinutes(distanceText) {
 }
 
 // OSM 建筑数据缓存（一次拉取全局复用）
+// 主数据包：26 战略分片（25 机位+南科大场地，scripts/fetch-shenzhen-buildings.mjs 产出）；旧南山片区包为回退。
 let ZG_GEO_CACHE = null;
 function zgLoadBuildings() {
   if (!ZG_GEO_CACHE) {
-    ZG_GEO_CACHE = fetch("/assets/geo/shenzhen-nanshan-buildings.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null);
+    ZG_GEO_CACHE = fetch("/assets/geo/shenzhen-buildings.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("miss"))))
+      .catch(() => fetch("/assets/geo/shenzhen-nanshan-buildings.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
   }
   return ZG_GEO_CACHE;
 }
@@ -92,41 +93,49 @@ function zgBuildScene(canvas, params) {
   const pts = route.map((p) => new THREE.Vector3(p.x, 2.4, p.z));
   let routeLen = 0;
   for (let i = 1; i < pts.length; i++) routeLen += pts[i].distanceTo(pts[i - 1]);
+  // 长路线自适应：雾距/远裁剪随路线长度伸展（南科大→塘朗山 4km+ 级路线不再被雾吞）
+  scene.fog = new THREE.Fog(bgColor, Math.max(700, routeLen * 0.5), Math.max(2400, routeLen * 2.0));
+  camera.far = Math.max(5000, routeLen * 4);
+  camera.updateProjectionMatrix();
+  const groundScale = Math.max(1, (routeLen * 3) / 4000);
+  ground.scale.setScalar(groundScale);
+  grid.scale.setScalar(groundScale);
+  const tubeR = Math.max(3.2, routeLen / 380);           // 远视距下路线保持可见粗细
   let routeCurve = null;
   if (pts.length >= 2) {
     routeCurve = new THREE.CatmullRomCurve3(pts);
     const seg = Math.max(32, pts.length * 2);
     scene.add(new THREE.Mesh(
-      new THREE.TubeGeometry(routeCurve, seg, 3.2, 8, false),
-      new THREE.MeshBasicMaterial({ color: "#ffb26f" })
+      new THREE.TubeGeometry(routeCurve, seg, tubeR, 8, false),
+      new THREE.MeshBasicMaterial({ color: "#ffb26f", fog: false })
     ));
     scene.add(new THREE.Mesh(
-      new THREE.TubeGeometry(routeCurve, seg, 8.5, 8, false),
-      new THREE.MeshBasicMaterial({ color: "#ff8a3d", transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false })
+      new THREE.TubeGeometry(routeCurve, seg, tubeR * 2.6, 8, false),
+      new THREE.MeshBasicMaterial({ color: "#ff8a3d", transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
     ));
   }
   // 路线流动脉冲（方向感：从起点流向机位）
   const pulses = [];
   if (routeCurve && !reducedMotion) {
     for (let i = 0; i < 3; i++) {
-      const p = new THREE.Mesh(new THREE.SphereGeometry(4.2, 10, 10), new THREE.MeshBasicMaterial({ color: "#ffffff" }));
+      const p = new THREE.Mesh(new THREE.SphereGeometry(tubeR * 1.4, 10, 10), new THREE.MeshBasicMaterial({ color: "#ffffff", fog: false }));
       scene.add(p);
       pulses.push({ mesh: p, offset: i / 3 });
     }
   }
 
   // 起点/终点
-  const originDot = new THREE.Mesh(new THREE.SphereGeometry(5, 16, 16), new THREE.MeshBasicMaterial({ color: "#ffffff" }));
+  const originDot = new THREE.Mesh(new THREE.SphereGeometry(5, 16, 16), new THREE.MeshBasicMaterial({ color: "#ffffff", fog: false }));
   originDot.position.set(pts[0]?.x || 0, 5, pts[0]?.z || 0);
   scene.add(originDot);
   const destPos = new THREE.Vector3(dest.x, 0, dest.z);
   const beacon = new THREE.Mesh(
     new THREE.CylinderGeometry(3.5, 6, 110, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: "#ffd49a", transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color: "#ffd49a", transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })
   );
   beacon.position.set(destPos.x, 55, destPos.z);
   scene.add(beacon);
-  const destDot = new THREE.Mesh(new THREE.SphereGeometry(6, 16, 16), new THREE.MeshBasicMaterial({ color: "#ffd49a" }));
+  const destDot = new THREE.Mesh(new THREE.SphereGeometry(6, 16, 16), new THREE.MeshBasicMaterial({ color: "#ffd49a", fog: false }));
   destDot.position.set(destPos.x, 6, destPos.z);
   scene.add(destDot);
 
@@ -180,7 +189,7 @@ function zgBuildScene(canvas, params) {
 
   // 光照：真实太阳方位/高度角（或演示光位）
   const dir = zgSunDir(sun.azimuthDeg, sun.altitudeDeg);
-  const sunDist = 1100;
+  const sunDist = Math.max(1100, routeLen * 1.1);
   const range2 = Math.max(routeLen * 0.9, 900);
   const sunLight = new THREE.DirectionalLight(skyColor.clone().lerp(new THREE.Color("#ffd49a"), 0.5), sun.dim ? 0.7 : 2.3);
   sunLight.position.set(mid.x + dir.x * sunDist, dir.y * sunDist, mid.z + dir.z * sunDist);
@@ -199,14 +208,15 @@ function zgBuildScene(canvas, params) {
   // 太阳盘 + 光晕
   const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(42, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor.clone().lerp(new THREE.Color("#ffdda0"), 0.7) }));
   sunSprite.position.copy(sunLight.position).sub(mid).multiplyScalar(0.72).add(mid);
+  sunSprite.material.fog = false;
   scene.add(sunSprite);
-  const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(130, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(130, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
   sunGlow.position.copy(sunSprite.position);
   scene.add(sunGlow);
 
   // 附近追光者（演示光点）
   const chaserMeshes = chasers.map((c) => {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(4, 12, 12), new THREE.MeshBasicMaterial({ color: "#ff8a3d" }));
+    const m = new THREE.Mesh(new THREE.SphereGeometry(4, 12, 12), new THREE.MeshBasicMaterial({ color: "#ff8a3d", fog: false }));
     m.position.set(c.x, 4, c.z);
     scene.add(m);
     const halo = new THREE.Mesh(new THREE.SphereGeometry(8.5, 12, 12), new THREE.MeshBasicMaterial({ color: "#ff8a3d", transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -216,8 +226,9 @@ function zgBuildScene(canvas, params) {
   });
 
   // 相机轨道 + 可平移 target（③）
-  const target = mid.clone();
-  const orbit = { theta: ((360 - sun.azimuthDeg) * Math.PI) / 180, phi: Math.PI * 0.38, radius: zgClamp(routeLen * 0.9 || 600, 320, 1150) };
+  // 初始注视点取路线 30% 处（起点城区侧，建筑密度高），比几何中点更能展示建筑群
+  const target = (routeCurve ? routeCurve.getPointAt(0.3) : mid).clone(); target.y = 0;
+  const orbit = { theta: ((360 - sun.azimuthDeg) * Math.PI) / 180, phi: Math.PI * 0.38, radius: zgClamp(routeLen * 0.7 || 600, 320, 2400) };
   function applyCamera() {
     const sp = Math.sin(orbit.phi), cp = Math.cos(orbit.phi);
     camera.position.set(
