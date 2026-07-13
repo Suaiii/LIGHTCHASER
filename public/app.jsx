@@ -291,7 +291,8 @@ function getScenarioFallback(scenario) {
 // 演示定位（大区赛：深圳后海为主演示点——起点到人才公园约 1.1km，穿过后海塔楼群，3D 光影效果最佳）
 const DEMO_LOCATIONS = {
   gps: { label: "真实 GPS", coordinates: null, city: null },
-  shenzhen: { label: "深圳 · 后海（演示）", coordinates: { latitude: 22.4867, longitude: 113.9385 }, city: "shenzhen" },
+  sustech: { label: "南方科技大学（大区赛场地·演示）", coordinates: { latitude: 22.5956, longitude: 113.9956 }, city: "shenzhen" },
+  shenzhen: { label: "深圳 · 后海", coordinates: { latitude: 22.4867, longitude: 113.9385 }, city: "shenzhen" },
   shenzhenBay: { label: "深圳湾公园", coordinates: { latitude: 22.4735, longitude: 113.9410 }, city: "shenzhen" },
 };
 
@@ -534,7 +535,9 @@ function App() {
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
       () => t.routeStyle === "classic"
         ? <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />
-        : <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />,
+        : t.routeStyle === "three"
+          ? <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />
+          : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />,
       () => <SceneCommunity sunsetPayload={displayPayload} />,
       () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
@@ -647,14 +650,14 @@ function App() {
             options={Object.entries(DEMO_LOCATIONS).map(([value, item]) => ({ value, label: item.label }))}
           />
           <TweakButton
-            label="🌇 一键深圳演示：有光 · 真路线 · 真建筑"
+            label="🌇 一键大区赛演示：南科大出发 · 有光有路"
             onClick={() => {
-              setTweak({ scenario: "high", demoLocation: "shenzhen", routeStyle: "3d" });
+              setTweak({ scenario: "high", demoLocation: "sustech", routeStyle: "3d" });
               setIndex({ row: 1, col: 1 });
             }}
           />
           <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
-            深圳演示：起点后海 → 人才公园（穿后海塔楼群，OSM 真实建筑）；高分场景下 3D 页给演示光位。
+            大区赛演示：南方科技大学（场地）出发 → 最近机位；GL 光影地图（完整道路+真实建筑+演示光位）。
           </div>
         </TweakSection>
 
@@ -664,12 +667,13 @@ function App() {
             value={t.routeStyle || "3d"}
             onChange={(v) => setTweak("routeStyle", v)}
             options={[
-              { value: "3d",      label: "3D 光影地图 (v1.1)" },
+              { value: "3d",      label: "光影地图 GL（真实道路+建筑）" },
+              { value: "three",   label: "3D 离线版（自研兜底）" },
               { value: "classic", label: "经典地图 (1.0)" },
             ]}
           />
           <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
-            3D：太阳实时方位驱动光影，拖拽旋转视角。WebGL 失败自动回退经典版。
+            GL 版：OSM 实时瓦片（完整道路+真实建筑 3D+太阳光照）。离线自动降级：GL → 3D 离线 → 经典。
           </div>
         </TweakSection>
 
