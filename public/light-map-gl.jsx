@@ -7,7 +7,7 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.2"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v4.3"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 
 // —— 颜色工具：把任意 hex/hsl 字符串压暗成夜幕蓝调（style 程序化暗化）——
 function zgParseColor(str) {
@@ -206,6 +206,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         const pmrem = new THREE.PMREMGenerator(renderer);
         scene.environment = pmrem.fromEquirectangular(envTex).texture;
         envTex.dispose(); pmrem.dispose();
+        renderer.resetState(); // PMREM 在共享上下文动过绑定——不复位会污染 MapLibre 下一帧（乱码残影源①）
       }
 
       // 日落观感=低照度高对比：暗蓝基底，仅受光面染色卡橙红；金属感由柔和 env + 镜面承担
@@ -249,7 +250,9 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
     render(gl, matrix) {
       if (!renderer) return;
       camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix).multiply(this._modelMatrix);
-      renderer.state.reset();
+      // resetState() 是 three 为共享上下文提供的完整复位(r126+)；旧 state.reset() 只清内部缓存不复位绑定，
+      // 两台渲染器逐帧交替时随机出现纹理/缓冲错绑 = 帧级乱码残影（第一性排查 #1）
+      renderer.resetState();
       renderer.render(scene, camera);
     },
     onRemove() {
@@ -347,6 +350,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           maxPitch: 70,
         });
         mapRef.current = map;
+        window.__zgMap = map; // 测试钩子：旋转不变性自动化验证用（Playwright 精确控制 bearing）
         map.touchPitch.enable();
 
         map.on("load", () => {
@@ -432,6 +436,9 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               if (polys.length >= 10) {
                 const n = threeLayer.setBuildings(polys);
                 setBInfo({ src: "tiles", n });
+                // 第一性排查 #2（旋转抖纹主嫌）：剪影挤出层与 Three 渲染的是同一批楼、面完全重合，
+                // 相机移动时逐像素深度量化打架=闪烁条纹。Three 建筑就位后剪影层必须整层隐藏。
+                if (map.getLayer("zg-3d-buildings")) map.setLayoutProperty("zg-3d-buildings", "visibility", "none");
               } else if (typeof zgLoadBuildings === "function") {
                 // 兜底：离线包（走廊筛选交给 setBuildings 的 1100 上限）
                 zgLoadBuildings().then((geo) => {
@@ -439,6 +446,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                   const packPolys = geo.buildings.map((b) => ({ rings: b.p.map(([la, ln]) => [ln, la]), h: b.h, base: 0 }));
                   const n = threeLayer.setBuildings(packPolys);
                   setBInfo({ src: "pack", n });
+                  if (map.getLayer("zg-3d-buildings")) map.setLayoutProperty("zg-3d-buildings", "visibility", "none");
                 });
               }
               map.triggerRepaint();
