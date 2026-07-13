@@ -7,49 +7,10 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.3"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v4.4"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 
-// —— 颜色工具：把任意 hex/hsl 字符串压暗成夜幕蓝调（style 程序化暗化）——
-function zgParseColor(str) {
-  if (typeof str !== "string") return null;
-  let m = str.match(/^#([0-9a-f]{6})$/i);
-  if (m) {
-    const n = parseInt(m[1], 16);
-    return zgRgbToHsl((n >> 16) & 255, (n >> 8) & 255, n & 255);
-  }
-  m = str.match(/^#([0-9a-f]{3})$/i);
-  if (m) {
-    const [r, g, b] = m[1].split("").map((c) => parseInt(c + c, 16));
-    return zgRgbToHsl(r, g, b);
-  }
-  m = str.match(/^hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/i);
-  if (m) return { h: +m[1], s: +m[2] / 100, l: +m[3] / 100 };
-  m = str.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-  if (m) return zgRgbToHsl(+m[1], +m[2], +m[3]);
-  return null;
-}
-function zgRgbToHsl(r, g, b) {
-  r /= 255; g /= 255; b /= 255;
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (mx + mn) / 2;
-  if (mx !== mn) {
-    const d = mx - mn;
-    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
-    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
-    h *= 60;
-  }
-  return { h, s, l };
-}
-const zgHsl = (c) => `hsl(${Math.round(c.h)}, ${Math.round(c.s * 100)}%, ${Math.round(c.l * 100)}%)`;
-
-// 逐层暗化 liberty 样式 → 追光夜幕调（道路保持可读的亮度层级）
-// v2 修复（用户三图实证）：①删原生 fill-extrusion（曾与我们的建筑层叠两套，表达式色漏暗化成橙红块）
-// ②表达式颜色不再跳过——按类别强制压为固定暗色（绿地墨绿块/医院粉紫块的根源）
-// ③字号保底跳过带 icon 的层（曾把 Y301 路牌盾徽撑爆成白块）
-// v3（用户二图实证）：④ 废除通用混色公式——绿色混成深青、品红混成紫的总根源；
-//   改为**确定性调色板**：每类图层给死颜色，无论原色是字符串还是表达式，零意外。
-//   ⑤ viewport 对齐只给点状地名——沿线道路标签保持贴线（曾致 "xia...ou...ard Side" 叠字乱码）。
+// 逐层暗化 liberty 样式 → 追光夜幕调。核心原则：**确定性调色板**——每类图层给死颜色，
+// 不做任何原色换算（通用混色公式曾把绿地混成深青/品红混成紫，已废除）。
 function zgDarkenStyle(style) {
   const key2 = (ly) => `${ly.id} ${ly["source-layer"] || ""}`;
   const isRoadish = (ly) => /transportation|road|bridge|tunnel|path|aeroway/.test(key2(ly));
@@ -122,56 +83,72 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
   const mScale = merc.meterInMercatorCoordinateUnits();
 
   let camera, scene, renderer, buildingMesh = null, buildingMat = null;
+  let buildToken = 0; // 新重建到来时作废进行中的分帧构建
   const layer = {
     id: "zg-three-buildings",
     type: "custom",
     renderingMode: "3d",
-    // 实时重建：polys = [{ rings:[[lng,lat],...], h, base }]（来源=瓦片实时或离线包兜底）
+    // 实时重建：polys = [{ rings:[[lng,lat],...], h, base }]（来源=瓦片实时或离线包兜底）。
+    // 两条铁律（图九"楼全没了"的教训）：
+    //   a) 先建新再拆旧——构建失败/为空时旧楼原样保留，宁可旧不可空；
+    //   b) 分帧构建（每帧≤220栋）——1100 栋同步硬算曾一次性卡主线程 ~200ms。
     setBuildings(polys) {
       if (!scene) return 0;
-      if (buildingMesh) {
-        scene.remove(buildingMesh);
-        buildingMesh.geometry.dispose();
-        buildingMesh = null;
-      }
+      const batch = polys.slice(0, 1100); // 性能上限
+      const token = ++buildToken;
       const gs = [];
-      let count = 0;
-      for (const b of polys) {
-        try {
-          const local = b.rings.map(([ln, la]) => zgToLocal(la, ln, originLL));
-          const shape = new THREE.Shape(local.map((q) => new THREE.Vector2(q.x, -q.z)));
-          const g3 = new THREE.ExtrudeGeometry(shape, { depth: Math.max(b.h - (b.base || 0), 3), bevelEnabled: false });
-          g3.rotateX(-Math.PI / 2);
-          if (b.base) g3.translate(0, b.base, 0);
-          gs.push(g3.toNonIndexed());
-          if (++count >= 1100) break; // 性能上限
-        } catch (e) { /* 退化多边形跳过 */ }
-      }
-      if (!gs.length) return 0;
-      let total = 0;
-      for (const g of gs) total += g.attributes.position.count;
-      const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3);
-      let off = 0;
-      for (const g of gs) {
-        pos.set(g.attributes.position.array, off * 3);
-        nor.set(g.attributes.normal.array, off * 3);
-        off += g.attributes.position.count;
-        g.dispose();
-      }
-      const merged = new THREE.BufferGeometry();
-      merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      merged.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
-      buildingMesh = new THREE.Mesh(merged, buildingMat);
-      buildingMesh.castShadow = true;
-      // 立面不接收阴影：掠射角(日落7°)下自阴影 acne 无法调参根治(图8/视频1 抖纹)。
-      // 立面明暗交给 N·L(永远干净稳定)，楼间遮挡感保留在地面投影(shadowGround 照常接影)。
-      buildingMesh.receiveShadow = false;
-      // 修复"特定角度整片消失"：MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh
-      buildingMesh.frustumCulled = false;
-      scene.add(buildingMesh);
-      // 静态场景：阴影贴图只在重建后算一次（旋转时不再重采样 → 光照彻底稳定 + 帧率解放）
-      if (renderer) renderer.shadowMap.needsUpdate = true;
-      return count;
+      let idx = 0;
+      const step = () => {
+        if (!scene || token !== buildToken) { gs.forEach((g) => g.dispose()); return; }
+        const end = Math.min(idx + 80, batch.length); // 80栋≈16ms：不挤帧预算（220栋曾致构建期丢帧→画面跳变）
+        for (; idx < end; idx++) {
+          const b = batch[idx];
+          try {
+            const local = b.rings.map(([ln, la]) => zgToLocal(la, ln, originLL));
+            const shape = new THREE.Shape(local.map((q) => new THREE.Vector2(q.x, -q.z)));
+            const g3 = new THREE.ExtrudeGeometry(shape, { depth: Math.max(b.h - (b.base || 0), 3), bevelEnabled: false });
+            g3.rotateX(-Math.PI / 2);
+            if (b.base) g3.translate(0, b.base, 0);
+            gs.push(g3); // r128 ExtrudeGeometry 本就非索引——勿调 toNonIndexed()（每栋一条 console.warn，1100 条/次即卡顿源）
+          } catch (e) { /* 退化多边形跳过 */ }
+        }
+        if (idx < batch.length) { requestAnimationFrame(step); return; }
+        if (!gs.length) return; // 全部退化：保留旧楼
+        let total = 0;
+        for (const g of gs) total += g.attributes.position.count;
+        const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3);
+        let off = 0;
+        for (const g of gs) {
+          pos.set(g.attributes.position.array, off * 3);
+          nor.set(g.attributes.normal.array, off * 3);
+          off += g.attributes.position.count;
+          g.dispose();
+        }
+        const merged = new THREE.BufferGeometry();
+        merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        merged.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+        if (buildingMesh) { scene.remove(buildingMesh); buildingMesh.geometry.dispose(); }
+        buildingMesh = new THREE.Mesh(merged, buildingMat);
+        buildingMesh.castShadow = true;
+        // 立面不接收阴影：掠射角(日落7°)下自阴影 acne 无法调参根治(图8/视频1 抖纹)。
+        // 立面明暗交给 N·L(永远干净稳定)，楼间遮挡感保留在地面投影(shadowGround 照常接影)。
+        buildingMesh.receiveShadow = false;
+        // MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh（曾致特定角度整片消失）
+        buildingMesh.frustumCulled = false;
+        scene.add(buildingMesh);
+        // 静态场景：阴影贴图只在重建后算一次（旋转时不再重采样 → 光照稳定 + 帧率解放）
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+        // 剪影挤出层在 Three 楼真正就位这一刻才隐藏（同位面 z-fight 根除 + 无空窗）。
+        // m.style 判活：分帧构建完成时组件可能已重挂，死 map(remove 后 style 已销毁)上调 getLayer 会炸
+        const m = this._map;
+        if (m && m.style) {
+          if (m.getLayer("zg-3d-buildings")) m.setLayoutProperty("zg-3d-buildings", "visibility", "none");
+          m.triggerRepaint();
+        }
+        window.__zgB = { n: gs.length, verts: total }; // 测试钩子：自动化验证"楼是否真在场景里"
+      };
+      step();
+      return batch.length;
     },
     onAdd(map, gl) {
       camera = new THREE.Camera();
@@ -183,7 +160,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         .scale(new THREE.Vector3(mScale, -mScale, mScale))
         .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
 
-      renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
+      renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl }); // 共享上下文：antialias 由 MapLibre 建上下文时决定，这里传了也无效
       renderer.autoClear = false;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -209,15 +186,20 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         renderer.resetState(); // PMREM 在共享上下文动过绑定——不复位会污染 MapLibre 下一帧（乱码残影源①）
       }
 
-      // 日落观感=低照度高对比：暗蓝基底，仅受光面染色卡橙红；金属感由柔和 env + 镜面承担
-      buildingMat = new THREE.MeshStandardMaterial({ color: "#39435d", metalness: 0.5, roughness: 0.5, envMapIntensity: 0.5 });
+      // 日落观感=低照度高对比：暗蓝基底，仅受光面染色卡橙红；金属感由柔和 env + 镜面承担。
+      // 半透明（用户定调：楼是配角不能抢戏）：depthWrite 保持 true——前楼正常遮后楼，
+      // 透出的是底下 MapLibre 路网（Three 后画天然与已渲染地图混合），楼群内部不叠加发亮。
+      buildingMat = new THREE.MeshStandardMaterial({
+        color: "#333c54", metalness: 0.5, roughness: 0.55, envMapIntensity: 0.35,
+        transparent: true, opacity: 0.68, depthWrite: true,
+      });
 
       const RANGE = 2600; // 光照/阴影/接影覆盖半径（米，视口级）
 
       // 接影地面：透明 ShadowMaterial——楼影直接落在地图路面上
       const shadowGround = new THREE.Mesh(
         new THREE.PlaneGeometry(RANGE * 3, RANGE * 3),
-        new THREE.ShadowMaterial({ opacity: 0.42 })
+        new THREE.ShadowMaterial({ opacity: 0.3 }) // 半透明楼配浅影，重影会显得楼比实际"实"
       );
       shadowGround.rotation.x = -Math.PI / 2;
       shadowGround.position.set(0, 1.2, 0);
@@ -229,7 +211,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       // 太阳平行光：方向=真实/演示方位角+高度角（受光面/背光面由此天然分明）
       const keyHex = zgHexLerp(lightHex, "#ffc98f", 0.25); // 轻微金偏防粉，主体保持色卡日落色
       const dir = zgSunDir(sun.azimuthDeg, Math.max(sun.altitudeDeg, 2));
-      const sunLight = new THREE.DirectionalLight(new THREE.Color(keyHex), 1.25);
+      const sunLight = new THREE.DirectionalLight(new THREE.Color(keyHex), 0.95); // 1.25 抢戏（图九反馈太亮），压回配角亮度
       const d = RANGE * 1.6;
       sunLight.position.set(dir.x * d, dir.y * d, dir.z * d);
       sunLight.target.position.set(0, 0, 0);
@@ -249,19 +231,22 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
     },
     render(gl, matrix) {
       if (!renderer) return;
-      camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix).multiply(this._modelMatrix);
+      this._projM = this._projM || new THREE.Matrix4();
+      camera.projectionMatrix = this._projM.fromArray(matrix).multiply(this._modelMatrix); // 复用矩阵：每帧 new 会攒 GC 停顿
       // resetState() 是 three 为共享上下文提供的完整复位(r126+)；旧 state.reset() 只清内部缓存不复位绑定，
       // 两台渲染器逐帧交替时随机出现纹理/缓冲错绑 = 帧级乱码残影（第一性排查 #1）
       renderer.resetState();
       renderer.render(scene, camera);
     },
     onRemove() {
+      buildToken++; // 作废进行中的分帧构建
       if (scene) scene.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
       });
       renderer = null;
       scene = null;
+      this._map = null;
     },
   };
   return layer;
@@ -417,45 +402,71 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               return polys;
             };
 
-            let rebuildTimer = 0;
-            let lastCenter = null, lastZoom = null;
-            const rebuild = () => {
-              if (disposed || !threeLayer._ready) return;
-              // 重建门槛：中心位移 >400m 或 zoom 变化 >0.5 才重建（小拖动不卡）
-              const c = map.getCenter(), z = map.getZoom();
-              if (lastCenter) {
-                const dx = (c.lng - lastCenter.lng) * 111320 * Math.cos(c.lat * Math.PI / 180);
-                const dy = (c.lat - lastCenter.lat) * 111320;
-                if (Math.hypot(dx, dy) < 400 && Math.abs(z - lastZoom) < 0.5) return;
-              }
-              lastCenter = c; lastZoom = z;
-              let polys = [];
-              try {
-                polys = featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }));
-              } catch (e) { /* 源未就绪 */ }
-              if (polys.length >= 10) {
-                const n = threeLayer.setBuildings(polys);
-                setBInfo({ src: "tiles", n });
-                // 第一性排查 #2（旋转抖纹主嫌）：剪影挤出层与 Three 渲染的是同一批楼、面完全重合，
-                // 相机移动时逐像素深度量化打架=闪烁条纹。Three 建筑就位后剪影层必须整层隐藏。
-                if (map.getLayer("zg-3d-buildings")) map.setLayoutProperty("zg-3d-buildings", "visibility", "none");
-              } else if (typeof zgLoadBuildings === "function") {
-                // 兜底：离线包（走廊筛选交给 setBuildings 的 1100 上限）
-                zgLoadBuildings().then((geo) => {
-                  if (disposed || !geo?.buildings?.length) return;
-                  const packPolys = geo.buildings.map((b) => ({ rings: b.p.map(([la, ln]) => [ln, la]), h: b.h, base: 0 }));
-                  const n = threeLayer.setBuildings(packPolys);
-                  setBInfo({ src: "pack", n });
-                  if (map.getLayer("zg-3d-buildings")) map.setLayoutProperty("zg-3d-buildings", "visibility", "none");
-                });
-              }
-              map.triggerRepaint();
+            // ═ 重建调度（事件驱动——图九"楼刷没了/残缺"的修复）═
+            // 铁律：①只有建成才记账，查空保留旧楼；②瓦片是异步流，任何时刻查询都可能只拿到
+            // 部分楼（曾以 136 栋残缺状态永久定格），所以拿 sourcedata(isSourceLoaded) 当
+            // "数据到齐"信号自动补建；moveend 只负责移动后的快速首响应。
+            let rebuildTimer = 0, recheckTimer = 0;
+            let doneCenter = null, doneZoom = null, doneCount = 0, srcIsPack = false, builtOnce = false;
+            const metersApart = (a, b) => Math.hypot((a.lng - b.lng) * 111320 * Math.cos(a.lat * Math.PI / 180), (a.lat - b.lat) * 111320);
+            const commit = (n, count, src) => {
+              doneCenter = map.getCenter(); doneZoom = map.getZoom();
+              doneCount = count; srcIsPack = src === "pack"; builtOnce = true;
+              setBInfo({ src, n });
             };
-            map.once("idle", rebuild);
-            map.on("moveend", () => {
-              clearTimeout(rebuildTimer);
-              rebuildTimer = setTimeout(rebuild, 600); // 移动后节流重建（视口实时跟随）
+            const queryPolys = () => {
+              try { return featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" })); }
+              catch (e) { return []; /* 源未就绪 */ }
+            };
+            const rebuild = () => { // 相机移动驱动：距上次成功 >400m 或 zoom >0.5 才动（小拖动不重算）
+              if (disposed || !threeLayer._ready) return;
+              const c = map.getCenter(), z = map.getZoom();
+              if (doneCenter && metersApart(c, doneCenter) < 400 && Math.abs(z - doneZoom) < 0.5) return;
+              const polys = queryPolys();
+              if (polys.length >= 10) {
+                const n = threeLayer.setBuildings(polys); // 分帧构建，就位时自动隐剪影+重烘阴影
+                if (n > 0) commit(n, polys.length, "tiles");
+              }
+            };
+            const recheck = () => { // 瓦片到齐驱动：同视口能查到的楼明显变多 → 补建（不看位移门槛）
+              if (disposed || !threeLayer._ready) return;
+              // 手势/动画中不换装——旋转途中楼群突变=肉眼跳变，顺延到交互结束
+              if (map.isMoving()) { recheckTimer = setTimeout(recheck, 900); return; }
+              const polys = queryPolys();
+              const richer = polys.length >= Math.max(doneCount * 1.2, doneCount + 40);
+              if (polys.length >= 10 && (richer || srcIsPack || !builtOnce)) {
+                const n = threeLayer.setBuildings(polys);
+                if (n > 0) commit(n, polys.length, "tiles");
+              }
+            };
+            map.on("sourcedata", (e) => {
+              if (e.sourceId !== "openmaptiles" || !e.isSourceLoaded) return;
+              clearTimeout(recheckTimer);
+              recheckTimer = setTimeout(recheck, 400);
             });
+            let schedCenter = null, schedZoom = null;
+            map.on("moveend", () => {
+              // 闲置自转每帧发 moveend（setBearing=jumpTo）——中心/缩放没变就不打扰
+              const c = map.getCenter(), z = map.getZoom();
+              if (schedCenter && metersApart(c, schedCenter) < 1 && Math.abs(z - schedZoom) < 1e-6) return;
+              schedCenter = c; schedZoom = z;
+              clearTimeout(rebuildTimer);
+              rebuildTimer = setTimeout(rebuild, 450);
+            });
+            rebuildTimer = setTimeout(rebuild, 500); // 首响应：有部分数据先建起来，sourcedata 到齐后自动补全
+            setTimeout(() => { // 离线兜底：12s 仍无楼（断网/瓦片全挂）才动用离线包，按视口就近筛
+              if (disposed || builtOnce || typeof zgLoadBuildings !== "function") return;
+              zgLoadBuildings().then((geo) => {
+                if (disposed || builtOnce || !geo?.buildings?.length) return;
+                const c = map.getCenter();
+                const near = geo.buildings
+                  .map((b) => ({ b, d: metersApart({ lng: b.p[0][1], lat: b.p[0][0] }, c) }))
+                  .filter((x) => x.d < 2600).sort((a, b2) => a.d - b2.d).slice(0, 1100)
+                  .map((x) => ({ rings: x.b.p.map(([la, ln]) => [ln, la]), h: x.b.h, base: 0 }));
+                const n = threeLayer.setBuildings(near);
+                if (n > 0) commit(n, near.length, "pack");
+              });
+            }, 12000);
           }
 
           // 路线：光晕 + 亮芯 + 流动脉冲
@@ -502,11 +513,12 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             const f = (d - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 1e-9);
             return [routeLL[i - 1][0] + (routeLL[i][0] - routeLL[i - 1][0]) * f, routeLL[i - 1][1] + (routeLL[i][1] - routeLL[i - 1][1]) * f];
           };
-          let t0 = 0;
+          let t0 = 0, fno = 0;
           function frame() {
             if (disposed) return;
             t0 += 1 / 60;
-            if (!reducedMotion && map.getSource("zg-pulse")) {
+            // 脉冲隔帧更新：setData 会强制整图重绘，60fps 更新=静止时 GPU 也全速跑
+            if (!reducedMotion && (fno++ % 2 === 0) && map.getSource("zg-pulse")) {
               map.getSource("zg-pulse").setData({
                 type: "FeatureCollection",
                 features: [0, 0.5].map((off) => ({ type: "Feature", geometry: { type: "Point", coordinates: at((t0 * 0.045 + off) % 1) } })),
