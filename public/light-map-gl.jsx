@@ -46,11 +46,15 @@ const zgHsl = (c) => `hsl(${Math.round(c.h)}, ${Math.round(c.s * 100)}%, ${Math.
 // v2 修复（用户三图实证）：①删原生 fill-extrusion（曾与我们的建筑层叠两套，表达式色漏暗化成橙红块）
 // ②表达式颜色不再跳过——按类别强制压为固定暗色（绿地墨绿块/医院粉紫块的根源）
 // ③字号保底跳过带 icon 的层（曾把 Y301 路牌盾徽撑爆成白块）
+// v3（用户二图实证）：④ 废除通用混色公式——绿色混成深青、品红混成紫的总根源；
+//   改为**确定性调色板**：每类图层给死颜色，无论原色是字符串还是表达式，零意外。
+//   ⑤ viewport 对齐只给点状地名——沿线道路标签保持贴线（曾致 "xia...ou...ard Side" 叠字乱码）。
 function zgDarkenStyle(style) {
-  const isRoadish = (ly) => /transportation|road|bridge|tunnel|path|aeroway/.test(`${ly.id} ${ly["source-layer"] || ""}`);
-  const isWater = (ly) => /water/.test(`${ly.id} ${ly["source-layer"] || ""}`);
-  const isGreen = (ly) => /landcover|park|grass|wood|forest|vegetation|golf/.test(`${ly.id} ${ly["source-layer"] || ""}`);
-  const isLanduse = (ly) => /landuse|residential|hospital|school|university|industrial|stadium/.test(`${ly.id} ${ly["source-layer"] || ""}`);
+  const key2 = (ly) => `${ly.id} ${ly["source-layer"] || ""}`;
+  const isRoadish = (ly) => /transportation|road|bridge|tunnel|path|aeroway/.test(key2(ly));
+  const isWater = (ly) => /water/.test(key2(ly));
+  const isGreen = (ly) => /landcover|park|grass|wood|forest|vegetation|golf|cemetery|scrub|meadow/.test(key2(ly));
+  const isBuilding = (ly) => /building/.test(key2(ly));
   // ① 原生 3D 建筑层整层移除——3D 建筑只保留我们统一光照的 zg-3d-buildings
   style.layers = (style.layers || []).filter((ly) => ly.type !== "fill-extrusion");
   for (const ly of style.layers) {
@@ -59,36 +63,36 @@ function zgDarkenStyle(style) {
     if (ly.type === "symbol") {
       const lay = ly.layout || {};
       const hasIcon = !!lay["icon-image"];
-      // 标签防挤压：屏幕对齐（不随俯仰透视压扁）
-      lay["text-pitch-alignment"] = "viewport";
-      lay["text-rotation-alignment"] = "viewport";
-      // ③ 字号保底只给纯文字层——路牌盾徽(icon+ref)不动，否则图标被文字撑爆
-      if (!hasIcon && typeof lay["text-size"] === "number" && lay["text-size"] < 12) lay["text-size"] = 12.5;
+      const linePlaced = lay["symbol-placement"] === "line" || lay["symbol-placement"] === "line-center";
+      // ⑤ 屏幕对齐只给点状地名；道路名等沿线标签保持贴线，否则字母堆叠乱码
+      if (!linePlaced) {
+        lay["text-pitch-alignment"] = "viewport";
+        lay["text-rotation-alignment"] = "viewport";
+      }
+      // ③ 字号保底只给纯文字点状层——路牌盾徽(icon+ref)不动
+      if (!hasIcon && !linePlaced && typeof lay["text-size"] === "number" && lay["text-size"] < 12) lay["text-size"] = 12.5;
       ly.layout = lay;
     }
     for (const key of Object.keys(paint)) {
       if (!/-color$/.test(key)) continue;
       if (key === "text-color") { paint[key] = "#c0c8dd"; continue; }
       if (key === "text-halo-color") { paint[key] = "#0d1017"; paint["text-halo-width"] = 1.4; continue; }
-      const c = zgParseColor(paint[key]);
-      // ② 表达式/数组颜色：按类别强制固定暗色（不再跳过）
-      if (!c) {
-        if (isWater(ly)) paint[key] = "#17203a";
-        else if (isGreen(ly)) paint[key] = "#19222f";
-        else if (isLanduse(ly)) paint[key] = "#171e2d";
-        else if (ly.type === "fill") paint[key] = "#161d2c";
-        else if (ly.type === "line") paint[key] = isRoadish(ly) ? "#3c4560" : "#232c40";
-        continue;
-      }
+      // ④ 确定性调色板：按类别给死，不做任何原色换算
       if (isWater(ly)) { paint[key] = "#17203a"; continue; }
-      if (isGreen(ly)) { paint[key] = "#19222f"; continue; }
-      if (isRoadish(ly) && ly.type === "line") {
-        // 道路：压暗但保持层级可读（主干道更亮）
-        const major = /motorway|trunk|primary/.test(ly.id);
-        paint[key] = zgHsl({ h: 226, s: 0.16, l: major ? 0.42 : 0.30 });
+      if (isGreen(ly)) { paint[key] = "#1a2230"; continue; }
+      if (isBuilding(ly)) { paint[key] = "#1e2536"; continue; }
+      if (ly.type === "line") {
+        if (isRoadish(ly)) {
+          const major = /motorway|trunk|primary/.test(ly.id);
+          paint[key] = major ? "#5d6884" : "#3b4560";
+        } else {
+          paint[key] = "#242d44";
+        }
         continue;
       }
-      paint[key] = zgHsl({ h: (c.h + 226) / 2 % 360, s: c.s * 0.35, l: c.l * 0.28 + 0.07 });
+      if (ly.type === "fill") { paint[key] = "#161d2c"; continue; }
+      if (ly.type === "circle") { paint[key] = "#3a4358"; continue; }
+      paint[key] = "#1c2333";
     }
     ly.paint = paint;
   }
@@ -177,16 +181,18 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           clearTimeout(failTimer);
           setTilesOk(true);
 
-          // 光照：真实/演示太阳方位角（anchor=map → 随地图旋转保持地理正确）
-          // 追光主题光色：随日照高度角取色卡（正午白金→golden→橘红→深红→暮光紫）
+          // 光照：方向 = 真实/演示太阳方位角+高度角（anchor=map 随旋转保持地理正确）。
+          // 光色用暖白——彩色光与底色相乘会产生不可控怪色（青/紫块的另一来源）；
+          // 主题色改由建筑自身的"金属高度渐变"与天际光晕承载。
           map.setLight({
             anchor: "map",
-            color: zgSunPalette(sun.altitudeDeg),
-            intensity: 0.9,
+            color: "#ffe3c4",
+            intensity: 0.55,
             position: [1.5, sun.azimuthDeg, Math.min(88, 90 - sun.altitudeDeg)],
           });
 
-          // 3D 建筑（OSM render_height 挤出真实高度）
+          // 3D 建筑：金属高度渐变（底部深钢蓝 → 中部亮钢灰 → 200m+ 塔冠鎏金）
+          // + vertical-gradient 逐面明暗 → 日落航拍的金属质感语言
           if (!map.getLayer("zg-3d-buildings")) {
             map.addLayer({
               id: "zg-3d-buildings",
@@ -195,10 +201,19 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               "source-layer": "building",
               minzoom: 12.5,
               paint: {
-                "fill-extrusion-color": "#566182",
+                "fill-extrusion-color": [
+                  "interpolate", ["linear"], ["coalesce", ["get", "render_height"], 12],
+                  0, "#232b3f",
+                  25, "#3a455f",
+                  70, "#5d6c94",
+                  140, "#8b97b9",
+                  200, "#c9a271",
+                  320, "#ecd0a0",
+                ],
                 "fill-extrusion-height": ["coalesce", ["get", "render_height"], 12],
                 "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-                "fill-extrusion-opacity": 0.94,
+                "fill-extrusion-opacity": 0.96,
+                "fill-extrusion-vertical-gradient": true,
               },
             });
           }
