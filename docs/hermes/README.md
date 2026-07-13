@@ -1,0 +1,86 @@
+# Hermes 工程 —— 任务分发与验收体系
+
+> 2026-07-14 立。**为什么叫 Hermes**：信使——用户拍板方向，Hermes（主会话 AI）把需求翻译成自包含任务书分发出去，工作者执行，Hermes 验收。
+> **第一性原理 = 赛题**。评审锚点原文："用户在刷到的一瞬间，是否就能被打动、被满足，并自然产生一次互动或使用？"（体验完整性 30% 最重）。每份任务书开头必须回答：这个任务如何服务这句话。
+
+---
+
+## 一、角色与流程
+
+| 角色 | 职责 |
+|---|---|
+| **用户（决策者）** | 定方向、拍板取舍、终审 merge |
+| **Hermes（主会话）** | 与用户对齐需求 → 写任务书 → 开 issue 分发 → 跑 DoD 验收 → 汇报 |
+| **工作者** | 按任务书执行。两类受众：**AI 编码代理**（细粒度、带命令与验收脚本）／**人**（H1/H2，人话、清单化） |
+
+流程（沿用 CLAUDE.md §5 git 约定）：
+
+```
+任务书 docs/hermes/HERMES-XX-<slug>.md
+  → GitHub issue（标题 [HERMES-XX]，body 链任务书）
+  → 工作者开 feat/* 分支执行
+  → PR（目标 main，body 链任务书 + 自述 DoD 逐条核对）
+  → Hermes 逐条跑 DoD 验收，结果评论进 PR
+  → 用户终审人工 merge（AI 永不自行 merge）
+```
+
+**冲突纪律**：一个文件同一时间只属于一个任务。接任务前先看看板"占用文件"列；正在被占用的文件出现在你的改动里 = 直接打回。
+
+## 二、任务书模板（新任务书复制此骨架）
+
+```markdown
+# HERMES-XX ｜ <标题>
+
+- **受众**：AI 编码代理 ／ 人（H1/H2） ／ 混合（分节标注）
+- **状态**：待领 → 进行中 → 待验收 → 已验收
+- **时间窗**：M.DD–M.DD（硬截止写明为什么）
+- **占用文件**：<本任务允许改动的文件清单——之外的改动一律打回>
+
+## 0. 为什么做（对赛题的回答）
+一段话：这个任务如何让"刷到的一瞬间被打动/被满足"更成立。
+
+## 1. 背景（自包含，读完即可开工）
+现状、已核实的事实（带 文件:行号）、此前踩过的相关坑。
+
+## 2. 目标
+做成什么样。明确"不做什么"同样重要。
+
+## 3. DoD（验收标准，二元，逐条可执行）
+- [ ] <命令或对照物写死，验收人照跑>
+
+## 4. 输入材料
+文件路径清单 + 每个文件看什么。
+
+## 5. 红线（不可逾越）
+F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务列。
+
+## 6. 调参口 / 取证清单（按需）
+
+## 7. 交付方式
+分支名建议、PR 要求、check_report 位置。
+```
+
+## 三、看板
+
+| 任务 | 受众 | 优先级 | 时间窗 | 状态 | Issue | 占用文件 |
+|---|---|---|---|---|---|---|
+| [HERMES-01 导航走反路根治](HERMES-01-routing-foot.md) | AI | **P0**（演示可信度） | 7.14–7.17 | 待领 | [#16](https://github.com/Suaiii/LIGHTCHASER/issues/16) | lib/route-service.js, api/route.js, docs/page_specs.md(P2节) |
+| [HERMES-02 晚霞算法置信度+多源+竞品对标](HERMES-02-confidence.md) | AI | **P0**（AI×产品 15%+叙事弹药） | 7.15–7.20 | 待领 | [#17](https://github.com/Suaiii/LIGHTCHASER/issues/17) | api/sunset.js, lib/sunset-service.js, agents_output/02/checks/*新增 |
+| [HERMES-03 3D 光域高亮层（提案制）](HERMES-03-light-zone.md) | AI | P1（排队：3D 真机消失结案后） | 7.18–7.22 | 排队 | [#18](https://github.com/Suaiii/LIGHTCHASER/issues/18) | public/light-map-gl.jsx（**当前被 3D 存量任务占用**） |
+| [HERMES-04 平台上下文字段级测绘](HERMES-04-context-matrix.md) | 人+AI | **P0**（7.24 唯一窗口） | 清单即备，7.24 执行 | 待领 | [#19](https://github.com/Suaiii/LIGHTCHASER/issues/19) | agents_output/06/*新增 |
+| [HERMES-05 出片场景扩展先导](HERMES-05-scene-expansion.md) | 混合 | P2（用户定调：不急） | 设计 7.16–7.20 | 待领 | [#20](https://github.com/Suaiii/LIGHTCHASER/issues/20) | agents_output/01/*（schema 设计稿新增，不改 spots.v1.json 主体） |
+| [HERMES-06 原型收尾包](HERMES-06-proto-polish.md) | AI | P1 | 7.15–7.19 | 待领 | [#21](https://github.com/Suaiii/LIGHTCHASER/issues/21) | public/app.jsx, public/subpanels.jsx, public/追·光.html |
+| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中 | #15(PR) | public/light-map-gl.jsx |
+
+> 状态由 Hermes 维护；工作者只改任务书内自己的"状态"行 + issue 评论。
+
+## 四、验收纪律（Hermes 自律）
+
+1. DoD 逐条**亲自跑**，不采信工作者自述；跑不通=打回并把失败输出贴进 issue。
+2. 验收看两层：DoD 过了没（功能）+ 红线破了没（真实性/调参口/占用文件越界）。
+3. 每次验收在 PR 留痕：`DoD n/n ✅/❌ + 证据`。
+4. 任务书发出后发现写漏了关键信息 → 修任务书并在 issue 评论 @工作者，不私聊补丁。
+
+## 五、日历锚点
+
+7.23 **Gate 0**（弹药全齐）｜ 7.24 平台开放（HERMES-04 执行日）｜ 7.27 Gate 1（真机四页）｜ 7.30 Gate 2 ｜ 7.31–8.2 深圳现场。
