@@ -163,7 +163,11 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       buildingMesh = new THREE.Mesh(merged, buildingMat);
       buildingMesh.castShadow = true;
       buildingMesh.receiveShadow = true;
+      // 修复"特定角度整片消失"：MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh
+      buildingMesh.frustumCulled = false;
       scene.add(buildingMesh);
+      // 静态场景：阴影贴图只在重建后算一次（旋转时不再重采样 → 光照彻底稳定 + 帧率解放）
+      if (renderer) renderer.shadowMap.needsUpdate = true;
       return count;
     },
     onAdd(map, gl) {
@@ -180,6 +184,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       renderer.autoClear = false;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.autoUpdate = false; // 场景静态：阴影只在建筑重建时算一次（防每帧重采样抖动+卡顿）
 
       // envMap：天空渐变 + 太阳亮斑 → 金属立面的反光内容
       {
@@ -211,8 +216,10 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         new THREE.ShadowMaterial({ opacity: 0.42 })
       );
       shadowGround.rotation.x = -Math.PI / 2;
-      shadowGround.position.set(0, 0.5, 0);
+      shadowGround.position.set(0, 1.2, 0);
       shadowGround.receiveShadow = true;
+      shadowGround.frustumCulled = false;
+      shadowGround.material.depthWrite = false; // 防与地图面深度打架闪烁
       scene.add(shadowGround);
 
       // 太阳平行光：方向=真实/演示方位角+高度角（受光面/背光面由此天然分明）
@@ -224,6 +231,9 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       sunLight.target.position.set(0, 0, 0);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.set(2048, 2048);
+      // 掠射角(日落 alt 7°)自阴影 acne 的标准解：法线偏置 + 微负偏置——白噪竖纹的根源
+      sunLight.shadow.normalBias = 3;
+      sunLight.shadow.bias = -0.0002;
       const sc = sunLight.shadow.camera;
       sc.left = -RANGE; sc.right = RANGE; sc.top = RANGE; sc.bottom = -RANGE; sc.far = d * 2.5;
       sc.updateProjectionMatrix();
@@ -401,8 +411,17 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             };
 
             let rebuildTimer = 0;
+            let lastCenter = null, lastZoom = null;
             const rebuild = () => {
               if (disposed || !threeLayer._ready) return;
+              // 重建门槛：中心位移 >400m 或 zoom 变化 >0.5 才重建（小拖动不卡）
+              const c = map.getCenter(), z = map.getZoom();
+              if (lastCenter) {
+                const dx = (c.lng - lastCenter.lng) * 111320 * Math.cos(c.lat * Math.PI / 180);
+                const dy = (c.lat - lastCenter.lat) * 111320;
+                if (Math.hypot(dx, dy) < 400 && Math.abs(z - lastZoom) < 0.5) return;
+              }
+              lastCenter = c; lastZoom = z;
               let polys = [];
               try {
                 polys = featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }));
