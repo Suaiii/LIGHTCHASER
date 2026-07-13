@@ -71,6 +71,13 @@ function zgDarkenStyle(style) {
       }
       // ③ 字号保底只给纯文字点状层——路牌盾徽(icon+ref)不动
       if (!hasIcon && !linePlaced && typeof lay["text-size"] === "number" && lay["text-size"] < 12) lay["text-size"] = 12.5;
+      // ⑦ POI/站点减密度（图四：某些角度标签与楼穿插堆叠）：
+      //    小 POI 提高出现门槛 + 碰撞留白加大 + 字放不下就只显图标
+      if (/poi|station|transit|bus|aerodrome|housenum/i.test(key2(ly))) {
+        ly.minzoom = Math.max(ly.minzoom || 0, /housenum/i.test(ly.id) ? 17 : 15.4);
+        lay["text-padding"] = 6;
+        if (hasIcon) lay["text-optional"] = true;
+      }
       ly.layout = lay;
     }
     for (const key of Object.keys(paint)) {
@@ -101,6 +108,144 @@ function zgDarkenStyle(style) {
 
 function zgFmtClock(min) {
   return `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+}
+
+// ═══ Three.js 建筑渲染层（MapLibre CustomLayerInterface 官方模式）═══
+// fill-extrusion 无面级光照/无阴影/无反射——三点都是用户实拍指出的缺失。
+// 本层接管近景建筑：DirectionalLight(方向=太阳) 给每面真实受光/背光，
+// castShadow 给楼间投影（影子落在地图路面上），envMap+metalness 给金属反光。
+// 数据 = 离线包 shenzhen-buildings.json（14k 栋，走廊筛选）；远景仍由暗剪影 extrusion 兜底。
+function zgMakeThreeBuildingsLayer({ originLL, sun, buildings, centerXZ, rangeM, lightHex }) {
+  const THREE = window.THREE;
+  const merc = maplibregl.MercatorCoordinate.fromLngLat([originLL.lng, originLL.lat], 0);
+  const mScale = merc.meterInMercatorCoordinateUnits();
+
+  let camera, scene, renderer;
+  return {
+    id: "zg-three-buildings",
+    type: "custom",
+    renderingMode: "3d",
+    onAdd(map, gl) {
+      camera = new THREE.Camera();
+      scene = new THREE.Scene();
+
+      // 相机同步矩阵（官方 3D model 示例同款：平移到参考点 + 米级缩放 + Y-up 翻转）
+      this._modelMatrix = new THREE.Matrix4()
+        .makeTranslation(merc.x, merc.y, merc.z)
+        .scale(new THREE.Vector3(mScale, -mScale, mScale))
+        .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+
+      renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
+      renderer.autoClear = false;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // envMap：天空渐变 + 太阳亮斑 → 金属立面的反光内容
+      {
+        const ec = document.createElement("canvas"); ec.width = 512; ec.height = 256;
+        const g2 = ec.getContext("2d");
+        const grad = g2.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, "#07090f");
+        grad.addColorStop(0.47, "#141b2c");
+        grad.addColorStop(0.54, lightHex);
+        grad.addColorStop(0.6, "#0c0f16");
+        grad.addColorStop(1, "#07090f");
+        g2.fillStyle = grad; g2.fillRect(0, 0, 512, 256);
+        const sx = ((sun.azimuthDeg + 180) % 360) / 360 * 512;
+        const rg = g2.createRadialGradient(sx, 138, 4, sx, 138, 64);
+        rg.addColorStop(0, "#fff3da"); rg.addColorStop(0.2, lightHex); rg.addColorStop(1, "rgba(0,0,0,0)");
+        g2.fillStyle = rg; g2.fillRect(0, 0, 512, 256);
+        const envTex = new THREE.CanvasTexture(ec);
+        envTex.mapping = THREE.EquirectangularReflectionMapping;
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmrem.fromEquirectangular(envTex).texture;
+        envTex.dispose(); pmrem.dispose();
+      }
+
+      // 建筑合批：走廊内全部楼合成一个 BufferGeometry（单 mesh，阴影一次搞定）
+      const geoms = [];
+      let count = 0;
+      for (const b of buildings) {
+        let cx = 0, cz = 0;
+        const local = b.p.map(([la, ln]) => zgToLocal(la, ln, originLL));
+        for (const q of local) { cx += q.x; cz += q.z; }
+        cx /= local.length; cz /= local.length;
+        if (Math.hypot(cx - centerXZ.x, cz - centerXZ.z) > rangeM) continue;
+        try {
+          const shape = new THREE.Shape(local.map((q) => new THREE.Vector2(q.x, -q.z)));
+          const g3 = new THREE.ExtrudeGeometry(shape, { depth: b.h, bevelEnabled: false });
+          g3.rotateX(-Math.PI / 2);
+          geoms.push(g3);
+          if (++count >= 800) break;
+        } catch (e) { /* 退化多边形跳过 */ }
+      }
+      if (geoms.length) {
+        // r128 内置 BufferGeometryUtils 不在核心——手动合并
+        let totalPos = 0;
+        const gs = geoms.map((g) => g.toNonIndexed());
+        for (const g of gs) totalPos += g.attributes.position.count;
+        const pos = new Float32Array(totalPos * 3);
+        const nor = new Float32Array(totalPos * 3);
+        let off = 0;
+        for (const g of gs) {
+          pos.set(g.attributes.position.array, off * 3);
+          nor.set(g.attributes.normal.array, off * 3);
+          off += g.attributes.position.count;
+          g.dispose();
+        }
+        const merged = new THREE.BufferGeometry();
+        merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        merged.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+        // 金属幕墙：受光面吃 keyLight、侧面吃 envMap 反光、背光面回落深色
+        const mat = new THREE.MeshStandardMaterial({ color: "#6d7894", metalness: 0.7, roughness: 0.34, envMapIntensity: 0.8 });
+        const mesh = new THREE.Mesh(merged, mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        this._count = count;
+      }
+
+      // 接影地面：透明 ShadowMaterial——楼影直接落在地图路面上
+      const shadowGround = new THREE.Mesh(
+        new THREE.PlaneGeometry(rangeM * 3, rangeM * 3),
+        new THREE.ShadowMaterial({ opacity: 0.42 })
+      );
+      shadowGround.rotation.x = -Math.PI / 2;
+      shadowGround.position.set(centerXZ.x, 0.5, centerXZ.z);
+      shadowGround.receiveShadow = true;
+      scene.add(shadowGround);
+
+      // 太阳平行光：方向=真实/演示方位角+高度角（受光面/背光面由此天然分明）
+      const keyHex = zgHexLerp(lightHex, "#ffd9ac", 0.6);
+      const dir = zgSunDir(sun.azimuthDeg, Math.max(sun.altitudeDeg, 2));
+      const sunLight = new THREE.DirectionalLight(new THREE.Color(keyHex), 1.7);
+      const d = rangeM * 1.6;
+      sunLight.position.set(centerXZ.x + dir.x * d, dir.y * d, centerXZ.z + dir.z * d);
+      sunLight.target.position.set(centerXZ.x, 0, centerXZ.z);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.set(2048, 2048);
+      const sc = sunLight.shadow.camera;
+      sc.left = -rangeM; sc.right = rangeM; sc.top = rangeM; sc.bottom = -rangeM; sc.far = d * 2.5;
+      sc.updateProjectionMatrix();
+      scene.add(sunLight); scene.add(sunLight.target);
+      scene.add(new THREE.HemisphereLight("#2c3450", "#191d29", 0.5));
+      scene.add(new THREE.AmbientLight("#333c58", 0.35));
+      this._map = map;
+    },
+    render(gl, matrix) {
+      if (!renderer) return;
+      camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix).multiply(this._modelMatrix);
+      renderer.state.reset();
+      renderer.render(scene, camera);
+    },
+    onRemove() {
+      if (scene) scene.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
+      });
+      renderer = null;
+    },
+  };
 }
 
 function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selectedSpotName, onSelectSpot, onSwitchClassic }) {
@@ -191,8 +336,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             position: [1.5, sun.azimuthDeg, Math.min(88, 90 - sun.altitudeDeg)],
           });
 
-          // 3D 建筑：金属高度渐变（底部深钢蓝 → 中部亮钢灰 → 200m+ 塔冠鎏金）
-          // + vertical-gradient 逐面明暗 → 日落航拍的金属质感语言
+          // 远景建筑：暗剪影 extrusion（只做背景轮廓）；近景真光影由 Three 自定义层接管
           if (!map.getLayer("zg-3d-buildings")) {
             map.addLayer({
               id: "zg-3d-buildings",
@@ -201,20 +345,32 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               "source-layer": "building",
               minzoom: 12.5,
               paint: {
-                "fill-extrusion-color": [
-                  "interpolate", ["linear"], ["coalesce", ["get", "render_height"], 12],
-                  0, "#232b3f",
-                  25, "#3a455f",
-                  70, "#5d6c94",
-                  140, "#8b97b9",
-                  200, "#c9a271",
-                  320, "#ecd0a0",
-                ],
+                "fill-extrusion-color": "#1d2436",
                 "fill-extrusion-height": ["coalesce", ["get", "render_height"], 12],
                 "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-                "fill-extrusion-opacity": 0.96,
+                "fill-extrusion-opacity": 0.62,
                 "fill-extrusion-vertical-gradient": true,
               },
+            });
+          }
+
+          // 近景建筑 = Three 自定义层：面级受光/背光 + 楼间投影 + envMap 金属反光
+          if (window.THREE && typeof zgLoadBuildings === "function") {
+            zgLoadBuildings().then((geo) => {
+              if (disposed || !geo?.buildings?.length || map.getLayer("zg-three-buildings")) return;
+              const destLocal = zgToLocal(destLL.lat, destLL.lng, origin);
+              const centerXZ = { x: destLocal.x / 2, z: destLocal.z / 2 };
+              const spanM = Math.hypot(destLocal.x, destLocal.z);
+              try {
+                map.addLayer(zgMakeThreeBuildingsLayer({
+                  originLL: origin,
+                  sun,
+                  buildings: geo.buildings,
+                  centerXZ,
+                  rangeM: Math.max(1300, spanM * 0.9),
+                  lightHex: zgSunPalette(sun.altitudeDeg),
+                }));
+              } catch (e) { console.warn("[LIGHTCHASER] three buildings layer failed:", e); }
             });
           }
 
