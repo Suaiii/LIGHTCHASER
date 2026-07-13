@@ -7,6 +7,7 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+const ZG_BUILD = "v4.2"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 
 // —— 颜色工具：把任意 hex/hsl 字符串压暗成夜幕蓝调（style 程序化暗化）——
 function zgParseColor(str) {
@@ -162,7 +163,9 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       merged.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
       buildingMesh = new THREE.Mesh(merged, buildingMat);
       buildingMesh.castShadow = true;
-      buildingMesh.receiveShadow = true;
+      // 立面不接收阴影：掠射角(日落7°)下自阴影 acne 无法调参根治(图8/视频1 抖纹)。
+      // 立面明暗交给 N·L(永远干净稳定)，楼间遮挡感保留在地面投影(shadowGround 照常接影)。
+      buildingMesh.receiveShadow = false;
       // 修复"特定角度整片消失"：MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh
       buildingMesh.frustumCulled = false;
       scene.add(buildingMesh);
@@ -574,7 +577,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           <span style={{ width: 6, height: 6, borderRadius: 99, background: "#ff8a3d", boxShadow: "0 0 8px rgba(255,138,61,0.8)" }} />
           附近追光者（演示）
         </div>
-        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>拖动=平移 · 双指/右键=旋转俯仰 · 滚轮=缩放</div>
+        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>拖动=平移 · 双指/右键=旋转俯仰 · 滚轮=缩放 · {ZG_BUILD}</div>
       </div>
 
       {/* 底部：机位 chips + 结论卡（换页通道，不锁滑动） */}
