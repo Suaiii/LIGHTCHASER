@@ -43,27 +43,45 @@ function zgRgbToHsl(r, g, b) {
 const zgHsl = (c) => `hsl(${Math.round(c.h)}, ${Math.round(c.s * 100)}%, ${Math.round(c.l * 100)}%)`;
 
 // 逐层暗化 liberty 样式 → 追光夜幕调（道路保持可读的亮度层级）
+// v2 修复（用户三图实证）：①删原生 fill-extrusion（曾与我们的建筑层叠两套，表达式色漏暗化成橙红块）
+// ②表达式颜色不再跳过——按类别强制压为固定暗色（绿地墨绿块/医院粉紫块的根源）
+// ③字号保底跳过带 icon 的层（曾把 Y301 路牌盾徽撑爆成白块）
 function zgDarkenStyle(style) {
   const isRoadish = (ly) => /transportation|road|bridge|tunnel|path|aeroway/.test(`${ly.id} ${ly["source-layer"] || ""}`);
   const isWater = (ly) => /water/.test(`${ly.id} ${ly["source-layer"] || ""}`);
-  for (const ly of style.layers || []) {
+  const isGreen = (ly) => /landcover|park|grass|wood|forest|vegetation|golf/.test(`${ly.id} ${ly["source-layer"] || ""}`);
+  const isLanduse = (ly) => /landuse|residential|hospital|school|university|industrial|stadium/.test(`${ly.id} ${ly["source-layer"] || ""}`);
+  // ① 原生 3D 建筑层整层移除——3D 建筑只保留我们统一光照的 zg-3d-buildings
+  style.layers = (style.layers || []).filter((ly) => ly.type !== "fill-extrusion");
+  for (const ly of style.layers) {
     const paint = ly.paint || {};
     if (ly.type === "background") { paint["background-color"] = "#141824"; ly.paint = paint; continue; }
     if (ly.type === "symbol") {
-      // 标签防挤压：屏幕对齐（不随俯仰透视压扁）+ 字号保底
       const lay = ly.layout || {};
+      const hasIcon = !!lay["icon-image"];
+      // 标签防挤压：屏幕对齐（不随俯仰透视压扁）
       lay["text-pitch-alignment"] = "viewport";
       lay["text-rotation-alignment"] = "viewport";
-      if (typeof lay["text-size"] === "number" && lay["text-size"] < 12) lay["text-size"] = 12.5;
+      // ③ 字号保底只给纯文字层——路牌盾徽(icon+ref)不动，否则图标被文字撑爆
+      if (!hasIcon && typeof lay["text-size"] === "number" && lay["text-size"] < 12) lay["text-size"] = 12.5;
       ly.layout = lay;
     }
     for (const key of Object.keys(paint)) {
       if (!/-color$/.test(key)) continue;
-      const c = zgParseColor(paint[key]);
-      if (!c) continue; // 表达式/数组跳过
       if (key === "text-color") { paint[key] = "#c0c8dd"; continue; }
-      if (key === "text-halo-color") { paint[key] = "#0d1017"; if (ly.paint) ly.paint["text-halo-width"] = 1.4; continue; }
+      if (key === "text-halo-color") { paint[key] = "#0d1017"; paint["text-halo-width"] = 1.4; continue; }
+      const c = zgParseColor(paint[key]);
+      // ② 表达式/数组颜色：按类别强制固定暗色（不再跳过）
+      if (!c) {
+        if (isWater(ly)) paint[key] = "#17203a";
+        else if (isGreen(ly)) paint[key] = "#19222f";
+        else if (isLanduse(ly)) paint[key] = "#171e2d";
+        else if (ly.type === "fill") paint[key] = "#161d2c";
+        else if (ly.type === "line") paint[key] = isRoadish(ly) ? "#3c4560" : "#232c40";
+        continue;
+      }
       if (isWater(ly)) { paint[key] = "#17203a"; continue; }
+      if (isGreen(ly)) { paint[key] = "#19222f"; continue; }
       if (isRoadish(ly) && ly.type === "line") {
         // 道路：压暗但保持层级可读（主干道更亮）
         const major = /motorway|trunk|primary/.test(ly.id);
