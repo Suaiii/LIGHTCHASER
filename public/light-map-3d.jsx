@@ -79,7 +79,7 @@ function zgBuildScene(canvas, params) {
   // 地面（比 v1 亮两档）
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(4000, 4000),
-    new THREE.MeshStandardMaterial({ color: "#1b202c", roughness: 0.92, metalness: 0 })
+    new THREE.MeshStandardMaterial({ color: "#252b3a", roughness: 0.88, metalness: 0 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -132,7 +132,7 @@ function zgBuildScene(canvas, params) {
 
   // ⑤ 建筑：优先 OSM 真实轮廓挤出；区域无数据 → 示意体块（HUD 标注由 React 层负责）
   const mid = new THREE.Vector3((pts[0]?.x + destPos.x) / 2 || 0, 0, (pts[0]?.z + destPos.z) / 2 || 0);
-  const buildingMat = new THREE.MeshStandardMaterial({ color: "#242b3b", roughness: 0.82, metalness: 0.06 });
+  const buildingMat = new THREE.MeshStandardMaterial({ color: "#323b52", roughness: 0.72, metalness: 0.08 });
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x3d4763, transparent: true, opacity: 0.5 });
   let realCount = 0;
   if (osmBuildings && osmBuildings.length) {
@@ -182,7 +182,7 @@ function zgBuildScene(canvas, params) {
   const dir = zgSunDir(sun.azimuthDeg, sun.altitudeDeg);
   const sunDist = 1100;
   const range2 = Math.max(routeLen * 0.9, 900);
-  const sunLight = new THREE.DirectionalLight(skyColor.clone().lerp(new THREE.Color("#ffd49a"), 0.5), sun.dim ? 0.5 : 1.5);
+  const sunLight = new THREE.DirectionalLight(skyColor.clone().lerp(new THREE.Color("#ffd49a"), 0.5), sun.dim ? 0.7 : 2.3);
   sunLight.position.set(mid.x + dir.x * sunDist, dir.y * sunDist, mid.z + dir.z * sunDist);
   sunLight.target.position.copy(mid);
   scene.add(sunLight.target);
@@ -193,14 +193,14 @@ function zgBuildScene(canvas, params) {
   sc.updateProjectionMatrix();
   scene.add(sunLight);
   // ① 半球光 + 环境光：保证暗部信息可读（微光模式一样看得清路线/建筑/HUD）
-  scene.add(new THREE.HemisphereLight(bgColor.clone().lerp(skyColor, 0.35), "#20242f", sun.dim ? 1.0 : 0.65));
-  scene.add(new THREE.AmbientLight("#39415c", sun.dim ? 0.85 : 0.5));
+  scene.add(new THREE.HemisphereLight(bgColor.clone().lerp(skyColor, 0.4), "#232838", sun.dim ? 1.05 : 0.5));
+  scene.add(new THREE.AmbientLight("#3a4260", sun.dim ? 0.8 : 0.32));
 
   // 太阳盘 + 光晕
-  const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(30, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor.clone().lerp(new THREE.Color("#ffdda0"), 0.7) }));
-  sunSprite.position.copy(sunLight.position).sub(mid).multiplyScalar(0.85).add(mid);
+  const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(42, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor.clone().lerp(new THREE.Color("#ffdda0"), 0.7) }));
+  sunSprite.position.copy(sunLight.position).sub(mid).multiplyScalar(0.72).add(mid);
   scene.add(sunSprite);
-  const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(80, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(130, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
   sunGlow.position.copy(sunSprite.position);
   scene.add(sunGlow);
 
@@ -217,7 +217,7 @@ function zgBuildScene(canvas, params) {
 
   // 相机轨道 + 可平移 target（③）
   const target = mid.clone();
-  const orbit = { theta: Math.PI * 0.22, phi: Math.PI * 0.34, radius: zgClamp(routeLen * 1.15 || 600, 320, 1600) };
+  const orbit = { theta: ((360 - sun.azimuthDeg) * Math.PI) / 180, phi: Math.PI * 0.38, radius: zgClamp(routeLen * 0.9 || 600, 320, 1150) };
   function applyCamera() {
     const sp = Math.sin(orbit.phi), cp = Math.cos(orbit.phi);
     camera.position.set(
@@ -356,7 +356,7 @@ function Scene3DLightMap({ sunsetPayload, routeData, routeLoading = false, selec
       try {
         engine = zgBuildScene(canvas, {
           route, dest, sun, origin,
-          skyHex: sunsetPayload?.currentSkyColor,
+          skyHex: demoSun ? "#DE6B48" : sunsetPayload?.currentSkyColor, // 演示光位配日落橘红天色
           chasers, reducedMotion,
           osmBuildings: geo?.buildings || null,
           seedKey: `${rec.spot || "zg"}·${meta.city || ""}`,
