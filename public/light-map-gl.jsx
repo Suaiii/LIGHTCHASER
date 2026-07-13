@@ -7,7 +7,7 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.4"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v4.5"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 
 // 逐层暗化 liberty 样式 → 追光夜幕调。核心原则：**确定性调色板**——每类图层给死颜色，
 // 不做任何原色换算（通用混色公式曾把绿地混成深青/品红混成紫，已废除）。
@@ -135,20 +135,30 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         buildingMesh.receiveShadow = false;
         // MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh（曾致特定角度整片消失）
         buildingMesh.frustumCulled = false;
+        buildingMesh.visible = this._visible !== false; // 继承 LOD 显隐（拉远时建成也不上台）
         scene.add(buildingMesh);
+        this._hasMesh = true;
         // 静态场景：阴影贴图只在重建后算一次（旋转时不再重采样 → 光照稳定 + 帧率解放）
         if (renderer) renderer.shadowMap.needsUpdate = true;
-        // 剪影挤出层在 Three 楼真正就位这一刻才隐藏（同位面 z-fight 根除 + 无空窗）。
-        // m.style 判活：分帧构建完成时组件可能已重挂，死 map(remove 后 style 已销毁)上调 getLayer 会炸
-        const m = this._map;
-        if (m && m.style) {
-          if (m.getLayer("zg-3d-buildings")) m.setLayoutProperty("zg-3d-buildings", "visibility", "none");
-          m.triggerRepaint();
+        // 换装就位 → 通知外层同步剪影层显隐（z-fight 根除 + 无空窗，统一归 LOD 管）。
+        // map 判活：分帧构建完成时组件可能已重挂，死 map(remove 后 style 已销毁)上调 style API 会炸
+        if (this._map && this._map.style) {
+          this._onSwapped?.();
+          this._map.triggerRepaint();
         }
         window.__zgB = { n: gs.length, verts: total }; // 测试钩子：自动化验证"楼是否真在场景里"
       };
       step();
       return batch.length;
+    },
+    // LOD 显隐：拉远时楼群交回剪影层，mesh 不销毁——拉回时零重建立即恢复。
+    // 显隐切换要重烘阴影：autoUpdate=false 下贴图会留着旧影像（楼没了影还在）
+    setVisible(v) {
+      this._visible = v;
+      if (buildingMesh && buildingMesh.visible !== v) {
+        buildingMesh.visible = v;
+        if (renderer) renderer.shadowMap.needsUpdate = true;
+      }
     },
     onAdd(map, gl) {
       camera = new THREE.Camera();
@@ -405,36 +415,61 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             // ═ 重建调度（事件驱动——图九"楼刷没了/残缺"的修复）═
             // 铁律：①只有建成才记账，查空保留旧楼；②瓦片是异步流，任何时刻查询都可能只拿到
             // 部分楼（曾以 136 栋残缺状态永久定格），所以拿 sourcedata(isSourceLoaded) 当
-            // "数据到齐"信号自动补建；moveend 只负责移动后的快速首响应。
+            // "数据到齐"信号自动补建；③已有完整楼群时残缺数据永不上桌（pendingMove 挂起等到齐）；
+            // ④ LOD 分级：z<13.8 瓦片里建筑数据天然稀疏/缺失，Three 精品层只管近景，
+            //   拉远交回剪影 extrusion 层（全 zoom 有数据）——"拉远+旋转楼消失"的根治。
+            const LOD_Z = 13.8;
             let rebuildTimer = 0, recheckTimer = 0;
             let doneCenter = null, doneZoom = null, doneCount = 0, srcIsPack = false, builtOnce = false;
+            let pendingMove = false; // 移动后瓦片未齐、等 sourcedata 一次换准
             const metersApart = (a, b) => Math.hypot((a.lng - b.lng) * 111320 * Math.cos(a.lat * Math.PI / 180), (a.lat - b.lat) * 111320);
             const commit = (n, count, src) => {
               doneCenter = map.getCenter(); doneZoom = map.getZoom();
-              doneCount = count; srcIsPack = src === "pack"; builtOnce = true;
+              doneCount = count; srcIsPack = src === "pack"; builtOnce = true; pendingMove = false;
               setBInfo({ src, n });
             };
             const queryPolys = () => {
               try { return featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" })); }
               catch (e) { return []; /* 源未就绪 */ }
             };
+            // LOD 显隐同步：低 z=剪影层上台；高 z 且 Three 有楼=剪影退场
+            let lodLow = null;
+            const syncLod = (force) => {
+              const low = map.getZoom() < LOD_Z;
+              if (!force && low === lodLow) return;
+              lodLow = low;
+              threeLayer.setVisible?.(!low);
+              if (map.getLayer("zg-3d-buildings")) {
+                map.setLayoutProperty("zg-3d-buildings", "visibility", (low || !threeLayer._hasMesh) ? "visible" : "none");
+              }
+            };
+            threeLayer._onSwapped = () => syncLod(true);
+            map.on("zoom", () => syncLod(false));
             const rebuild = () => { // 相机移动驱动：距上次成功 >400m 或 zoom >0.5 才动（小拖动不重算）
               if (disposed || !threeLayer._ready) return;
               const c = map.getCenter(), z = map.getZoom();
-              if (doneCenter && metersApart(c, doneCenter) < 400 && Math.abs(z - doneZoom) < 0.5) return;
+              if (z < LOD_Z) return; // 拉远：本层歇着，剪影层自会跟瓦片走
+              if (doneCenter && metersApart(c, doneCenter) < 400 && Math.abs(z - doneZoom) < 0.5) { pendingMove = false; return; }
               const polys = queryPolys();
-              if (polys.length >= 10) {
-                const n = threeLayer.setBuildings(polys); // 分帧构建，就位时自动隐剪影+重烘阴影
+              // 远跳(>2km)时旧楼已全在视口外，残缺新楼也比空场强，立即换装再由 sourcedata 补全；
+              // 近距移动才值得"未齐不换"（旧楼还在视口垫底，等到齐一次换准防闪变）
+              const farMove = doneCenter && metersApart(c, doneCenter) > 2000;
+              if (polys.length >= 10 && (!builtOnce || farMove || map.areTilesLoaded())) {
+                const n = threeLayer.setBuildings(polys);
                 if (n > 0) commit(n, polys.length, "tiles");
+              } else {
+                pendingMove = true; // 数据未齐：不动旧楼，等 sourcedata 到齐一次换准
               }
             };
-            const recheck = () => { // 瓦片到齐驱动：同视口能查到的楼明显变多 → 补建（不看位移门槛）
+            const recheck = () => { // 瓦片到齐驱动：补全残缺 / 完成挂起的移动换装（不看位移门槛）
               if (disposed || !threeLayer._ready) return;
+              if (map.getZoom() < LOD_Z) return;
               // 手势/动画中不换装——旋转途中楼群突变=肉眼跳变，顺延到交互结束
               if (map.isMoving()) { recheckTimer = setTimeout(recheck, 900); return; }
               const polys = queryPolys();
+              if (polys.length < 10) return;
               const richer = polys.length >= Math.max(doneCount * 1.2, doneCount + 40);
-              if (polys.length >= 10 && (richer || srcIsPack || !builtOnce)) {
+              if (pendingMove || richer || srcIsPack || !builtOnce) {
                 const n = threeLayer.setBuildings(polys);
                 if (n > 0) commit(n, polys.length, "tiles");
               }
@@ -455,7 +490,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             });
             rebuildTimer = setTimeout(rebuild, 500); // 首响应：有部分数据先建起来，sourcedata 到齐后自动补全
             setTimeout(() => { // 离线兜底：12s 仍无楼（断网/瓦片全挂）才动用离线包，按视口就近筛
-              if (disposed || builtOnce || typeof zgLoadBuildings !== "function") return;
+              if (disposed || builtOnce || map.getZoom() < LOD_Z || typeof zgLoadBuildings !== "function") return;
               zgLoadBuildings().then((geo) => {
                 if (disposed || builtOnce || !geo?.buildings?.length) return;
                 const c = map.getCenter();
@@ -494,9 +529,11 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               '<div class="zg-chaser" style="width:10px;height:10px;border-radius:99px;background:#ff8a3d;box-shadow:0 0 12px rgba(255,138,61,0.9)"></div>');
           }
 
-          // 视野适配路线
+          // 视野适配路线——zoom 下限钳在光影楼 LOD 之上：长路线(4km+)全览会落到 z≈12.8，
+          // 开场就只剩剪影楼，与"第一眼=光影楼群"的演示叙事相悖；路线出画交给缩略图兜全貌
           const b = routeLL.reduce((bb, c) => bb.extend(c), new maplibregl.LngLatBounds(routeLL[0], routeLL[0]));
-          map.fitBounds(b, { padding: { top: 190, bottom: 230, left: 70, right: 70 }, pitch: 62, bearing: sun.azimuthDeg - 60, duration: 900 });
+          const cam = map.cameraForBounds(b, { padding: { top: 190, bottom: 230, left: 70, right: 70 }, bearing: sun.azimuthDeg - 60 });
+          map.easeTo({ center: cam ? cam.center : routeLL[0], zoom: Math.max(cam ? cam.zoom : 14.6, 14.05), pitch: 62, bearing: sun.azimuthDeg - 60, duration: 900 });
 
           // 路线脉冲动画 + 闲置慢旋转
           const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
