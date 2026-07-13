@@ -97,11 +97,35 @@ function zgBuildScene(canvas, params) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
+  const lightHex = zgSunPalette(sun.altitudeDeg);
   const skyColor = new THREE.Color(skyHex || "#C84858");
   // ① 亮度保底：背景与雾从纯黑提到深蓝灰，天空色轻染
   const bgColor = new THREE.Color("#141824").lerp(skyColor, 0.12);
   scene.background = bgColor;
   scene.fog = new THREE.Fog(bgColor, 600, 2200);
+
+  // 环境反射贴图：等距柱状天空渐变（地平线=主题光色，天顶=夜幕）→ 金属立面的反光内容
+  {
+    const ec = document.createElement("canvas"); ec.width = 512; ec.height = 256;
+    const g = ec.getContext("2d");
+    const grad = g.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0.0, "#07090f");
+    grad.addColorStop(0.46, bgColor.getStyle());
+    grad.addColorStop(0.54, lightHex);
+    grad.addColorStop(0.58, zgHexLerp(lightHex, "#0c0f16", 0.7));
+    grad.addColorStop(1.0, "#07090f");
+    g.fillStyle = grad; g.fillRect(0, 0, 512, 256);
+    // 太阳亮斑（按方位角放在地平线上，反光里能看到光源位置）
+    const sx = ((sun.azimuthDeg + 180) % 360) / 360 * 512;
+    const rg = g.createRadialGradient(sx, 140, 4, sx, 140, 70);
+    rg.addColorStop(0, "#fff3da"); rg.addColorStop(0.18, lightHex + ""); rg.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = rg; g.fillRect(0, 0, 512, 256);
+    const envTex = new THREE.CanvasTexture(ec);
+    envTex.mapping = THREE.EquirectangularReflectionMapping;
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromEquirectangular(envTex).texture;
+    envTex.dispose(); pmrem.dispose();
+  }
 
   const camera = new THREE.PerspectiveCamera(46, W / H, 1, 5000);
 
@@ -169,9 +193,9 @@ function zgBuildScene(canvas, params) {
 
   // ⑤ 建筑：优先 OSM 真实轮廓挤出；区域无数据 → 示意体块（HUD 标注由 React 层负责）
   const mid = new THREE.Vector3((pts[0]?.x + destPos.x) / 2 || 0, 0, (pts[0]?.z + destPos.z) / 2 || 0);
-  // 建材设浅冷灰底：受光面吃满主题光色，背光面回落冷调——追光式明暗分色
-  const buildingMat = new THREE.MeshStandardMaterial({ color: "#4a5570", roughness: 0.6, metalness: 0.12 });
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x3d4763, transparent: true, opacity: 0.5 });
+  // 金属幕墙质感：高金属度+低粗糙度，反光内容来自天空 envMap（主题光色随高度角变化）
+  const buildingMat = new THREE.MeshStandardMaterial({ color: "#6b7490", roughness: 0.42, metalness: 0.55, envMapIntensity: 0.8 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x4a5470, transparent: true, opacity: 0.14 });
   let realCount = 0;
   if (osmBuildings && osmBuildings.length) {
     const RANGE = Math.max(routeLen * 0.9, 900);
@@ -220,8 +244,9 @@ function zgBuildScene(canvas, params) {
   const dir = zgSunDir(sun.azimuthDeg, sun.altitudeDeg);
   const sunDist = Math.max(1100, routeLen * 1.1);
   const range2 = Math.max(routeLen * 0.9, 900);
-  const lightHex = zgSunPalette(sun.altitudeDeg);
-  const sunLight = new THREE.DirectionalLight(new THREE.Color(lightHex), sun.dim ? 0.9 : 2.8);
+  // 直射光=色卡向金偏 50%：高光金橘不发粉；氛围色仍由 envMap/半球光承载色卡本色
+  const keyHex = zgHexLerp(lightHex, "#ffb46a", 0.5);
+  const sunLight = new THREE.DirectionalLight(new THREE.Color(keyHex), sun.dim ? 0.85 : 2.1);
   sunLight.position.set(mid.x + dir.x * sunDist, dir.y * sunDist, mid.z + dir.z * sunDist);
   sunLight.target.position.copy(mid);
   scene.add(sunLight.target);
@@ -233,10 +258,10 @@ function zgBuildScene(canvas, params) {
   scene.add(sunLight);
   // ① 半球光 + 环境光：保证暗部信息可读（微光模式一样看得清路线/建筑/HUD）
   scene.add(new THREE.HemisphereLight(bgColor.clone().lerp(new THREE.Color(lightHex), 0.3), "#232838", sun.dim ? 1.05 : 0.5));
-  scene.add(new THREE.AmbientLight("#3a4260", sun.dim ? 0.8 : 0.32));
+  scene.add(new THREE.AmbientLight("#3a4260", sun.dim ? 0.55 : 0.2));
 
   // 太阳盘 + 光晕
-  const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(42, 20, 20), new THREE.MeshBasicMaterial({ color: new THREE.Color(lightHex).lerp(new THREE.Color("#ffffff"), 0.3) }));
+  const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(42, 20, 20), new THREE.MeshBasicMaterial({ color: new THREE.Color(keyHex).lerp(new THREE.Color("#ffffff"), 0.25) }));
   sunSprite.position.copy(sunLight.position).sub(mid).multiplyScalar(0.72).add(mid);
   sunSprite.material.fog = false;
   scene.add(sunSprite);

@@ -49,12 +49,20 @@ function zgDarkenStyle(style) {
   for (const ly of style.layers || []) {
     const paint = ly.paint || {};
     if (ly.type === "background") { paint["background-color"] = "#141824"; ly.paint = paint; continue; }
+    if (ly.type === "symbol") {
+      // 标签防挤压：屏幕对齐（不随俯仰透视压扁）+ 字号保底
+      const lay = ly.layout || {};
+      lay["text-pitch-alignment"] = "viewport";
+      lay["text-rotation-alignment"] = "viewport";
+      if (typeof lay["text-size"] === "number" && lay["text-size"] < 12) lay["text-size"] = 12.5;
+      ly.layout = lay;
+    }
     for (const key of Object.keys(paint)) {
       if (!/-color$/.test(key)) continue;
       const c = zgParseColor(paint[key]);
       if (!c) continue; // 表达式/数组跳过
-      if (key === "text-color") { paint[key] = "#96a0ba"; continue; }
-      if (key === "text-halo-color") { paint[key] = "#10131c"; continue; }
+      if (key === "text-color") { paint[key] = "#c0c8dd"; continue; }
+      if (key === "text-halo-color") { paint[key] = "#0d1017"; if (ly.paint) ly.paint["text-halo-width"] = 1.4; continue; }
       if (isWater(ly)) { paint[key] = "#17203a"; continue; }
       if (isRoadish(ly) && ly.type === "line") {
         // 道路：压暗但保持层级可读（主干道更亮）
@@ -169,7 +177,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               "source-layer": "building",
               minzoom: 12.5,
               paint: {
-                "fill-extrusion-color": "#49546f",
+                "fill-extrusion-color": "#566182",
                 "fill-extrusion-height": ["coalesce", ["get", "render_height"], 12],
                 "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
                 "fill-extrusion-opacity": 0.94,
@@ -192,7 +200,8 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             markers.push(m);
           };
           mk(routeLL[0], '<div style="width:14px;height:14px;border-radius:99px;background:#fff;border:3px solid rgba(255,255,255,0.35);box-shadow:0 0 10px rgba(255,255,255,0.8)"></div>');
-          mk(routeLL[routeLL.length - 1], '<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:16px;height:16px;border-radius:99px;background:#ffd49a;box-shadow:0 0 18px rgba(255,212,154,0.95)"></div><div style="font-size:10px;color:#ffd49a;text-shadow:0 0 6px #000;white-space:nowrap">📍 机位</div></div>');
+          const spotShort = (rec.spot || "机位").split("·").pop().trim();
+          mk(routeLL[routeLL.length - 1], '<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><div style="width:16px;height:16px;border-radius:99px;background:#ffd49a;box-shadow:0 0 18px rgba(255,212,154,0.95)"></div><div style="font-size:11px;font-weight:700;color:#ffd49a;background:rgba(14,17,26,0.82);padding:3px 9px;border-radius:99px;border:1px solid rgba(255,212,154,0.45);white-space:nowrap;box-shadow:0 0 10px rgba(0,0,0,0.6)">📍 ' + spotShort + '</div></div>');
           // 演示光点（确定性散布在路线周边）
           const seedRand = (function (a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; })(20260713);
           for (let i = 0; i < 4; i++) {
