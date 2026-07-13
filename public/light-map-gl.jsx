@@ -115,16 +115,57 @@ function zgFmtClock(min) {
 // 本层接管近景建筑：DirectionalLight(方向=太阳) 给每面真实受光/背光，
 // castShadow 给楼间投影（影子落在地图路面上），envMap+metalness 给金属反光。
 // 数据 = 离线包 shenzhen-buildings.json（14k 栋，走廊筛选）；远景仍由暗剪影 extrusion 兜底。
-function zgMakeThreeBuildingsLayer({ originLL, sun, buildings, centerXZ, rangeM, lightHex }) {
+function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
   const THREE = window.THREE;
   const merc = maplibregl.MercatorCoordinate.fromLngLat([originLL.lng, originLL.lat], 0);
   const mScale = merc.meterInMercatorCoordinateUnits();
 
-  let camera, scene, renderer;
-  return {
+  let camera, scene, renderer, buildingMesh = null, buildingMat = null;
+  const layer = {
     id: "zg-three-buildings",
     type: "custom",
     renderingMode: "3d",
+    // 实时重建：polys = [{ rings:[[lng,lat],...], h, base }]（来源=瓦片实时或离线包兜底）
+    setBuildings(polys) {
+      if (!scene) return 0;
+      if (buildingMesh) {
+        scene.remove(buildingMesh);
+        buildingMesh.geometry.dispose();
+        buildingMesh = null;
+      }
+      const gs = [];
+      let count = 0;
+      for (const b of polys) {
+        try {
+          const local = b.rings.map(([ln, la]) => zgToLocal(la, ln, originLL));
+          const shape = new THREE.Shape(local.map((q) => new THREE.Vector2(q.x, -q.z)));
+          const g3 = new THREE.ExtrudeGeometry(shape, { depth: Math.max(b.h - (b.base || 0), 3), bevelEnabled: false });
+          g3.rotateX(-Math.PI / 2);
+          if (b.base) g3.translate(0, b.base, 0);
+          gs.push(g3.toNonIndexed());
+          if (++count >= 1100) break; // 性能上限
+        } catch (e) { /* 退化多边形跳过 */ }
+      }
+      if (!gs.length) return 0;
+      let total = 0;
+      for (const g of gs) total += g.attributes.position.count;
+      const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3);
+      let off = 0;
+      for (const g of gs) {
+        pos.set(g.attributes.position.array, off * 3);
+        nor.set(g.attributes.normal.array, off * 3);
+        off += g.attributes.position.count;
+        g.dispose();
+      }
+      const merged = new THREE.BufferGeometry();
+      merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      merged.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+      buildingMesh = new THREE.Mesh(merged, buildingMat);
+      buildingMesh.castShadow = true;
+      buildingMesh.receiveShadow = true;
+      scene.add(buildingMesh);
+      return count;
+    },
     onAdd(map, gl) {
       camera = new THREE.Camera();
       scene = new THREE.Scene();
@@ -151,10 +192,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, buildings, centerXZ, rangeM,
         grad.addColorStop(0.6, "#0c0f16");
         grad.addColorStop(1, "#07090f");
         g2.fillStyle = grad; g2.fillRect(0, 0, 512, 256);
-        const sx = ((sun.azimuthDeg + 180) % 360) / 360 * 512;
-        const rg = g2.createRadialGradient(sx, 138, 4, sx, 138, 64);
-        rg.addColorStop(0, "#fff3da"); rg.addColorStop(0.2, lightHex); rg.addColorStop(1, "rgba(0,0,0,0)");
-        g2.fillStyle = rg; g2.fillRect(0, 0, 512, 256);
+        // （曾在此画太阳亮斑——金属面镜面反射它时成片过曝白噪"乱码"，已移除；高光由平行光承担）
         const envTex = new THREE.CanvasTexture(ec);
         envTex.mapping = THREE.EquirectangularReflectionMapping;
         const pmrem = new THREE.PMREMGenerator(renderer);
@@ -162,75 +200,38 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, buildings, centerXZ, rangeM,
         envTex.dispose(); pmrem.dispose();
       }
 
-      // 建筑合批：走廊内全部楼合成一个 BufferGeometry（单 mesh，阴影一次搞定）
-      const geoms = [];
-      let count = 0;
-      for (const b of buildings) {
-        let cx = 0, cz = 0;
-        const local = b.p.map(([la, ln]) => zgToLocal(la, ln, originLL));
-        for (const q of local) { cx += q.x; cz += q.z; }
-        cx /= local.length; cz /= local.length;
-        if (Math.hypot(cx - centerXZ.x, cz - centerXZ.z) > rangeM) continue;
-        try {
-          const shape = new THREE.Shape(local.map((q) => new THREE.Vector2(q.x, -q.z)));
-          const g3 = new THREE.ExtrudeGeometry(shape, { depth: b.h, bevelEnabled: false });
-          g3.rotateX(-Math.PI / 2);
-          geoms.push(g3);
-          if (++count >= 800) break;
-        } catch (e) { /* 退化多边形跳过 */ }
-      }
-      if (geoms.length) {
-        // r128 内置 BufferGeometryUtils 不在核心——手动合并
-        let totalPos = 0;
-        const gs = geoms.map((g) => g.toNonIndexed());
-        for (const g of gs) totalPos += g.attributes.position.count;
-        const pos = new Float32Array(totalPos * 3);
-        const nor = new Float32Array(totalPos * 3);
-        let off = 0;
-        for (const g of gs) {
-          pos.set(g.attributes.position.array, off * 3);
-          nor.set(g.attributes.normal.array, off * 3);
-          off += g.attributes.position.count;
-          g.dispose();
-        }
-        const merged = new THREE.BufferGeometry();
-        merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-        merged.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
-        // 金属幕墙：受光面吃 keyLight、侧面吃 envMap 反光、背光面回落深色
-        const mat = new THREE.MeshStandardMaterial({ color: "#6d7894", metalness: 0.7, roughness: 0.34, envMapIntensity: 0.8 });
-        const mesh = new THREE.Mesh(merged, mat);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        scene.add(mesh);
-        this._count = count;
-      }
+      // 日落观感=低照度高对比：暗蓝基底，仅受光面染色卡橙红；金属感由柔和 env + 镜面承担
+      buildingMat = new THREE.MeshStandardMaterial({ color: "#39435d", metalness: 0.5, roughness: 0.5, envMapIntensity: 0.5 });
+
+      const RANGE = 2600; // 光照/阴影/接影覆盖半径（米，视口级）
 
       // 接影地面：透明 ShadowMaterial——楼影直接落在地图路面上
       const shadowGround = new THREE.Mesh(
-        new THREE.PlaneGeometry(rangeM * 3, rangeM * 3),
+        new THREE.PlaneGeometry(RANGE * 3, RANGE * 3),
         new THREE.ShadowMaterial({ opacity: 0.42 })
       );
       shadowGround.rotation.x = -Math.PI / 2;
-      shadowGround.position.set(centerXZ.x, 0.5, centerXZ.z);
+      shadowGround.position.set(0, 0.5, 0);
       shadowGround.receiveShadow = true;
       scene.add(shadowGround);
 
       // 太阳平行光：方向=真实/演示方位角+高度角（受光面/背光面由此天然分明）
-      const keyHex = zgHexLerp(lightHex, "#ffd9ac", 0.6);
+      const keyHex = zgHexLerp(lightHex, "#ffc98f", 0.25); // 轻微金偏防粉，主体保持色卡日落色
       const dir = zgSunDir(sun.azimuthDeg, Math.max(sun.altitudeDeg, 2));
-      const sunLight = new THREE.DirectionalLight(new THREE.Color(keyHex), 1.7);
-      const d = rangeM * 1.6;
-      sunLight.position.set(centerXZ.x + dir.x * d, dir.y * d, centerXZ.z + dir.z * d);
-      sunLight.target.position.set(centerXZ.x, 0, centerXZ.z);
+      const sunLight = new THREE.DirectionalLight(new THREE.Color(keyHex), 1.25);
+      const d = RANGE * 1.6;
+      sunLight.position.set(dir.x * d, dir.y * d, dir.z * d);
+      sunLight.target.position.set(0, 0, 0);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.set(2048, 2048);
       const sc = sunLight.shadow.camera;
-      sc.left = -rangeM; sc.right = rangeM; sc.top = rangeM; sc.bottom = -rangeM; sc.far = d * 2.5;
+      sc.left = -RANGE; sc.right = RANGE; sc.top = RANGE; sc.bottom = -RANGE; sc.far = d * 2.5;
       sc.updateProjectionMatrix();
       scene.add(sunLight); scene.add(sunLight.target);
-      scene.add(new THREE.HemisphereLight("#2c3450", "#191d29", 0.5));
-      scene.add(new THREE.AmbientLight("#333c58", 0.35));
+      scene.add(new THREE.HemisphereLight("#242c44", "#14171f", 0.42));
+      scene.add(new THREE.AmbientLight("#2c3450", 0.28));
       this._map = map;
+      this._ready = true;
     },
     render(gl, matrix) {
       if (!renderer) return;
@@ -244,15 +245,18 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, buildings, centerXZ, rangeM,
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
       });
       renderer = null;
+      scene = null;
     },
   };
+  return layer;
 }
 
-function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selectedSpotName, onSelectSpot, onSwitchClassic }) {
+function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selectedSpotName, onSelectSpot, onSwitchClassic, lightTime = "now" }) {
   const boxRef = useRef(null);
   const mapRef = useRef(null);
   const [mode, setMode] = useState(window.maplibregl ? "gl" : "three"); // gl | three
   const [tilesOk, setTilesOk] = useState(null); // null 加载中 | true | false
+  const [bInfo, setBInfo] = useState(null);      // {src:"tiles"|"pack", n} 建筑来源与数量
 
   const rec = sunsetPayload?.recommendation || {};
   const meta = sunsetPayload?.meta || {};
@@ -262,10 +266,21 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
   const isDemoData = /demo|fallback/.test(meta.source || "");
   const sunBelow = sunRaw.altitudeDeg <= 0;
-  const demoSun = isDemoData;
-  const sun = demoSun
-    ? { azimuthDeg: 283, altitudeDeg: 7 }
-    : { azimuthDeg: sunRaw.azimuthDeg, altitudeDeg: sunRaw.altitudeDeg };
+  // 光照时刻控制量：给定 HH:MM → SunCalc(当天,当地) 推算真实方位角/高度角（与 sun_events 同一几何源，非编造）
+  const timeSun = (() => {
+    if (!lightTime || lightTime === "now" || !window.SunCalc) return null;
+    const m = lightTime.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const d0 = new Date(); d0.setHours(+m[1], +m[2], 0, 0);
+    const p = SunCalc.getPosition(d0, origin.lat, origin.lng);
+    return { azimuthDeg: (p.azimuth * 180 / Math.PI + 180 + 360) % 360, altitudeDeg: p.altitude * 180 / Math.PI };
+  })();
+  const demoSun = isDemoData && !timeSun;
+  const sun = timeSun
+    ? timeSun
+    : demoSun
+      ? { azimuthDeg: 283, altitudeDeg: 7 }
+      : { azimuthDeg: sunRaw.azimuthDeg, altitudeDeg: sunRaw.altitudeDeg };
 
   const peak = sunsetPayload?.peakTime || "18:15";
   const now = new Date();
@@ -355,22 +370,61 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           }
 
           // 近景建筑 = Three 自定义层：面级受光/背光 + 楼间投影 + envMap 金属反光
-          if (window.THREE && typeof zgLoadBuildings === "function") {
-            zgLoadBuildings().then((geo) => {
-              if (disposed || !geo?.buildings?.length || map.getLayer("zg-three-buildings")) return;
-              const destLocal = zgToLocal(destLL.lat, destLL.lng, origin);
-              const centerXZ = { x: destLocal.x / 2, z: destLocal.z / 2 };
-              const spanM = Math.hypot(destLocal.x, destLocal.z);
+          // 数据源：**瓦片实时**（querySourceFeatures 取当前视口真实建筑，随移动重建）；
+          // 离线包仅作断网/瓦片缺失兜底——最终呈现必须实时，不是本地 mock。
+          if (window.THREE && !map.getLayer("zg-three-buildings")) {
+            const threeLayer = zgMakeThreeBuildingsLayer({
+              originLL: origin,
+              sun,
+              lightHex: zgSunPalette(sun.altitudeDeg),
+            });
+            try { map.addLayer(threeLayer); } catch (e) { console.warn("[LIGHTCHASER] three layer add failed:", e); }
+
+            const featsToPolys = (feats) => {
+              const seen = new Set();
+              const polys = [];
+              for (const f of feats) {
+                const h = +(f.properties?.render_height ?? 12) || 12;
+                const base = +(f.properties?.render_min_height ?? 0) || 0;
+                const gj = f.geometry;
+                const rings = gj.type === "Polygon" ? [gj.coordinates[0]]
+                  : gj.type === "MultiPolygon" ? gj.coordinates.map((p) => p[0]) : [];
+                for (const ring of rings) {
+                  if (!ring || ring.length < 4) continue;
+                  const key = `${ring[0][0].toFixed(5)},${ring[0][1].toFixed(5)},${h}`;
+                  if (seen.has(key)) continue;
+                  seen.add(key);
+                  polys.push({ rings: ring, h, base });
+                }
+              }
+              return polys;
+            };
+
+            let rebuildTimer = 0;
+            const rebuild = () => {
+              if (disposed || !threeLayer._ready) return;
+              let polys = [];
               try {
-                map.addLayer(zgMakeThreeBuildingsLayer({
-                  originLL: origin,
-                  sun,
-                  buildings: geo.buildings,
-                  centerXZ,
-                  rangeM: Math.max(1300, spanM * 0.9),
-                  lightHex: zgSunPalette(sun.altitudeDeg),
-                }));
-              } catch (e) { console.warn("[LIGHTCHASER] three buildings layer failed:", e); }
+                polys = featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }));
+              } catch (e) { /* 源未就绪 */ }
+              if (polys.length >= 10) {
+                const n = threeLayer.setBuildings(polys);
+                setBInfo({ src: "tiles", n });
+              } else if (typeof zgLoadBuildings === "function") {
+                // 兜底：离线包（走廊筛选交给 setBuildings 的 1100 上限）
+                zgLoadBuildings().then((geo) => {
+                  if (disposed || !geo?.buildings?.length) return;
+                  const packPolys = geo.buildings.map((b) => ({ rings: b.p.map(([la, ln]) => [ln, la]), h: b.h, base: 0 }));
+                  const n = threeLayer.setBuildings(packPolys);
+                  setBInfo({ src: "pack", n });
+                });
+              }
+              map.triggerRepaint();
+            };
+            map.once("idle", rebuild);
+            map.on("moveend", () => {
+              clearTimeout(rebuildTimer);
+              rebuildTimer = setTimeout(rebuild, 600); // 移动后节流重建（视口实时跟随）
             });
           }
 
@@ -478,7 +532,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           <span style={{ fontSize: 15, fontWeight: 700, color: "#ffd49a", fontFamily: "var(--font-mono)" }}>{leftMin >= 0 ? `${leftMin} 分钟` : "已过"}</span>
         </div>
         <div style={{ padding: "7px 11px", borderRadius: 999, background: "rgba(14,17,26,0.72)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.12)", fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>
-          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: zgSunPalette(sun.altitudeDeg), marginRight: 5, boxShadow: "0 0 6px " + zgSunPalette(sun.altitudeDeg), verticalAlign: "middle" }} />☀ {Math.round(sun.azimuthDeg)}° · 高 {sun.altitudeDeg.toFixed(1)}°{demoSun ? " · 演示光位18:40" : sunBelow ? " · 已日落" : ""}
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: zgSunPalette(sun.altitudeDeg), marginRight: 5, boxShadow: "0 0 6px " + zgSunPalette(sun.altitudeDeg), verticalAlign: "middle" }} />☀ {Math.round(sun.azimuthDeg)}° · 高 {sun.altitudeDeg.toFixed(1)}°{timeSun ? ` · 光位${lightTime}(推算)` : demoSun ? " · 演示光位18:40" : sunBelow ? " · 已日落" : ""}
         </div>
       </div>
 
@@ -492,10 +546,10 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
       {/* 真实性徽标 */}
       <div style={{ position: "absolute", top: 140, left: 14, pointerEvents: "none", display: "flex", flexDirection: "column", gap: 5 }}>
         <div style={{ fontSize: 9.5, letterSpacing: 1.1, color: "#8fd9a8", fontFamily: "var(--font-mono)" }}>
-          {tilesOk == null ? "地图·载入中…" : "道路·建筑·OSM 实时瓦片"}
+          {tilesOk == null ? "地图·载入中…" : bInfo ? (bInfo.src === "tiles" ? `道路·瓦片实时 ｜ 建筑·视口实时 ${bInfo.n} 栋` : `道路·瓦片实时 ｜ 建筑·离线包兜底 ${bInfo.n} 栋`) : "道路·瓦片实时 ｜ 建筑·构建中…"}
         </div>
         <div style={{ fontSize: 9.5, letterSpacing: 1.1, color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-mono)" }}>
-          太阳·{demoSun ? "演示光位" : "实时方位"} ｜ 路线·真实路网
+          太阳·{timeSun ? `${lightTime} 推算` : demoSun ? "演示光位" : "实时方位"} ｜ 路线·真实路网
         </div>
         <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.45)", display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 6, height: 6, borderRadius: 99, background: "#ff8a3d", boxShadow: "0 0 8px rgba(255,138,61,0.8)" }} />

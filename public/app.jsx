@@ -215,7 +215,8 @@ const DEFAULTS = /*EDITMODE-BEGIN*/{
   "showChrome": true,
   "palette": "refined",
   "routeStyle": "3d",
-  "demoLocation": "gps"
+  "demoLocation": "gps",
+  "lightTime": "now"
 }/*EDITMODE-END*/;
 
 const DEMO_SCENARIOS = ["high", "mid", "low"];
@@ -537,7 +538,7 @@ function App() {
         ? <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />
         : t.routeStyle === "three"
           ? <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />
-          : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />,
+          : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} lightTime={t.lightTime} />,
       () => <SceneCommunity sunsetPayload={displayPayload} />,
       () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
@@ -658,6 +659,27 @@ function App() {
           />
           <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
             大区赛演示：南方科技大学（场地）出发 → 最近机位；GL 光影地图（完整道路+真实建筑+演示光位）。
+          </div>
+        </TweakSection>
+
+        <TweakSection label="光照时刻（真实太阳轨迹推算）">
+          <TweakSelect
+            label="太阳位置"
+            value={t.lightTime || "now"}
+            onChange={(v) => setTweak("lightTime", v)}
+            options={[
+              { value: "now",   label: "现在（实时）" },
+              { value: "12:30", label: "12:30 正午顶光" },
+              { value: "16:00", label: "16:00 午后斜光" },
+              { value: "17:30", label: "17:30 预黄金" },
+              { value: "18:20", label: "18:20 黄金时刻" },
+              { value: "18:50", label: "18:50 深金" },
+              { value: "19:05", label: "19:05 日落前" },
+              { value: "19:20", label: "19:20 蓝调" },
+            ]}
+          />
+          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
+            方位角/高度角由 SunCalc 按当天·当地坐标推算（与 sun_events 同一几何源，非编造），光影随之重渲。
           </div>
         </TweakSection>
 
