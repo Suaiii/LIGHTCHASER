@@ -7,7 +7,7 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.5"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v4.6"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 
 // 逐层暗化 liberty 样式 → 追光夜幕调。核心原则：**确定性调色板**——每类图层给死颜色，
 // 不做任何原色换算（通用混色公式曾把绿地混成深青/品红混成紫，已废除）。
@@ -82,8 +82,13 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
   const merc = maplibregl.MercatorCoordinate.fromLngLat([originLL.lng, originLL.lat], 0);
   const mScale = merc.meterInMercatorCoordinateUnits();
 
-  let camera, scene, renderer, buildingMesh = null, buildingMat = null;
+  let camera, scene, renderer, buildingMesh = null, buildingMat = null, shadowMat = null;
   let buildToken = 0; // 新重建到来时作废进行中的分帧构建
+  // 生长因子：0=藏于地下 1=满高。zoom 过阈值 → 楼从地面生长/缩回（scale.y），
+  // 硬切显隐曾是用户"很不舒服"的关键——消失要有动画语言，才不像故障。
+  // 绝对时间轴插值（非逐帧增量）：低帧率设备掉帧自动追赶，动画时长永远精准
+  let grow = 0, growTarget = 0, growFrom = 0, growT0 = 0;
+  const growEase = (g) => g * g * (3 - 2 * g); // smoothstep：双向共用一条曲线，zoom 中途反转不跳变
   const layer = {
     id: "zg-three-buildings",
     type: "custom",
@@ -135,11 +140,12 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         buildingMesh.receiveShadow = false;
         // MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh（曾致特定角度整片消失）
         buildingMesh.frustumCulled = false;
-        buildingMesh.visible = this._visible !== false; // 继承 LOD 显隐（拉远时建成也不上台）
+        buildingMesh.scale.y = Math.max(growEase(grow), 0.001); // 换装继承当前生长进度
+        buildingMesh.visible = grow > 0 || growTarget > 0;
         scene.add(buildingMesh);
         this._hasMesh = true;
-        // 静态场景：阴影贴图只在重建后算一次（旋转时不再重采样 → 光照稳定 + 帧率解放）
-        if (renderer) renderer.shadowMap.needsUpdate = true;
+        // 静态场景：阴影贴图只在满高时算一次（旋转时不再重采样 → 光照稳定 + 帧率解放）
+        if (renderer && grow === 1) renderer.shadowMap.needsUpdate = true;
         // 换装就位 → 通知外层同步剪影层显隐（z-fight 根除 + 无空窗，统一归 LOD 管）。
         // map 判活：分帧构建完成时组件可能已重挂，死 map(remove 后 style 已销毁)上调 style API 会炸
         if (this._map && this._map.style) {
@@ -151,14 +157,15 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       step();
       return batch.length;
     },
-    // LOD 显隐：拉远时楼群交回剪影层，mesh 不销毁——拉回时零重建立即恢复。
-    // 显隐切换要重烘阴影：autoUpdate=false 下贴图会留着旧影像（楼没了影还在）
-    setVisible(v) {
-      this._visible = v;
-      if (buildingMesh && buildingMesh.visible !== v) {
-        buildingMesh.visible = v;
-        if (renderer) renderer.shadowMap.needsUpdate = true;
-      }
+    // LOD 生长：目标 1=长出（拉近/首建登场）、0=缩回地里（拉远）。mesh 不销毁，
+    // 动画在 render() 里逐帧推进（triggerRepaint 自续），拉回时零重建原样长回。
+    setGrowTarget(t) {
+      if (growTarget === t) return;
+      growTarget = t;
+      growFrom = grow; // 中途反转从当前高度接着走，无跳变
+      growT0 = performance.now();
+      if (buildingMesh && t > 0) buildingMesh.visible = true; // 登场先上台
+      if (this._map && this._map.style) this._map.triggerRepaint();
     },
     onAdd(map, gl) {
       camera = new THREE.Camera();
@@ -207,10 +214,8 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       const RANGE = 2600; // 光照/阴影/接影覆盖半径（米，视口级）
 
       // 接影地面：透明 ShadowMaterial——楼影直接落在地图路面上
-      const shadowGround = new THREE.Mesh(
-        new THREE.PlaneGeometry(RANGE * 3, RANGE * 3),
-        new THREE.ShadowMaterial({ opacity: 0.3 }) // 半透明楼配浅影，重影会显得楼比实际"实"
-      );
+      shadowMat = new THREE.ShadowMaterial({ opacity: 0 }); // 初始 0：随楼生长淡入至 0.3（重影显得楼太"实"）
+      const shadowGround = new THREE.Mesh(new THREE.PlaneGeometry(RANGE * 3, RANGE * 3), shadowMat);
       shadowGround.rotation.x = -Math.PI / 2;
       shadowGround.position.set(0, 1.2, 0);
       shadowGround.receiveShadow = true;
@@ -241,6 +246,19 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
     },
     render(gl, matrix) {
       if (!renderer) return;
+      // 生长动画步进：绝对时间轴插值，显示值走 smoothstep。长 750ms / 缩 480ms。
+      if (grow !== growTarget && buildingMesh) {
+        const dur = growTarget > growFrom ? 750 : 480;
+        const k = Math.min(1, (performance.now() - growT0) / dur);
+        grow = growFrom + (growTarget - growFrom) * k;
+        const e = growEase(grow);
+        buildingMesh.scale.y = Math.max(e, 0.001);
+        if (shadowMat) shadowMat.opacity = 0.3 * e; // 楼影随生长淡入淡出
+        if (grow === 0) buildingMesh.visible = false; // 缩没了才真正退场
+        if (grow === 1) renderer.shadowMap.needsUpdate = true; // 满高烘一次正确楼影
+        window.__zgGrow = grow; // 测试钩子：验证生长动画真实发生
+        this._map?.triggerRepaint(); // 自续动画帧
+      }
       this._projM = this._projM || new THREE.Matrix4();
       camera.projectionMatrix = this._projM.fromArray(matrix).multiply(this._modelMatrix); // 复用矩阵：每帧 new 会攒 GC 停顿
       // resetState() 是 three 为共享上下文提供的完整复位(r126+)；旧 state.reset() 只清内部缓存不复位绑定，
@@ -376,6 +394,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                 "fill-extrusion-height": ["coalesce", ["get", "render_height"], 12],
                 "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
                 "fill-extrusion-opacity": 0.62,
+                "fill-extrusion-opacity-transition": { duration: 450 }, // 与光影楼生长/缩回交叉淡化
                 "fill-extrusion-vertical-gradient": true,
               },
             });
@@ -432,15 +451,16 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               try { return featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" })); }
               catch (e) { return []; /* 源未就绪 */ }
             };
-            // LOD 显隐同步：低 z=剪影层上台；高 z 且 Three 有楼=剪影退场
+            // LOD 过渡：低 z=剪影层淡入+光影楼缩回地里；高 z 且 Three 有楼=光影楼生长+剪影淡出。
+            // 全部连续量（生长动画+透明度过渡）——硬切显隐的"楼突然蒸发"曾是用户最不适的点
             let lodLow = null;
             const syncLod = (force) => {
               const low = map.getZoom() < LOD_Z;
               if (!force && low === lodLow) return;
               lodLow = low;
-              threeLayer.setVisible?.(!low);
+              threeLayer.setGrowTarget?.(low ? 0 : 1);
               if (map.getLayer("zg-3d-buildings")) {
-                map.setLayoutProperty("zg-3d-buildings", "visibility", (low || !threeLayer._hasMesh) ? "visible" : "none");
+                map.setPaintProperty("zg-3d-buildings", "fill-extrusion-opacity", (low || !threeLayer._hasMesh) ? 0.62 : 0);
               }
             };
             threeLayer._onSwapped = () => syncLod(true);
