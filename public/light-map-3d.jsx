@@ -35,6 +35,34 @@ function zgSunDir(azDeg, altDeg) {
   return { x: Math.sin(az) * Math.cos(alt), y: Math.sin(alt), z: -Math.cos(az) * Math.cos(alt) };
 }
 const zgClamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+// —— 追光主题光色：日照高度角 → 色卡（tokens 8 锚点语言）——
+// 正午白金 → golden 金黄 → 日落橘红 → 峰值深红 → 暮光紫，锚点间线性插值。
+// GL 版与 Three 版共用（本文件先于 light-map-gl.jsx 加载）。
+const ZG_SUN_PALETTE = [
+  { alt: -6, c: "#5A3870" },   // 暮光紫（夜幕）
+  { alt: 0,  c: "#8A4068" },   // 消散紫红
+  { alt: 3,  c: "#C84858" },   // 晚霞峰值深红
+  { alt: 8,  c: "#DE6B48" },   // 日落橘红
+  { alt: 16, c: "#E0A060" },   // Golden Hour 橘黄
+  { alt: 30, c: "#EBC28E" },   // 暖金
+  { alt: 55, c: "#F2E2C4" },   // 正午白金
+];
+function zgHexLerp(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const mix = (sh) => Math.round(((pa >> sh) & 255) + (((pb >> sh) & 255) - ((pa >> sh) & 255)) * t);
+  return "#" + ((mix(16) << 16) | (mix(8) << 8) | mix(0)).toString(16).padStart(6, "0");
+}
+function zgSunPalette(altDeg) {
+  const P = ZG_SUN_PALETTE;
+  if (altDeg <= P[0].alt) return P[0].c;
+  for (let i = 1; i < P.length; i++) {
+    if (altDeg <= P[i].alt) {
+      return zgHexLerp(P[i - 1].c, P[i].c, (altDeg - P[i - 1].alt) / (P[i].alt - P[i - 1].alt));
+    }
+  }
+  return P[P.length - 1].c;
+}
 function zgMinutesFromClock(clock, fallback) {
   const m = typeof clock === "string" && clock.match(/(\d{1,2}):(\d{2})/);
   return m ? (+m[1]) * 60 + (+m[2]) : fallback;
@@ -141,7 +169,8 @@ function zgBuildScene(canvas, params) {
 
   // ⑤ 建筑：优先 OSM 真实轮廓挤出；区域无数据 → 示意体块（HUD 标注由 React 层负责）
   const mid = new THREE.Vector3((pts[0]?.x + destPos.x) / 2 || 0, 0, (pts[0]?.z + destPos.z) / 2 || 0);
-  const buildingMat = new THREE.MeshStandardMaterial({ color: "#323b52", roughness: 0.72, metalness: 0.08 });
+  // 建材设浅冷灰底：受光面吃满主题光色，背光面回落冷调——追光式明暗分色
+  const buildingMat = new THREE.MeshStandardMaterial({ color: "#4a5570", roughness: 0.6, metalness: 0.12 });
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x3d4763, transparent: true, opacity: 0.5 });
   let realCount = 0;
   if (osmBuildings && osmBuildings.length) {
@@ -191,7 +220,8 @@ function zgBuildScene(canvas, params) {
   const dir = zgSunDir(sun.azimuthDeg, sun.altitudeDeg);
   const sunDist = Math.max(1100, routeLen * 1.1);
   const range2 = Math.max(routeLen * 0.9, 900);
-  const sunLight = new THREE.DirectionalLight(skyColor.clone().lerp(new THREE.Color("#ffd49a"), 0.5), sun.dim ? 0.7 : 2.3);
+  const lightHex = zgSunPalette(sun.altitudeDeg);
+  const sunLight = new THREE.DirectionalLight(new THREE.Color(lightHex), sun.dim ? 0.9 : 2.8);
   sunLight.position.set(mid.x + dir.x * sunDist, dir.y * sunDist, mid.z + dir.z * sunDist);
   sunLight.target.position.copy(mid);
   scene.add(sunLight.target);
@@ -202,15 +232,15 @@ function zgBuildScene(canvas, params) {
   sc.updateProjectionMatrix();
   scene.add(sunLight);
   // ① 半球光 + 环境光：保证暗部信息可读（微光模式一样看得清路线/建筑/HUD）
-  scene.add(new THREE.HemisphereLight(bgColor.clone().lerp(skyColor, 0.4), "#232838", sun.dim ? 1.05 : 0.5));
+  scene.add(new THREE.HemisphereLight(bgColor.clone().lerp(new THREE.Color(lightHex), 0.3), "#232838", sun.dim ? 1.05 : 0.5));
   scene.add(new THREE.AmbientLight("#3a4260", sun.dim ? 0.8 : 0.32));
 
   // 太阳盘 + 光晕
-  const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(42, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor.clone().lerp(new THREE.Color("#ffdda0"), 0.7) }));
+  const sunSprite = new THREE.Mesh(new THREE.SphereGeometry(42, 20, 20), new THREE.MeshBasicMaterial({ color: new THREE.Color(lightHex).lerp(new THREE.Color("#ffffff"), 0.3) }));
   sunSprite.position.copy(sunLight.position).sub(mid).multiplyScalar(0.72).add(mid);
   sunSprite.material.fog = false;
   scene.add(sunSprite);
-  const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(130, 20, 20), new THREE.MeshBasicMaterial({ color: skyColor, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(130, 20, 20), new THREE.MeshBasicMaterial({ color: new THREE.Color(lightHex), transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
   sunGlow.position.copy(sunSprite.position);
   scene.add(sunGlow);
 
@@ -228,7 +258,8 @@ function zgBuildScene(canvas, params) {
   // 相机轨道 + 可平移 target（③）
   // 初始注视点取路线 30% 处（起点城区侧，建筑密度高），比几何中点更能展示建筑群
   const target = (routeCurve ? routeCurve.getPointAt(0.3) : mid).clone(); target.y = 0;
-  const orbit = { theta: ((360 - sun.azimuthDeg) * Math.PI) / 180, phi: Math.PI * 0.38, radius: zgClamp(routeLen * 0.7 || 600, 320, 2400) };
+  // 视角偏太阳 60°：主题色受光面入画（正对太阳=全逆光剪影，看不到光色）
+  const orbit = { theta: ((360 - sun.azimuthDeg + 60) * Math.PI) / 180, phi: Math.PI * 0.38, radius: zgClamp(routeLen * 0.7 || 600, 320, 2400) };
   function applyCamera() {
     const sp = Math.sin(orbit.phi), cp = Math.cos(orbit.phi);
     camera.position.set(
@@ -469,7 +500,7 @@ function Scene3DLightMap({ sunsetPayload, routeData, routeLoading = false, selec
           </span>
         </div>
         <div style={{ padding: "7px 11px", borderRadius: 999, background: "rgba(14,17,26,0.72)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.12)", fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>
-          ☀ {Math.round(sun.azimuthDeg)}° · 高 {sun.altitudeDeg.toFixed(1)}°{demoSun ? " · 演示光位18:40" : sunBelow ? " · 已日落" : ""}
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: zgSunPalette(sun.altitudeDeg), marginRight: 5, boxShadow: "0 0 6px " + zgSunPalette(sun.altitudeDeg), verticalAlign: "middle" }} />☀ {Math.round(sun.azimuthDeg)}° · 高 {sun.altitudeDeg.toFixed(1)}°{demoSun ? " · 演示光位18:40" : sunBelow ? " · 已日落" : ""}
         </div>
       </div>
 

@@ -139,7 +139,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           center: routeLL[Math.floor(routeLL.length / 2)],
           zoom: 14.2,
           pitch: 62,
-          bearing: sun.azimuthDeg, // 屏幕上方朝向太阳 → 光影/剪影入画
+          bearing: sun.azimuthDeg - 60, // 偏太阳60°：受光面(主题色)入画
           attributionControl: { compact: true }, // OSM/ODbL 署名保留（红线）
           maxPitch: 70,
         });
@@ -152,10 +152,11 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           setTilesOk(true);
 
           // 光照：真实/演示太阳方位角（anchor=map → 随地图旋转保持地理正确）
+          // 追光主题光色：随日照高度角取色卡（正午白金→golden→橘红→深红→暮光紫）
           map.setLight({
             anchor: "map",
-            color: "#ffc38a",
-            intensity: 0.75,
+            color: zgSunPalette(sun.altitudeDeg),
+            intensity: 0.9,
             position: [1.5, sun.azimuthDeg, Math.min(88, 90 - sun.altitudeDeg)],
           });
 
@@ -168,7 +169,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               "source-layer": "building",
               minzoom: 12.5,
               paint: {
-                "fill-extrusion-color": "#38415a",
+                "fill-extrusion-color": "#49546f",
                 "fill-extrusion-height": ["coalesce", ["get", "render_height"], 12],
                 "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
                 "fill-extrusion-opacity": 0.94,
@@ -202,7 +203,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
           // 视野适配路线
           const b = routeLL.reduce((bb, c) => bb.extend(c), new maplibregl.LngLatBounds(routeLL[0], routeLL[0]));
-          map.fitBounds(b, { padding: { top: 190, bottom: 230, left: 70, right: 70 }, pitch: 62, bearing: sun.azimuthDeg, duration: 900 });
+          map.fitBounds(b, { padding: { top: 190, bottom: 230, left: 70, right: 70 }, pitch: 62, bearing: sun.azimuthDeg - 60, duration: 900 });
 
           // 路线脉冲动画 + 闲置慢旋转
           const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -269,7 +270,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#141824" }}>
       <div ref={boxRef} data-swipe-lock="true" style={{ position: "absolute", inset: 0 }} />
       {/* 天际光晕（俯仰时的日落氛围层） */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "30%", pointerEvents: "none", background: `linear-gradient(180deg, ${demoSun ? "rgba(222,107,72,0.32)" : "rgba(200,72,88,0.22)"} 0%, transparent 100%)` }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "30%", pointerEvents: "none", background: `linear-gradient(180deg, ${zgSunPalette(sun.altitudeDeg)}52 0%, transparent 100%)` }} />
       <style>{`@keyframes zgChaserPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}} .zg-chaser{animation:zgChaserPulse 2.2s ease-in-out infinite}`}</style>
 
       {/* 顶部 HUD */}
@@ -279,7 +280,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           <span style={{ fontSize: 15, fontWeight: 700, color: "#ffd49a", fontFamily: "var(--font-mono)" }}>{leftMin >= 0 ? `${leftMin} 分钟` : "已过"}</span>
         </div>
         <div style={{ padding: "7px 11px", borderRadius: 999, background: "rgba(14,17,26,0.72)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.12)", fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>
-          ☀ {Math.round(sun.azimuthDeg)}° · 高 {sun.altitudeDeg.toFixed(1)}°{demoSun ? " · 演示光位18:40" : sunBelow ? " · 已日落" : ""}
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 99, background: zgSunPalette(sun.altitudeDeg), marginRight: 5, boxShadow: "0 0 6px " + zgSunPalette(sun.altitudeDeg), verticalAlign: "middle" }} />☀ {Math.round(sun.azimuthDeg)}° · 高 {sun.altitudeDeg.toFixed(1)}°{demoSun ? " · 演示光位18:40" : sunBelow ? " · 已日落" : ""}
         </div>
       </div>
 
