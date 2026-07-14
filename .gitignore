@@ -14,7 +14,9 @@ dev-preview*.log
 # === 追光2.0 合流(2026-07-12) ===
 assets/*.zip
 **/ark.env
-.claude/
+.claude/*
+!.claude/skills/
 Thumbs.db
 start.bat
 dev-preview.out.log
+e2e-out/

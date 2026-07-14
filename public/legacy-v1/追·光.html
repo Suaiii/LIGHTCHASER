@@ -114,26 +114,17 @@
 <body>
   <div id="app"></div>
 
-  <!-- React + Babel + Leaflet + Three (local vendor, no CDN) -->
+  <!-- React + Babel + Leaflet (local vendor, no CDN) -->
   <script src="./vendor/react.development.js"></script>
   <script src="./vendor/react-dom.development.js"></script>
   <script src="./vendor/babel.min.js"></script>
   <script src="./vendor/leaflet.js"></script>
-  <script src="./vendor/three.min.js"></script>
-  <link rel="stylesheet" href="./vendor/maplibre-gl.css" />
-  <script src="./vendor/maplibre-gl.js"></script>
-  <script src="./vendor/suncalc.js"></script><!-- 光照时刻控制：真实太阳轨迹推算（与 sun_events 同源几何） -->
-  <!-- AI 相机能力（队友系统）：滤镜引擎 + 场景识别，P4 快拍嵌入用 -->
-  <script src="./vendor/filterous2.min.js"></script>
-  <script src="./vision-engine.js"></script>
 
   <script type="text/babel" src="ios-frame.jsx"></script>
   <script type="text/babel" src="tweaks-panel.jsx"></script>
   <script type="text/babel" src="chrome.jsx"></script>
   <script type="text/babel" src="scenes.jsx"></script>
   <script type="text/babel" src="subpanels.jsx"></script>
-  <script type="text/babel" src="light-map-3d.jsx"></script>
-  <script type="text/babel" src="light-map-gl.jsx"></script>
   <script type="text/babel" src="app.jsx"></script>
 </body>
 </html>

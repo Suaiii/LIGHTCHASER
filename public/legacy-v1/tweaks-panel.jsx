@@ -184,10 +184,7 @@ function useTweaks(defaults) {
 // flips off in lockstep; the host echoes __deactivate_edit_mode back which
 // is what actually hides the panel.
 function TweaksPanel({ title = 'Tweaks', noDeckControls = false, children }) {
-  // 打开通道：宿主 postMessage（原有）/ URL ?tweaks=1 / 右下角齿轮按钮（2026-07-13 加，普通浏览器可用）
-  const [open, setOpen] = React.useState(() => {
-    try { return new URLSearchParams(window.location.search).has('tweaks'); } catch (e) { return false; }
-  });
+  const [open, setOpen] = React.useState(false);
   const dragRef = React.useRef(null);
   // Auto-inject a rail toggle when a <deck-stage> is on the page. The
   // toggle drives the deck's per-viewer _railVisible via window message;
@@ -289,21 +286,7 @@ function TweaksPanel({ title = 'Tweaks', noDeckControls = false, children }) {
     window.addEventListener('mouseup', up);
   };
 
-  if (!open) return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      aria-label="打开演示控制面板"
-      title="演示控制 (Tweaks)"
-      style={{
-        position: 'fixed', right: 14, bottom: 14, zIndex: 9999,
-        width: 34, height: 34, borderRadius: 999,
-        background: 'rgba(20,24,36,0.72)', color: 'rgba(255,255,255,0.75)',
-        border: '1px solid rgba(255,138,61,0.4)', cursor: 'pointer',
-        fontSize: 16, lineHeight: 1, display: 'grid', placeItems: 'center',
-        backdropFilter: 'blur(8px)', boxShadow: '0 0 12px rgba(255,138,61,0.18)',
-      }}>⚙</button>
-  );
+  if (!open) return null;
   return (
     <>
       <style>{__TWEAKS_STYLE}</style>

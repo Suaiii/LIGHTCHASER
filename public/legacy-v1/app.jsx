@@ -213,10 +213,7 @@ const DEFAULTS = /*EDITMODE-BEGIN*/{
   "scenario": "live",
   "accentColor": "#ff8a3d",
   "showChrome": true,
-  "palette": "refined",
-  "routeStyle": "3d",
-  "demoLocation": "gps",
-  "lightTime": "now"
+  "palette": "refined"
 }/*EDITMODE-END*/;
 
 const DEMO_SCENARIOS = ["high", "mid", "low"];
@@ -289,15 +286,7 @@ function getScenarioFallback(scenario) {
   return FALLBACK_SUNSET_PAYLOAD;
 }
 
-// 演示定位（大区赛：深圳后海为主演示点——起点到人才公园约 1.1km，穿过后海塔楼群，3D 光影效果最佳）
-const DEMO_LOCATIONS = {
-  gps: { label: "真实 GPS", coordinates: null, city: null },
-  sustech: { label: "南方科技大学（大区赛场地·演示）", coordinates: { latitude: 22.5956, longitude: 113.9956 }, city: "shenzhen" },
-  shenzhen: { label: "深圳 · 后海", coordinates: { latitude: 22.4867, longitude: 113.9385 }, city: "shenzhen" },
-  shenzhenBay: { label: "深圳湾公园", coordinates: { latitude: 22.4735, longitude: 113.9410 }, city: "shenzhen" },
-};
-
-function useSunsetData(scenario, demoLocation = "gps") {
+function useSunsetData(scenario) {
   const lastGpsRef = useRef(null);
   const [state, setState] = useState({
     payload: FALLBACK_SUNSET_PAYLOAD,
@@ -322,30 +311,22 @@ function useSunsetData(scenario, demoLocation = "gps") {
 
       try {
         let gps = lastGpsRef.current;
-        const locationPreset = DEMO_LOCATIONS[demoLocation] || DEMO_LOCATIONS.gps;
 
-        if (locationPreset.coordinates) {
-          gps = locationPreset.coordinates;
-        } else {
-          try {
-            const position = await getPositionOnce({ timeout: isDemo ? 3000 : 4500 });
-            gps = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            };
-            lastGpsRef.current = gps;
-          } catch (geoError) {
-            gps = JINSHAN_FALLBACK_COORDINATES;
-            console.info("[LIGHTCHASER] GPS unavailable, using Jinshan demo fallback.", geoError.message);
-          }
+        try {
+          const position = await getPositionOnce({ timeout: isDemo ? 3000 : 4500 });
+          gps = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          lastGpsRef.current = gps;
+        } catch (geoError) {
+          gps = JINSHAN_FALLBACK_COORDINATES;
+          console.info("[LIGHTCHASER] GPS unavailable, using Jinshan demo fallback.", geoError.message);
         }
 
         const params = new URLSearchParams();
         if (isDemo) {
           params.set("demo", scenario);
-        }
-        if (locationPreset.city) {
-          params.set("city", locationPreset.city);
         }
         params.set("lat", gps.latitude);
         params.set("lng", gps.longitude);
@@ -362,9 +343,7 @@ function useSunsetData(scenario, demoLocation = "gps") {
             payload,
             loading: false,
             error: null,
-            mode: locationPreset.coordinates
-              ? `${mode}-${demoLocation}`
-              : isDemo ? `demo-${scenario}-gps` : (gps === JINSHAN_FALLBACK_COORDINATES ? "jinshan-fallback" : "gps"),
+            mode: isDemo ? `demo-${scenario}-gps` : (gps === JINSHAN_FALLBACK_COORDINATES ? "jinshan-fallback" : "gps"),
           });
         }
       } catch (error) {
@@ -384,7 +363,7 @@ function useSunsetData(scenario, demoLocation = "gps") {
     return () => {
       cancelled = true;
     };
-  }, [scenario, demoLocation]);
+  }, [scenario]);
 
   return state;
 }
@@ -475,7 +454,7 @@ function App() {
     loading: sunsetLoading,
     error: sunsetError,
     mode: sunsetMode,
-  } = useSunsetData(t.scenario, t.demoLocation);
+  } = useSunsetData(t.scenario);
   const [selectedSpotName, setSelectedSpotName] = useState(null);
   const destinationOptions = sunsetPayload
     ? [
@@ -531,14 +510,10 @@ function App() {
   const feed = [
     // Row 0: 普通视频
     [() => <SceneVlog score={score} sunsetPayload={displayPayload} />],
-    // Row 1: 追·光卡片（4 子页）— 封面 → 路线(v1.1: 3D光影地图, 经典版可切) → 社区 → 拍摄
+    // Row 1: 追·光卡片（4 子页）— 封面 → 路线 → 社区 → 拍摄
     [
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
-      () => t.routeStyle === "classic"
-        ? <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />
-        : t.routeStyle === "three"
-          ? <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />
-          : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} lightTime={t.lightTime} />,
+      () => <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />,
       () => <SceneCommunity sunsetPayload={displayPayload} />,
       () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
@@ -640,62 +615,6 @@ function App() {
           <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
             数据：{sunsetLoading ? "加载中" : sunsetMode}
             {sunsetError ? " · 已使用本地兜底" : ""}
-          </div>
-        </TweakSection>
-
-        <TweakSection label="演示定位 (大区赛·深圳)">
-          <TweakSelect
-            label="当前位置"
-            value={t.demoLocation || "gps"}
-            onChange={(v) => setTweak("demoLocation", v)}
-            options={Object.entries(DEMO_LOCATIONS).map(([value, item]) => ({ value, label: item.label }))}
-          />
-          <TweakButton
-            label="🌇 一键大区赛演示：南科大出发 · 有光有路"
-            onClick={() => {
-              setTweak({ scenario: "high", demoLocation: "sustech", routeStyle: "3d" });
-              setIndex({ row: 1, col: 1 });
-            }}
-          />
-          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
-            大区赛演示：南方科技大学（场地）出发 → 最近机位；GL 光影地图（完整道路+真实建筑+演示光位）。
-          </div>
-        </TweakSection>
-
-        <TweakSection label="光照时刻（真实太阳轨迹推算）">
-          <TweakSelect
-            label="太阳位置"
-            value={t.lightTime || "now"}
-            onChange={(v) => setTweak("lightTime", v)}
-            options={[
-              { value: "now",   label: "现在（实时）" },
-              { value: "12:30", label: "12:30 正午顶光" },
-              { value: "16:00", label: "16:00 午后斜光" },
-              { value: "17:30", label: "17:30 预黄金" },
-              { value: "18:20", label: "18:20 黄金时刻" },
-              { value: "18:50", label: "18:50 深金" },
-              { value: "19:05", label: "19:05 日落前" },
-              { value: "19:20", label: "19:20 蓝调" },
-            ]}
-          />
-          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
-            方位角/高度角由 SunCalc 按当天·当地坐标推算（与 sun_events 同一几何源，非编造），光影随之重渲。
-          </div>
-        </TweakSection>
-
-        <TweakSection label="路线页形态 (P2)">
-          <TweakRadio
-            label="P2 渲染"
-            value={t.routeStyle || "3d"}
-            onChange={(v) => setTweak("routeStyle", v)}
-            options={[
-              { value: "3d",      label: "光影地图 GL（真实道路+建筑）" },
-              { value: "three",   label: "3D 离线版（自研兜底）" },
-              { value: "classic", label: "经典地图 (1.0)" },
-            ]}
-          />
-          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, marginTop: 6 }}>
-            GL 版：OSM 实时瓦片（完整道路+真实建筑 3D+太阳光照）。离线自动降级：GL → 3D 离线 → 经典。
           </div>
         </TweakSection>
 

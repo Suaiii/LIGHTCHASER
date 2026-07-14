@@ -811,97 +811,10 @@ function CommunityVideoPlayer({ src, poster, onClose }) {
 // ============================================
 // 副屏 3 — 快速拍摄 / 一键发布
 // ============================================
-// P4 v1.1：机位滤镜预设（缩略图复用 AI 相机的授权胶片系资产；CSS 近似做取景实时预览，
-// 正式成像走 filterous2——与 ai-camera.html 同一套语言）
-const QUICKSHOOT_FILTERS = [
-  { id: "none",        name: "原生",   css: "none", thumb: null },
-  { id: "k_gold_200",  name: "柯达金", css: "saturate(1.28) contrast(1.05) sepia(0.14) brightness(1.02)", thumb: "/assets/filter-thumbnails/k_gold_200.jpg" },
-  { id: "f_velvia",    name: "维尔维亚", css: "saturate(1.45) contrast(1.12)", thumb: "/assets/filter-thumbnails/f_velvia.jpg" },
-  { id: "f_classic_neg", name: "经典负片", css: "saturate(0.86) contrast(0.96) sepia(0.1)", thumb: "/assets/filter-thumbnails/f_classic_neg.jpg" },
-];
-// vision-engine 场景 → 构图建议（与 AI 相机的 8 场景口径一致）
-const SCENE_COMPOSE_TIP = {
-  portrait: "有人物：剪影压住天空下三分",
-  street: "街景：引导线交给车流与街沿",
-  food: "近物：贴近拍，留出天色背景",
-  landscape: "风光：地平线放下三分之一",
-  general: "开阔场景：三分线锁住天际",
-};
-
 function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
   const [selectedTitle, setSelectedTitle] = useState(0);
   const [recording, setRecording] = useState(false);
   const [publishProgress, setPublishProgress] = useState(0);
-  const [filterIdx, setFilterIdx] = useState(1); // 默认柯达金（晚霞场景）
-  const [aiSense, setAiSense] = useState(null);   // {scene, confidence} | {failed:true}
-  const [cameraState, setCameraState] = useState("off"); // off | starting | on | denied
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-
-  // 真实摄像头：调取 getUserMedia，取景层实时渲染滤镜（CSS filter 直接作用于 <video>）
-  // 注意：非 localhost 需 HTTPS 才能取摄像头（浏览器安全上下文限制）；失败落 denied 态，静态预览兜底。
-  async function toggleCamera() {
-    if (cameraState === "on" || cameraState === "starting") {
-      streamRef.current?.getTracks().forEach((tr) => tr.stop());
-      streamRef.current = null;
-      setCameraState("off");
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia) { setCameraState("denied"); return; }
-    setCameraState("starting");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
-      setCameraState("on");
-    } catch (e) {
-      console.info("[LIGHTCHASER] camera unavailable:", e.name);
-      setCameraState("denied");
-    }
-  }
-  // 卸载时释放摄像头
-  useEffect(() => () => { streamRef.current?.getTracks().forEach((tr) => tr.stop()); }, []);
-
-  // 嵌入队友 vision-engine：相机开启时对视频流周期识别；关闭时对静态取景图识别一次
-  useEffect(() => {
-    if (publishedVideoMode) return undefined;
-    let cancelled = false;
-    let timer = null;
-    const LV = window.LightchaserVision;
-    if (!LV) { setAiSense({ failed: true }); return undefined; }
-
-    async function senseOnce(source, frame) {
-      try {
-        await LV.init();
-        const sample = await LV.detect(source, frame);
-        if (!cancelled) setAiSense(sample ? { scene: sample.scene, confidence: sample.confidence } : { failed: true });
-      } catch (e) {
-        if (!cancelled) setAiSense({ failed: true });
-      }
-    }
-
-    if (cameraState === "on" && videoRef.current) {
-      const v = videoRef.current;
-      const tick = () => {
-        if (cancelled || v.readyState < 2) return;
-        senseOnce(v, { width: v.videoWidth, height: v.videoHeight });
-      };
-      tick();
-      timer = setInterval(tick, 4000); // 实时流：每 4s 识别一次
-    } else {
-      const img = new Image();
-      img.src = "/assets/jingansi/fig3.jpeg";
-      img.onload = () => senseOnce(img, { width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => { if (!cancelled) setAiSense({ failed: true }); };
-    }
-    return () => { cancelled = true; if (timer) clearInterval(timer); };
-  }, [publishedVideoMode, cameraState]);
   const score = sunsetPayload?.score || 87;
   const peak = sunsetPayload?.peakTime || "18:15";
   const duration = sunsetPayload?.peakDuration || 14;
@@ -967,21 +880,7 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
             backgroundImage: 'url("/assets/jingansi/fig3.jpeg")',
             backgroundSize: "cover",
             backgroundPosition: "center",
-            filter: QUICKSHOOT_FILTERS[filterIdx]?.css || "none",
-            transition: "filter .15s cubic-bezier(.3,.7,.4,1)",
           }} />
-          {/* 真实摄像头取景层：开启时覆盖静态图，滤镜实时渲染在视频流上 */}
-          <video
-            ref={videoRef}
-            autoPlay muted playsInline
-            style={{
-              position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover",
-              display: cameraState === "on" ? "block" : "none",
-              filter: QUICKSHOOT_FILTERS[filterIdx]?.css || "none",
-              transition: "filter .15s cubic-bezier(.3,.7,.4,1)",
-            }}
-          />
           <div style={{
             position: "absolute", inset: 0,
             background: "linear-gradient(180deg, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.02) 42%, rgba(0,0,0,0.52) 100%)",
@@ -1001,21 +900,6 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
               </div>
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
                 刚好的光
-              </div>
-              {/* AI 场景识别（vision-engine 实时结果；失败回退规则引擎口径，不冒充） */}
-              <div className="mono" style={{
-                marginTop: 6, display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "4px 9px", borderRadius: 999,
-                background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,138,61,0.35)",
-                fontSize: 9.5, color: "rgba(255,255,255,0.85)", letterSpacing: 0.6,
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: 99, background: aiSense && !aiSense.failed ? "#7ee0a0" : "#ffd49a" }} />
-                {aiSense && !aiSense.failed
-                  ? `AI 识别 ${Math.round((aiSense.confidence || 0) * 100)}% · ${SCENE_COMPOSE_TIP[aiSense.scene] || SCENE_COMPOSE_TIP.general}`
-                  : aiSense?.failed
-                    ? `构图引擎 · ${SCENE_COMPOSE_TIP.general}`
-                    : "AI 识别中…"}
               </div>
             </div>
             <div style={{
@@ -1065,33 +949,6 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
             padding: "0 14px",
             "--float-delay": "260ms",
           }}>
-            {/* 滤镜排：复用 AI 相机授权胶片资产，取景实时预览 */}
-            <div data-swipe-lock="true" style={{ display: "flex", gap: 8, marginBottom: 10, overflowX: "auto", paddingBottom: 2 }}>
-              {QUICKSHOOT_FILTERS.map((f, i) => {
-                const active = i === filterIdx;
-                return (
-                  <button key={f.id} type="button" onClick={() => setFilterIdx(i)} style={{
-                    flexShrink: 0, width: 52, borderRadius: 12, padding: 0, overflow: "hidden",
-                    border: active ? "2px solid var(--accent)" : "2px solid rgba(255,255,255,0.14)",
-                    background: "rgba(0,0,0,0.4)", cursor: "pointer",
-                    boxShadow: active ? "0 0 14px rgba(255,138,61,0.35)" : "none",
-                  }}>
-                    <div style={{
-                      width: "100%", height: 40,
-                      backgroundImage: f.thumb ? `url("${f.thumb}")` : 'url("/assets/jingansi/fig3.jpeg")',
-                      backgroundSize: "cover", backgroundPosition: "center",
-                      filter: f.thumb ? "none" : f.css,
-                    }} />
-                    <div style={{
-                      fontSize: 8.5, padding: "3px 0", textAlign: "center",
-                      color: active ? "var(--accent)" : "rgba(255,255,255,0.75)",
-                      fontWeight: active ? 700 : 500, letterSpacing: 0.5,
-                    }}>{f.name}</div>
-                  </button>
-                );
-              })}
-            </div>
-
             <ShootAssistPanel
               titles={titles}
               selectedTitle={selectedTitle}
@@ -1103,17 +960,14 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "0 8px",
             }}>
-              <button type="button" onClick={toggleCamera} aria-label="开关实况相机" style={{
+              <div style={{
                 width: 44, height: 44, borderRadius: 14,
-                background: cameraState === "on" ? "rgba(255,138,61,0.28)" : "rgba(255,255,255,0.10)",
-                border: cameraState === "on" ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.12)",
                 display: "grid", placeItems: "center",
-                color: "#fff", fontSize: 16, cursor: "pointer",
+                color: "#fff", fontSize: 18,
                 backdropFilter: "blur(10px)",
-                boxShadow: cameraState === "on" ? "0 0 14px rgba(255,138,61,0.35)" : "none",
-              }}>
-                {cameraState === "starting" ? "…" : cameraState === "on" ? "⏹" : "📷"}
-              </button>
+              }}>▦</div>
 
               <button type="button" aria-label="播放成片视频" onClick={tapShutter} style={{
                 width: 76, height: 76, borderRadius: "50%",
@@ -1150,12 +1004,10 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
 
             <div style={{
               marginTop: 10, textAlign: "center",
-              fontSize: 10.5, color: cameraState === "denied" ? "#ffb26f" : "rgba(255,255,255,0.55)",
+              fontSize: 10.5, color: "rgba(255,255,255,0.55)",
               letterSpacing: 1,
             }}>
-              {cameraState === "on" ? "实况取景中 · 滤镜实时渲染"
-                : cameraState === "denied" ? "相机不可用（需授权，手机端需 HTTPS）· 静态预览中"
-                : "拍完直接发 · 标题已准备好（📷 开实况取景）"}
+              拍完直接发 · 标题已准备好
             </div>
           </div>
 
