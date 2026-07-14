@@ -7,7 +7,7 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.8"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v4.9"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 const ZG_LOD_START = 14.6;
 const ZG_LOD_END = 15.4;
 const zgLodProgress = (zoom) => {
@@ -106,14 +106,14 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
     //   b) 分帧构建（每帧≤220栋）——1100 栋同步硬算曾一次性卡主线程 ~200ms。
     setBuildings(polys) {
       if (!scene) return 0;
-      const batch = polys.slice(0, 1100); // 性能上限
+      const batch = polys.slice(0, 650); // 近景优先；控制单次几何构建预算
       this._building = true;
       const token = ++buildToken;
       const gs = [];
       let idx = 0;
       const step = () => {
         if (!scene || token !== buildToken) { gs.forEach((g) => g.dispose()); return; }
-        const end = Math.min(idx + 80, batch.length); // 80栋≈16ms：不挤帧预算（220栋曾致构建期丢帧→画面跳变）
+        const end = Math.min(idx + 40, batch.length); // 小批次让快速拖动时主线程持续可响应
         for (; idx < end; idx++) {
           const b = batch[idx];
           try {
@@ -276,7 +276,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       sunLight.position.set(dir.x * d, dir.y * d, dir.z * d);
       sunLight.target.position.set(0, 0, 0);
       sunLight.castShadow = true;
-      sunLight.shadow.mapSize.set(2048, 2048);
+      sunLight.shadow.mapSize.set(1024, 1024);
       // 掠射角(日落 alt 7°)自阴影 acne 的标准解：法线偏置 + 微负偏置——白噪竖纹的根源
       sunLight.shadow.normalBias = 3;
       sunLight.shadow.bias = -0.0002;
@@ -531,16 +531,10 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               lodLow = progress;
               threeLayer.setGrowProgress?.(progress);
               if (map.getLayer("zg-3d-buildings")) {
-          // Keep a thin native silhouette during async Three rebuilds. Without
-          // this bridge, panning moves the old mesh out of view before the new
-          // tiles/build completes, producing the user's blank-city pause.
-                const bridge = (!low && (pendingMove || threeLayer._building)) ? 0.22 : 0;
-                // Native and Three geometries are not guaranteed to be the same
-                // tile batch. Fade the native layer out during only the first 15%
-                // of growth, before Three reaches a height where overlap ghosts.
-                const nativeFade = Math.min(1, progress / 0.15);
-                const crossfade = 0.62 * (1 - nativeFade);
-                map.setPaintProperty("zg-3d-buildings", "fill-extrusion-opacity", !threeLayer._hasMesh ? 0.62 : Math.max(crossfade, bridge));
+                // Never overlap the native extrusion with Three. The base map still
+                // retains its 2D building footprints at low zoom, while Three alone
+                // owns the grow/shrink animation at high zoom.
+                map.setPaintProperty("zg-3d-buildings", "fill-extrusion-opacity", 0);
               }
             };
             threeLayer._onSwapped = () => {
@@ -591,9 +585,9 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               if (schedCenter && metersApart(c, schedCenter) < 1 && Math.abs(z - schedZoom) < 1e-6) return;
               schedCenter = c; schedZoom = z;
               clearTimeout(rebuildTimer);
-              rebuildTimer = setTimeout(rebuild, 450);
+              rebuildTimer = setTimeout(rebuild, 120);
             });
-            rebuildTimer = setTimeout(rebuild, 500); // 首响应：有部分数据先建起来，sourcedata 到齐后自动补全
+            rebuildTimer = setTimeout(rebuild, 240); // 首响应：有部分数据先建起来，sourcedata 到齐后自动补全
             setTimeout(() => { // 离线兜底：12s 仍无楼（断网/瓦片全挂）才动用离线包，按视口就近筛
               if (disposed || builtOnce || map.getZoom() < LOD_Z || typeof zgLoadBuildings !== "function") return;
               zgLoadBuildings().then((geo) => {
@@ -601,7 +595,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                 const c = map.getCenter();
                 const near = geo.buildings
                   .map((b) => ({ b, d: metersApart({ lng: b.p[0][1], lat: b.p[0][0] }, c) }))
-                  .filter((x) => x.d < 2600).sort((a, b2) => a.d - b2.d).slice(0, 1100)
+                  .filter((x) => x.d < 2600).sort((a, b2) => a.d - b2.d).slice(0, 650)
                   .map((x) => ({ rings: x.b.p.map(([la, ln]) => [ln, la]), h: x.b.h, base: 0 }));
                 const n = threeLayer.setBuildings(near);
                 if (n > 0) commit(n, near.length, "pack");
@@ -660,7 +654,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             if (disposed) return;
             t0 += 1 / 60;
             // 脉冲隔帧更新：setData 会强制整图重绘，60fps 更新=静止时 GPU 也全速跑
-            if (!reducedMotion && (fno++ % 2 === 0) && map.getSource("zg-pulse")) {
+            if (!reducedMotion && (fno++ % 4 === 0) && map.getSource("zg-pulse")) {
               map.getSource("zg-pulse").setData({
                 type: "FeatureCollection",
                 features: [0, 0.5].map((off) => ({ type: "Feature", geometry: { type: "Point", coordinates: at((t0 * 0.045 + off) % 1) } })),

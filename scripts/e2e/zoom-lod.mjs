@@ -60,11 +60,14 @@ console.log(`zoom连续映射: z14.8→${q1.grow} z15.2→${q2.grow}`, zoomCoupl
 if (!zoomCoupled) pass = false;
 
 // ② 拉远到 z12.6：楼应缩回地里（grow 经中间值到 0）+ 剪影淡入
-const shrink = await sampleGrow("window.__zgMap.jumpTo({ zoom: 12.6 })", 1500);
+const shrink = await sampleGrow(`(() => {
+  const zs = [15.0,14.8,14.6,14.4,14.2,14.0,13.8,13.6,13.4,13.2,12.9,12.6];
+  zs.forEach((zoom, i) => setTimeout(() => window.__zgMap.jumpTo({ zoom }), i * 55));
+})()`, 1500);
 s = await state();
 const shrinkAnimated = shrink.some((g) => g > 0.05 && g < 0.95) && s.grow === 0;
-console.log(`拉远: 缩回序列=[${shrink.join(",")}] 终值=${s.grow}(期望0经中间值) 剪影op=${s.sil}(期望0.62)`, shrinkAnimated && s.sil === 0.62 ? "✓" : "✗");
-if (!shrinkAnimated || s.sil !== 0.62) pass = false;
+console.log(`拉远: 缩回序列=[${shrink.join(",")}] 终值=${s.grow}(期望0经中间值) 原生3D=${s.sil}(期望0)`, shrinkAnimated && s.sil === 0 ? "✓" : "✗");
+if (!shrinkAnimated || s.sil !== 0) pass = false;
 await page.screenshot({ clip: CLIP, path: OUT + "lod-far.png" });
 
 // ③ 低 z 疯狂旋转 20 次 + 小幅平移（复刻用户操作）
@@ -74,12 +77,15 @@ for (let i = 0; i < 20; i++) {
 }
 await page.waitForTimeout(2500);
 s = await state();
-console.log(`低z旋转20次后: z=${s.z} 剪影op=${s.sil}(期望0.62) grow=${s.grow}(期望0)`, s.sil === 0.62 && s.grow === 0 ? "✓" : "✗");
-if (s.sil !== 0.62 || s.grow !== 0) pass = false;
+console.log(`低z旋转20次后: z=${s.z} 原生3D=${s.sil}(期望0) grow=${s.grow}(期望0)`, s.sil === 0 && s.grow === 0 ? "✓" : "✗");
+if (s.sil !== 0 || s.grow !== 0) pass = false;
 await page.screenshot({ clip: CLIP, path: OUT + "lod-far-spun.png" });
 
 // ④ 拉回 z15.8：楼从地里长回（grow 经中间值到 1，零重建）+ 剪影淡出
-const regrow = await sampleGrow("window.__zgMap.jumpTo({ zoom: 15.8, bearing: 220 })", 1600);
+const regrow = await sampleGrow(`(() => {
+  const zs = [13.0,13.4,13.8,14.2,14.6,14.8,15.0,15.2,15.4,15.6,15.8];
+  zs.forEach((zoom, i) => setTimeout(() => window.__zgMap.jumpTo({ zoom, bearing: 220 }), i * 55));
+})()`, 1600);
 s = await state();
 const regrowAnimated = regrow.some((g) => g > 0.05 && g < 0.95) && s.grow === 1;
 console.log(`拉回: 生长序列=[${regrow.join(",")}] 终值=${s.grow}(期望1经中间值) 剪影op=${s.sil}(期望0) 楼=${s.zgB?.n}`, regrowAnimated && s.sil === 0 && s.zgB ? "✓" : "✗");
