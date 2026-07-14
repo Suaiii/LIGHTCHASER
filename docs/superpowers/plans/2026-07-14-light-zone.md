@@ -45,4 +45,4 @@
 - [x] Run `node scripts/e2e/rotation-invariance.mjs` and `npm run test:api`.
 - [x] Record timing, layer counts, and remaining manual 3-second-test requirement.
 - [x] Commit the verified proposal implementation.
-- [ ] Push `codex/hermes-03-lightzone`, update Issue #18, and open the Draft PR.
+- [x] Push `codex/hermes-03-lightzone`, update Issue #18, and open the Draft PR.
