@@ -1,7 +1,7 @@
 # HERMES-01 ｜ 导航走反路根治：步行路由服务替换
 
 - **受众**：AI 编码代理
-- **状态**：待领
+- **状态**：待验收
 - **时间窗**：7.14–7.17（Gate 0 前必须闭环——导航是演示动线的一部分，走反路当场穿帮）
 - **占用文件**：`lib/route-service.js`、`api/route.js`、`docs/page_specs.md`（仅 P2 节追加）、`test-sunset.js`（如需加断言）、新增 `agents_output/checks/hermes01_route_report.md`
 
