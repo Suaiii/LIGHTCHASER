@@ -97,7 +97,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 |---|---|---|---|---|---|---|
 | [HERMES-01 导航走反路根治](HERMES-01-routing-foot.md) | AI | **P0**（演示可信度） | 7.14–7.17 | 待领 | [#16](https://github.com/Suaiii/LIGHTCHASER/issues/16) | lib/route-service.js, api/route.js, docs/page_specs.md(P2节) |
 | [HERMES-02 晚霞算法置信度+多源+竞品对标](HERMES-02-confidence.md) | AI | **P0**（AI×产品 15%+叙事弹药） | 7.15–7.20 | 待领 | [#17](https://github.com/Suaiii/LIGHTCHASER/issues/17) | api/sunset.js, lib/sunset-service.js, agents_output/02/checks/*新增 |
-| [HERMES-03 3D 光域高亮层（提案制）](HERMES-03-light-zone.md) | AI | P1 | 7.18–7.22 | 进行中（开源调研/提案） | [#18](https://github.com/Suaiii/LIGHTCHASER/issues/18) | public/light-map-gl.jsx, scripts/e2e/, docs/hermes/HERMES-03-提案.md |
+| [HERMES-03 3D 光域高亮层（提案制）](HERMES-03-light-zone.md) | AI | P1 | 7.18–7.22 | 待验收（两方案+组合 demo） | [#18](https://github.com/Suaiii/LIGHTCHASER/issues/18) | public/light-map-gl.jsx, scripts/e2e/, docs/hermes/HERMES-03-提案.md |
 | [HERMES-04 平台上下文字段级测绘](HERMES-04-context-matrix.md) | 人+AI | **P0**（7.24 唯一窗口） | 清单即备，7.24 执行 | 待领 | [#19](https://github.com/Suaiii/LIGHTCHASER/issues/19) | agents_output/06/*新增 |
 | [HERMES-05 出片场景扩展先导](HERMES-05-scene-expansion.md) | 混合 | P2（用户定调：不急） | 设计 7.16–7.20 | 待领 | [#20](https://github.com/Suaiii/LIGHTCHASER/issues/20) | agents_output/01/*（schema 设计稿新增，不改 spots.v1.json 主体） |
 | [HERMES-06 原型收尾包](HERMES-06-proto-polish.md) | AI | P1 | 7.15–7.19 | 待领 | [#21](https://github.com/Suaiii/LIGHTCHASER/issues/21) | public/app.jsx, public/subpanels.jsx, public/追·光.html |

@@ -7,7 +7,7 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.9"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v5.0"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
 const ZG_LOD_START = 14.6;
 const ZG_LOD_END = 15.4;
 const zgLodProgress = (zoom) => {
@@ -338,6 +338,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
   const [mode, setMode] = useState(window.maplibregl ? "gl" : "three"); // gl | three
   const [tilesOk, setTilesOk] = useState(null); // null 加载中 | true | false
   const [bInfo, setBInfo] = useState(null);      // {src:"tiles"|"pack", n} 建筑来源与数量
+  const lightZoneMode = new URLSearchParams(window.location.search).get("lightZone") || "off";
 
   const rec = sunsetPayload?.recommendation || {};
   const meta = sunsetPayload?.meta || {};
@@ -385,9 +386,11 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
   useEffect(() => {
     if (mode !== "gl" || !boxRef.current || !window.maplibregl) return undefined;
+    window.__zgLightZone = null;
+    window.__zgLightZoneSelectCalls = 0;
     let disposed = false;
     let map = null;
-    let raf = 0, idleTimer = 0, rotating = true;
+    let raf = 0, idleTimer = 0, lightZoneTimer = 0, rotating = true;
     const markers = [];
 
     const routeLL = (routeData?.geometry?.length >= 2
@@ -433,6 +436,26 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             position: [1.5, sun.azimuthDeg, Math.min(88, 90 - sun.altitudeDeg)],
           });
 
+          const featuresToPolys = (feats) => {
+            const seen = new Set();
+            const polys = [];
+            for (const f of feats) {
+              const h = +(f.properties?.render_height ?? 12) || 12;
+              const base = +(f.properties?.render_min_height ?? 0) || 0;
+              const gj = f.geometry;
+              const rings = gj.type === "Polygon" ? [gj.coordinates[0]]
+                : gj.type === "MultiPolygon" ? gj.coordinates.map((p) => p[0]) : [];
+              for (const ring of rings) {
+                if (!ring || ring.length < 4) continue;
+                const key = `${ring[0][0].toFixed(5)},${ring[0][1].toFixed(5)},${h}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                polys.push({ rings: ring, h, base });
+              }
+            }
+            return polys;
+          };
+
           // 远景建筑：暗剪影 extrusion（只做背景轮廓）；近景真光影由 Three 自定义层接管
           if (!map.getLayer("zg-3d-buildings")) {
             map.addLayer({
@@ -463,26 +486,6 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             });
             try { map.addLayer(threeLayer); } catch (e) { console.warn("[LIGHTCHASER] three layer add failed:", e); }
 
-            const featsToPolys = (feats) => {
-              const seen = new Set();
-              const polys = [];
-              for (const f of feats) {
-                const h = +(f.properties?.render_height ?? 12) || 12;
-                const base = +(f.properties?.render_min_height ?? 0) || 0;
-                const gj = f.geometry;
-                const rings = gj.type === "Polygon" ? [gj.coordinates[0]]
-                  : gj.type === "MultiPolygon" ? gj.coordinates.map((p) => p[0]) : [];
-                for (const ring of rings) {
-                  if (!ring || ring.length < 4) continue;
-                  const key = `${ring[0][0].toFixed(5)},${ring[0][1].toFixed(5)},${h}`;
-                  if (seen.has(key)) continue;
-                  seen.add(key);
-                  polys.push({ rings: ring, h, base });
-                }
-              }
-              return polys;
-            };
-
             // ═ 重建调度（事件驱动——图九"楼刷没了/残缺"的修复）═
             // 铁律：①只有建成才记账，查空保留旧楼；②瓦片是异步流，任何时刻查询都可能只拿到
             // 部分楼（曾以 136 栋残缺状态永久定格），所以拿 sourcedata(isSourceLoaded) 当
@@ -505,7 +508,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                 const bounds = map.getBounds();
                 const corners = [bounds.getNorthEast(), bounds.getNorthWest(), bounds.getSouthEast(), bounds.getSouthWest()];
                 const viewRadius = Math.max(...corners.map((p) => metersApart(c, p))) * 1.25;
-                return featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }))
+                return featuresToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }))
                   .map((poly) => {
                     let lng = 0, lat = 0;
                     for (const p of poly.rings) { lng += p[0]; lat += p[1]; }
@@ -610,6 +613,205 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           map.addSource("zg-pulse", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           map.addLayer({ id: "zg-pulse", type: "circle", source: "zg-pulse", paint: { "circle-radius": 5, "circle-color": "#ffffff", "circle-blur": 0.35 } });
 
+          // HERMES-03 proposals are URL-gated and use regular MapLibre layers only.
+          // They never enter the animation loop or create another shared GL renderer.
+          const axisEnabled = lightZoneMode === "axis" || lightZoneMode === "both";
+          const spotsEnabled = lightZoneMode === "spots" || lightZoneMode === "both";
+          if (window.ZGLightZone && (axisEnabled || spotsEnabled)) {
+            try {
+            const officialCandidates = spots
+              .filter((spot) => Number.isFinite(spot?.coordinates?.lng) && Number.isFinite(spot?.coordinates?.lat))
+              .map((spot, index) => ({ id: `spot-${index}`, name: spot.name, lng: spot.coordinates.lng, lat: spot.coordinates.lat }));
+            const routeCandidatePool = routeLL
+              .filter((_, index) => index === 0 || index === routeLL.length - 1 || index % Math.max(1, Math.floor(routeLL.length / 16)) === 0)
+              .map((point, index) => ({ id: `route-${index}`, name: `路线光位 ${index + 1}`, lng: point[0], lat: point[1] }));
+            const getVisibleCandidates = () => {
+              const canvas = map.getCanvas();
+              const isReadable = (candidate) => {
+                const point = map.project([candidate.lng, candidate.lat]);
+                return point.x >= 16 && point.x <= canvas.clientWidth - 16 && point.y >= 170 && point.y <= canvas.clientHeight - 170;
+              };
+              const selected = officialCandidates.filter(isReadable).slice(0, 4);
+              const routeVisible = routeCandidatePool.filter(isReadable);
+              const slots = 4 - selected.length;
+              for (let index = 0; index < slots && routeVisible.length; index++) {
+                const candidate = routeVisible[Math.min(routeVisible.length - 1, Math.floor((index + 0.5) * routeVisible.length / slots))];
+                if (!selected.some((item) => Math.hypot(item.lng - candidate.lng, item.lat - candidate.lat) < 0.00008)) selected.push(candidate);
+              }
+              return selected;
+            };
+            if (axisEnabled) {
+              map.addSource("zg-sun-axis", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+              map.addLayer({ id: "zg-sun-axis-glow", type: "line", source: "zg-sun-axis", layout: { "line-cap": "round" }, paint: { "line-color": "#80c9c1", "line-width": 7, "line-blur": 5, "line-opacity": 0.18 } }, "zg-route-glow");
+              map.addLayer({ id: "zg-sun-axis-core", type: "line", source: "zg-sun-axis", layout: { "line-cap": "round" }, paint: { "line-color": "#9adbd2", "line-width": 2, "line-opacity": 0.82, "line-dasharray": [2, 2] } }, "zg-route-glow");
+              map.addLayer({
+                id: "zg-sun-axis-tip", type: "circle", source: "zg-sun-axis", filter: ["==", ["geometry-type"], "Point"],
+                paint: { "circle-radius": 5, "circle-color": "#9adbd2", "circle-opacity": 0.9, "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.2, "circle-stroke-opacity": 0.65 },
+              });
+              map.addLayer({
+                id: "zg-sun-axis-label", type: "symbol", source: "zg-sun-axis", filter: ["==", ["geometry-type"], "Point"],
+                layout: { "text-field": "日落方向", "text-size": 10, "text-offset": [0, 1.4], "text-allow-overlap": true, "text-ignore-placement": true },
+                paint: { "text-color": "#a7e1d9", "text-halo-color": "#111621", "text-halo-width": 1.2 },
+              });
+            }
+            if (spotsEnabled) {
+              map.addSource("zg-light-spots", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+              map.addLayer({
+                id: "zg-light-spots", type: "circle", source: "zg-light-spots",
+                paint: {
+                  "circle-radius": 7,
+                  "circle-color": ["match", ["get", "status"], "exposed", "#f4c477", "blocked", "#586174", "below_horizon", "#39404f", "#8a8f9b"],
+                  "circle-opacity": 0.82,
+                  "circle-stroke-color": "#ffffff",
+                  "circle-stroke-width": 1,
+                  "circle-stroke-opacity": 0.55,
+                },
+              });
+              map.addLayer({
+                id: "zg-light-spots-label", type: "symbol", source: "zg-light-spots",
+                layout: {
+                  "text-field": ["match", ["get", "status"], "exposed", "见光", "blocked", "受挡", "below_horizon", "已日落", "待数据"],
+                  "text-size": 10,
+                  "text-offset": [0, 1.4],
+                  "text-allow-overlap": false,
+                },
+                paint: { "text-color": "#d8dbe3", "text-halo-color": "#111621", "text-halo-width": 1.2 },
+              });
+            }
+
+            let lightZoneGeneration = 0;
+            let lightZoneReadyGeneration = -1;
+            let lightZoneCenter = null;
+            let lightZoneZoom = null;
+            let lightZoneBearing = null;
+            const getSampleCandidates = () => {
+              const canvas = map.getCanvas();
+              return getVisibleCandidates().map((candidate) => {
+                const rayEnd = window.ZGLightZone.destinationPoint(candidate, sun.azimuthDeg, 700);
+                const screenEnd = map.project([rayEnd.lng, rayEnd.lat]);
+                return {
+                  ...candidate,
+                  coverageComplete: screenEnd.x >= 0 && screenEnd.x <= canvas.clientWidth && screenEnd.y >= 0 && screenEnd.y <= canvas.clientHeight,
+                };
+              });
+            };
+            const queryLightZoneSample = (candidates) => {
+              if (!spotsEnabled || !candidates.length) return { candidates, buildings: [], visibleBuildingCount: 0, matchedCount: 0, truncated: false };
+              const corridors = candidates.map((candidate) => {
+                const endpoint = window.ZGLightZone.destinationPoint(candidate, sun.azimuthDeg, 700);
+                const latMargin = 120 / 111320;
+                const lngMargin = 120 / (111320 * Math.cos(candidate.lat * Math.PI / 180));
+                return {
+                  minLng: Math.min(candidate.lng, endpoint.lng) - lngMargin,
+                  maxLng: Math.max(candidate.lng, endpoint.lng) + lngMargin,
+                  minLat: Math.min(candidate.lat, endpoint.lat) - latMargin,
+                  maxLat: Math.max(candidate.lat, endpoint.lat) + latMargin,
+                };
+              });
+              const ringIntersects = (ring, corridor) => {
+                let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+                for (const point of ring) {
+                  minLng = Math.min(minLng, point[0]); maxLng = Math.max(maxLng, point[0]);
+                  minLat = Math.min(minLat, point[1]); maxLat = Math.max(maxLat, point[1]);
+                }
+                return maxLng >= corridor.minLng && minLng <= corridor.maxLng && maxLat >= corridor.minLat && minLat <= corridor.maxLat;
+              };
+              const featureIntersects = (feature) => {
+                const geometry = feature.geometry;
+                const rings = geometry.type === "Polygon" ? geometry.coordinates
+                  : geometry.type === "MultiPolygon" ? geometry.coordinates.flat(1) : [];
+                return corridors.some((corridor) => rings.some((ring) => ringIntersects(ring, corridor)));
+              };
+              const corridorFeatures = map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }).filter(featureIntersects);
+              const visibleBuildings = featuresToPolys(corridorFeatures);
+              window.__zgLightZoneSelectCalls += 1;
+              const selected = window.ZGLightZone.selectRayBuildings(candidates, visibleBuildings, sun, { maxDistance: 700, maxBuildings: 650 });
+              return { candidates, buildings: selected.buildings, visibleBuildingCount: visibleBuildings.length, matchedCount: selected.matchedCount, truncated: selected.truncated };
+            };
+            const refreshLightZone = (sample, dataReady = false, totalStarted = performance.now(), queryMs = 0) => {
+              if (axisEnabled) {
+                const center = map.getCenter();
+                const start = window.ZGLightZone.destinationPoint(center, sun.azimuthDeg + 180, 250);
+                const end = window.ZGLightZone.destinationPoint(start, sun.azimuthDeg, 900);
+                map.getSource("zg-sun-axis")?.setData({
+                  type: "FeatureCollection",
+                  features: [
+                    { type: "Feature", properties: { azimuth: Math.round(sun.azimuthDeg) }, geometry: { type: "LineString", coordinates: [[start.lng, start.lat], [end.lng, end.lat]] } },
+                    { type: "Feature", properties: { azimuth: Math.round(sun.azimuthDeg) }, geometry: { type: "Point", coordinates: [end.lng, end.lat] } },
+                  ],
+                });
+              }
+              let evaluated = [];
+              if (spotsEnabled) {
+                evaluated = window.ZGLightZone.evaluateCandidates(sample.candidates, sample.buildings, sun, { dataReady: dataReady && !sample.truncated });
+                map.getSource("zg-light-spots")?.setData({
+                  type: "FeatureCollection",
+                  features: evaluated.map((item) => ({ type: "Feature", properties: item, geometry: { type: "Point", coordinates: [item.lng, item.lat] } })),
+                });
+              }
+              window.__zgLightZone = {
+                mode: lightZoneMode,
+                generation: lightZoneGeneration,
+                sunAzimuthDeg: +sun.azimuthDeg.toFixed(2),
+                sunAltitudeDeg: +sun.altitudeDeg.toFixed(2),
+                visibleBuildingCount: sample.visibleBuildingCount,
+                rayBuildingCount: sample.buildings.length,
+                matchedBuildingCount: sample.matchedCount,
+                candidateCount: evaluated.length,
+                coveredCandidateCount: sample.candidates.filter((candidate) => candidate.coverageComplete).length,
+                exposedCount: evaluated.filter((item) => item.status === "exposed").length,
+                dataReady: dataReady && !sample.truncated,
+                truncated: sample.truncated,
+                queryMs: +queryMs.toFixed(2),
+                computeMs: +(performance.now() - totalStarted).toFixed(2),
+              };
+            };
+            const emptySample = { candidates: getSampleCandidates(), buildings: [], visibleBuildingCount: 0, matchedCount: 0, truncated: false };
+            refreshLightZone(emptySample);
+
+            // Proposal sampling is independent from the Three LOD. Verdicts are
+            // published only for the settled camera generation whose source is complete.
+            const syncLightZone = () => {
+              if (disposed || map.isMoving()) return;
+              const totalStarted = performance.now();
+              try { if (map.isSourceLoaded("openmaptiles")) lightZoneReadyGeneration = lightZoneGeneration; } catch { /* wait for sourcedata */ }
+              const candidates = getSampleCandidates();
+              const queryStarted = performance.now();
+              const sample = queryLightZoneSample(candidates);
+              const queryMs = performance.now() - queryStarted;
+              refreshLightZone(sample, lightZoneReadyGeneration === lightZoneGeneration, totalStarted, queryMs);
+            };
+            const scheduleLightZone = (delay = 120) => {
+              if (lightZoneTimer) return;
+              lightZoneTimer = setTimeout(() => {
+                lightZoneTimer = 0;
+                syncLightZone();
+              }, delay);
+            };
+            if (spotsEnabled) {
+              map.on("sourcedata", (event) => {
+                if (event.sourceId !== "openmaptiles" || !event.isSourceLoaded || map.isMoving()) return;
+                lightZoneReadyGeneration = lightZoneGeneration;
+                scheduleLightZone();
+              });
+            }
+            map.on("moveend", () => {
+              const center = map.getCenter(), zoom = map.getZoom(), bearing = map.getBearing();
+              const bearingDelta = lightZoneBearing == null ? 180 : Math.abs((((bearing - lightZoneBearing) % 360) + 540) % 360 - 180);
+              const moved = !lightZoneCenter || Math.hypot((center.lng - lightZoneCenter.lng) * 100000, (center.lat - lightZoneCenter.lat) * 100000) >= 1 || Math.abs(zoom - lightZoneZoom) >= 0.001 || (spotsEnabled && bearingDelta >= 5);
+              if (!moved) return;
+              lightZoneCenter = center; lightZoneZoom = zoom; lightZoneBearing = bearing;
+              lightZoneGeneration += 1;
+              lightZoneReadyGeneration = -1;
+              scheduleLightZone();
+            });
+            scheduleLightZone(600);
+            } catch (error) {
+              console.error("[LIGHTCHASER] light zone setup failed:", error);
+              window.__zgLightZone = { mode: lightZoneMode, error: String(error) };
+            }
+          }
+
           // 起点 / 机位信标 / 附近追光者（演示）
           const mk = (lngLat, html) => {
             const el = document.createElement("div");
@@ -660,7 +862,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                 features: [0, 0.5].map((off) => ({ type: "Feature", geometry: { type: "Point", coordinates: at((t0 * 0.045 + off) % 1) } })),
               });
             }
-            if (rotating && !reducedMotion) map.setBearing(map.getBearing() + 0.018);
+            if (rotating && !reducedMotion && !spotsEnabled) map.setBearing(map.getBearing() + 0.018);
             raf = requestAnimationFrame(frame);
           }
           frame();
@@ -668,7 +870,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           const wake = () => {
             rotating = false;
             clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => { rotating = true; }, 4000);
+            idleTimer = setTimeout(() => { rotating = !spotsEnabled; }, 4000);
           };
           ["mousedown", "touchstart", "wheel"].forEach((ev) => map.getCanvas().addEventListener(ev, wake, { passive: true }));
         });
@@ -684,10 +886,11 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
     return () => {
       disposed = true;
-      clearTimeout(failTimer); clearTimeout(idleTimer);
+      clearTimeout(failTimer); clearTimeout(idleTimer); clearTimeout(lightZoneTimer);
       cancelAnimationFrame(raf);
       markers.forEach((m) => m.remove());
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+      window.__zgLightZone = null;
     };
   }, [mode, destLL.lat, destLL.lng, routeData?.geometry?.length, sun.azimuthDeg, sun.altitudeDeg, rec.spot]);
 

@@ -2,6 +2,7 @@
 // 途中抓帧供人工查乱码。第一性验证：帧间不稳定的所有来源都被消灭后，此测试必然通过。
 import { chromium } from "playwright";
 const OUT = process.env.ZG_E2E_OUT || "./e2e-out/";
+const LIGHT_ZONE = process.env.ZG_LIGHT_ZONE ? `&lightZone=${encodeURIComponent(process.env.ZG_LIGHT_ZONE)}` : "";
 import { mkdirSync } from "node:fs"; mkdirSync(OUT, { recursive: true });
 const CLIP = { x: 455, y: 235, width: 370, height: 400 }; // 纯地图区（避开倒计时/署名）
 
@@ -12,12 +13,18 @@ const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e).slice(0, 150)));
 
-await page.goto("http://127.0.0.1:5174/?tweaks=1", { waitUntil: "domcontentloaded", timeout: 30000 });
+await page.goto(`http://127.0.0.1:5174/?tweaks=1${LIGHT_ZONE}`, { waitUntil: "domcontentloaded", timeout: 30000 });
 await page.waitForTimeout(4500);
-await page.evaluate(() => { window.__zgB = null; });
 await page.getByText("一键大区赛演示", { exact: false }).first().click();
+const waitForMap = () => page.waitForFunction(() => {
+  try { return !!window.__zgMap?.getLayer("zg-route-core"); } catch { return false; }
+}, undefined, { timeout: 90000 });
+await waitForMap();
+await page.waitForTimeout(1200);
+await waitForMap();
+await page.evaluate(() => { window.__zgB = null; window.__zgMap.jumpTo({ center: [113.9948, 22.5935], zoom: 15.8, pitch: 62, bearing: 223 }); });
 // 等 Three 建筑真就位（__zgB=换装完成的真信号；HUD 徽标是 React 旧值会假绿）
-await page.waitForFunction(() => window.__zgB && window.__zgB.verts > 0, { timeout: 90000 });
+await page.waitForFunction(() => window.__zgB && window.__zgB.verts > 0, undefined, { timeout: 90000 });
 await page.waitForTimeout(2500);
 const closeBtn = page.locator('button[aria-label="Close tweaks"]');
 if (await closeBtn.count()) await closeBtn.click();
@@ -69,3 +76,4 @@ console.log(`不变性 diff: ${diff.bad}/${diff.total} 像素 = ${diff.pct}%  ${
 console.log("JS 错误(" + errors.length + "):", errors.slice(0, 3));
 await page.screenshot({ path: OUT + "rot-final.png" });
 await browser.close();
+if (+diff.pct >= 0.2 || errors.length) throw new Error("rotation invariance regression failed");
