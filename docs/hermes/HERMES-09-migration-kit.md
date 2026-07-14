@@ -27,7 +27,7 @@
 ## 2. 目标——五个子包，7.23 前齐
 
 - **A 数据包**（AI）→ `agents_output/09/data/`：五表 JSON 定稿导出（spots／sun_events／weather_daily 样例+双预案说明／copy_corpus／user_prefs 空表 schema）+ **每表一段建表话术**（官方格式：表名+包含什么数据+获取和存储逻辑，≤3 句）。
-- **B 设计包**（人+AI）→ `agents_output/09/design/`：①AI：每页"像素级保真元素清单"（从 tokens.md/page_specs.md 提炼，含具体色值/字号/间距）②AI：高清截图集（feed 卡+四页，e2e 管线产，输出用 `ZG_E2E_OUT` 指到本目录）③人：Figma 稿——**路线待负责人拍板**（html.to.design 转换／人工重排／不做用②顶），拍板前先完成①②。
+- **B 设计包**（人+AI）→ `agents_output/09/design/`：①AI：每页"像素级保真元素清单"（从 tokens.md/page_specs.md 提炼，含具体色值/字号/间距）②AI：高清截图集（feed 卡+四页，e2e 管线产，输出用 `ZG_E2E_OUT` 指到本目录）③人：Figma 稿——**已拍板：工具转换+人工整理**。做法：`npm run dev:preview` 起原型 → 用 html.to.design 类 Figma 插件逐页导入（feed 卡+四页）→ 人工整理图层命名/删冗余（约半天，需一个 Figma 账号）；以①的保真清单为整理对照，完成后把**可访问链接**写进 `agents_output/09/design/figma_link.md`。
 - **C 动效包**（AI）→ `agents_output/09/motion/`：①动效规格清单——每条五要素（名称/位置/时长/缓动/触发）+ 优先级（招牌｜重要｜锦上添花），P2 生长动画=已知招牌；②原型动效录屏（P2 生长动画/光照时刻切换/金线绘制）mp4 或分段 GIF，总时长 ≤60s——官方通道"上传文件支持视频"，这是动效意图最高保真的传达方式。
 - **D 提示词包**（AI）→ `agents_output/09/prompts/`：AGENT_03 全套重排为平台可贴格式，按三场景分块（行动文案/拍摄建议/评分解释），每块=硬规则+few-shot+兜底策略；**硬规则原文不删改**。
 - **E Skill 草案**（AI）→ `agents_output/09/skill/`：把 zhuiguang-design 规则重封装为「追光设计系统」平台自建 Skill 内容稿（何时触发/规则正文[tokens+前5秒红线+动效规则+文案硬约束]/校验清单三节）；附平台资源库检索清单（先找现成 `frontend-design` 类 skill，找到则草案降为补充规则）。
@@ -38,6 +38,7 @@
 
 - [ ] A：5 个 JSON 齐；`node agents_output/01/validate_spots.mjs` 对 spots 副本跑绿；sun_events 行数=450（若 alt 字段 7.20 未到位，出 az-only 版并在包内 README 标注）；5 段建表话术各 ≤3 句。
 - [ ] B：保真元素清单每页 ≥8 条且引用 tokens 具体值；截图集覆盖 feed 卡+四页（≥5 张，1x/2x 各一套）。
+- [ ] B-Figma（人，可后置至 7.23、不阻塞本 PR）：转换+整理后的 Figma 链接可访问、页面命名规范，链接落 `agents_output/09/design/figma_link.md`，补进 check_report。
 - [ ] C：动效清单 ≥8 条且五要素+优先级齐；录屏文件本机可播放，内容含 P2 生长动画与光照时刻切换两段。
 - [ ] D：三场景块齐；硬规则与 `agents_output/03/` 原文 diff=仅排版差异。
 - [ ] E：草案三节齐；检索清单 ≥5 个待查 skill 关键词。
@@ -56,7 +57,7 @@
 
 ## 6. 依赖与顺序
 
-C 包依赖 3D 稳定（HERMES-07 已过验收 → 可录）；A 包 alt 字段依赖 HERMES-02 顺手项（7.20 为界，未到即 az-only 版）；B 包 Figma 子项等负责人拍板，**不阻塞其余全部工作**。
+C 包依赖 3D 稳定（HERMES-07 已过验收 → 可录）；A 包 alt 字段依赖 HERMES-02 顺手项（7.20 为界，未到即 az-only 版）；B 包 Figma 子项已拍板路线（工具转换+人工整理），人力档期自排，**不阻塞其余全部工作**。
 
 ## 7. 交付方式
 
