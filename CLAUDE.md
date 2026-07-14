@@ -75,6 +75,11 @@
 - 每个脚本文件头一行：用途 + 用法；agent 脚本标注所属 **AGENT 编号**。
 - 描述性命名，避免歧义缩写。
 
+**开源优先（7.14 负责人定调）**
+- 任何新能力**先找开源替代/公共服务，自研是最后手段**——例证：MapLibre GL + OpenFreeMap 让 3D 地图一步到位；suncalc 让太阳几何零自研。
+- 引入三步：①核对许可（BSD/MIT/Apache 可用；GPL 传染性/商用歧义的先问负责人）②vendored 落库或注明公共服务地址与限额 ③文件头注明来源与版本。
+- 任务书（docs/hermes/）里"动手前先找轮子"是工作者的默认动作；自研前须在交付报告说明"找过什么、为什么不能用"。
+
 **红线（不可逾越，源自 AGENT_00 F6/§8）**
 - 不编造地点/数据：无把握写保守版并标 `待核` + 置信度。
 - 不搬他人样张/文案：`sample_img/credit/consent_ref` 三件套同空或同非空，非空时 `consent_ref` 指向 AGENT_07 授权台账行号。
@@ -137,7 +142,7 @@ node agents_output/02/checks/backtest_c6.mjs
 
 **已交付（唯一仓库 LIGHTCHASER；详见各 checks 报告 + issue）**
 - ✅ **AGENT_01 机位库**：深圳 25 机位（配比 14/4/5/2），校验 0 error，25/25 坐标 OSM 反查核验（曾纠正 szw-012 跨境错误）。
-- ◐ **AGENT_02 光线引擎**：**数据层✅**（sun_events 450 条 / 评分 v2 / 双预案 / C6 客观排序）。**UI 待升级**：3D 光影地图愿景 → [issue #12](https://github.com/Suaiii/LIGHTCHASER/issues/12) backlog；可行部分并入 AGENT_04。
+- ✅ **AGENT_02 光线引擎**：**数据层✅**（sun_events 450 条 / 评分 v2 / 双预案 / C6 客观排序）；**UI 已由 AGENT_04 v4.6 落地**（3D 光影地图，#12 已关）。后续增强：置信度→HERMES-02(#17)、光域高亮→HERMES-03(#18)。
 - ✅ **AGENT_03 文案引擎**（[issue #10](https://github.com/Suaiii/LIGHTCHASER/issues/10)）：提示词 8 硬规则 + 10 组真实机位 few-shot + 27 格兜底 + **ARK 真跑盲测**（doubao-seed-2.0-pro：三轮迭代 4→5→**8/10 C1达标**，**幻觉 0/40 C2达标**）。⑤⑥语气盲评待人工；平台 seed-2.1 复测挂 AGENT_06 K3。
 - ✅ **AGENT_07 工具件**（[issue #9](https://github.com/Suaiii/LIGHTCHASER/issues/9)）：三平台私信模板/台账/访谈提纲/7.28 实拍路线 + 可颂采集 SOP（[#11](https://github.com/Suaiii/LIGHTCHASER/issues/11) 已关：Playwright 可用）。**发送是人的活，今天就能开始。**
 - 🎥 **AI 相机系统（队友，main）**：vision-engine + photo-renderer worker + 授权滤镜 + capture demo（`/ai-camera.html`）。
@@ -153,7 +158,7 @@ node agents_output/02/checks/backtest_c6.mjs
 | 4 | AGENT_03 ⑤⑥语气人工盲评 | ~20 分钟，两人对 blind_test_results | H1/H2 |
 | 5 | 可颂采集 | 工具链✅(Playwright)；**待 scrape_targets.txt 首批分享链接** | 人收链接→AI 走查 |
 | 6 | 天气 A/B 选型、豆包平台内复测 | 待 **AGENT_06 7.24 测绘** | AGENT_06 |
-| 7 | 待人工 merge：合流 PR（import）、PR #8 | AI 不自行合并 | H1/H2 |
+| 7 | 待人工 merge：仅剩 [PR #8](https://github.com/Suaiii/LIGHTCHASER/pull/8)（zys→main 初赛提交；合流 PR 与 #15 均已合并） | AI 不自行合并 | H1/H2 |
 
 **下一步候选**：AGENT_04 体验规格（Gate 0 关键路径，需 H1 结对，含光引擎 UI 可行升级）→ AGENT_05 需求包 ／ AGENT_08 叙事起草 ／ 可颂首批采集（拿到链接即做）。
 

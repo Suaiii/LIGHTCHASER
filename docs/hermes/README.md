@@ -26,6 +26,8 @@
 
 **冲突纪律**：一个文件同一时间只属于一个任务。接任务前先看看板"占用文件"列；正在被占用的文件出现在你的改动里 = 直接打回。
 
+**开源优先（负责人定调）**：动手前先找开源替代/公共服务（例证：MapLibre GL 让 3D 地图一步到位），自研是最后手段；自研前须在交付报告说明"找过什么轮子、为什么不能用"。许可核对与 vendored 规则见 `CLAUDE.md` §3。
+
 ## 二、任务书模板（新任务书复制此骨架）
 
 ```markdown
@@ -75,6 +77,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 |---|---|---|---|
 | 弹药 | 机位库 25 点 / 光线引擎 / 文案引擎 | ✅ 已交付 | `agents_output/01 02 03` |
 | 弹药 | 晚霞算法置信度 + 多源 + 竞品对标 | **待领（开发）** | HERMES-02 |
+| 弹药 | 历史爆发日回测（命中率真值证据） | **待领（H2 收集日期 + AI 回测）** | HERMES-08 |
 | 弹药 | 出片场景扩展（schema+泛化筛选设计） | 待领（设计稿先行） | HERMES-05 |
 | 原型 | 步行导航走反路根治 | **待领（开发）** | HERMES-01 |
 | 原型 | 3D 楼群消失（真机）+ WebGL 恢复 | 进行中 | `docs/3d光影地图-交接文档.md` + HERMES-07 |
@@ -98,8 +101,9 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | [HERMES-04 平台上下文字段级测绘](HERMES-04-context-matrix.md) | 人+AI | **P0**（7.24 唯一窗口） | 清单即备，7.24 执行 | 待领 | [#19](https://github.com/Suaiii/LIGHTCHASER/issues/19) | agents_output/06/*新增 |
 | [HERMES-05 出片场景扩展先导](HERMES-05-scene-expansion.md) | 混合 | P2（用户定调：不急） | 设计 7.16–7.20 | 待领 | [#20](https://github.com/Suaiii/LIGHTCHASER/issues/20) | agents_output/01/*（schema 设计稿新增，不改 spots.v1.json 主体） |
 | [HERMES-06 原型收尾包](HERMES-06-proto-polish.md) | AI | P1 | 7.15–7.19 | 待领 | [#21](https://github.com/Suaiii/LIGHTCHASER/issues/21) | public/app.jsx, public/subpanels.jsx, public/追·光.html |
-| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中 | #15(PR) | public/light-map-gl.jsx |
-| [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中 | #15 后续 | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
+| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中（PR #15 已合并，收尾并入 HERMES-07） | — | public/light-map-gl.jsx |
+| [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中（完成后走新 PR） | [#22](https://github.com/Suaiii/LIGHTCHASER/issues/22) | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
+| [HERMES-08 历史爆发日回测](HERMES-08-history-backtest.md) | 混合（H2 日期 + AI 回测） | P1（叙事硬证据） | A 7.15–7.18 / B 7.18–7.20 | 待领 | [#23](https://github.com/Suaiii/LIGHTCHASER/issues/23) | agents_output/02/burst_days.v1.json, checks/backtest_history.* （新增，引擎零改动） |
 
 > 状态由 Hermes 维护；工作者只改任务书内自己的"状态"行 + issue 评论。
 

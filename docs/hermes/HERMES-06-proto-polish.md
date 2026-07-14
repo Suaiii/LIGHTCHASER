@@ -21,8 +21,8 @@
 1. P1 三处违规按 first5s_spec 修复（改动最小化，不重设计）。
 2. P3 按 fidelity_scorecard 清"待达标"项。
 3. P4 真机路径二选一实现并写清用法：
-   - a) `dev-preview.js` 加自签名 HTTPS 模式（`npm run dev:preview -- --https` 之类），README 写清手机信任证书步骤；
-   - b) 文档化隧道方案（如 `npx localtunnel`/`cloudflared` 免费通道），写进演示手册。
+   - a) `dev-preview.js` 加 HTTPS 模式（`npm run dev:preview -- --https` 之类）。证书生成优先用 **mkcert**（开源，一条命令生成本地受信 CA+证书，手机装 CA 后全设备受信——比手搓 openssl 自签少踩一堆坑）；README 写清手机信任步骤；
+   - b) 文档化隧道方案（如 `cloudflared`/`npx localtunnel` 免费通道），写进演示手册。
    选择标准：**赛场无外网依赖优先**（a 优于 b），但 a 的证书信任步骤若在安卓/iOS 上超过 5 步，则 a+b 都给。
 4. 每处改动过 `zhuiguang-design` skill 自评（设计分不倒退）。
 
