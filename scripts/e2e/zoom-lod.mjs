@@ -48,6 +48,17 @@ console.log(`高z就位: z=${s.z} 剪影op=${s.sil}(期望0) grow=${s.grow}(期�
 let pass = s.sil === 0 && s.grow === 1 && !!s.zgB;
 await page.screenshot({ clip: CLIP, path: OUT + "lod-high1.png" });
 
+// 连续缩放映射：过渡带内楼高必须由当前 zoom 决定，而不是等待独立计时动画追赶。
+await page.evaluate(() => window.__zgMap.jumpTo({ zoom: 14.8 }));
+await page.waitForTimeout(120);
+const q1 = await state();
+await page.evaluate(() => window.__zgMap.jumpTo({ zoom: 15.2 }));
+await page.waitForTimeout(120);
+const q2 = await state();
+const zoomCoupled = q1.grow > 0.08 && q1.grow < 0.28 && q2.grow > 0.65 && q2.grow < 0.95 && q2.grow > q1.grow;
+console.log(`zoom连续映射: z14.8→${q1.grow} z15.2→${q2.grow}`, zoomCoupled ? "✓" : "✗");
+if (!zoomCoupled) pass = false;
+
 // ② 拉远到 z12.6：楼应缩回地里（grow 经中间值到 0）+ 剪影淡入
 const shrink = await sampleGrow("window.__zgMap.jumpTo({ zoom: 12.6 })", 1500);
 s = await state();

@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-07-14 · P2 光影地图 v4.8：近距离 LOD + 去除双层残差
+
+- 真机视频显示原生 `fill-extrusion` 与 Three 建筑在过渡期同时达到可见高度，两套瓦片批次不完全相同，形成重影、残差和错位。
+- Three 生长区间由 `13.2–14.4` 推近到 `14.6–15.4`，减少单次视口建筑量，并让低 zoom 交回 MapLibre 原生层。
+- 原生建筑只在 Three 生长最初 15% 内快速退场；Three 达到明显高度前已经结束双层叠加。
+- 保留 zoom 直接驱动、视口半径过滤、近景优先、异步重建桥接和 WebGL 恢复机制。
+
+---
+
+## 2026-07-14 · P2 光影地图 v4.7：zoom 直接驱动建筑生长/缩回
+
+- 真机反馈：范围稳定后，生长动画仍不能跟随手势，独立计时动画会追赶、延迟或在频繁缩放时重新起步。
+- 根因：v4.6 仅以 `13.8` 为二元阈值，再播放 750/480ms 动画；动画时间轴与用户手指位置不是同一个状态源。
+- 修复：建立 `13.2–14.4` 连续 LOD 过渡带，zoom 直接映射到建筑高度；原生剪影同步反向交叉淡化。手指停在哪里，建筑就停在对应高度。
+- 保留：异步 Three 重建期间的原生建筑桥接层、视口范围过滤、近景距离优先和 WebGL 恢复机制。
+
+---
+
+## 2026-07-14 · Hermes-07：GL 楼群消失捕获与动画恢复
+
+### 当前问题
+- v4.6 的 zoom-LOD 自动回归通过，但真实机器仍偶发整片 3D 楼群消失。
+- 交接文档列出的首要嫌疑是 MapLibre 与 Three.js 共享 WebGL context 后发生 `webglcontextlost`；其次是瓦片长期未齐导致 `pendingMove` 等待。
+
+### 本轮处理
+- `public/light-map-gl.jsx` 增加 `window.__zgWebgl` 状态钩子：`ready`、`lost`、`restored`、`restore-failed`。
+- 捕获 WebGL 丢失并在恢复时重置 Three 状态、刷新阴影；按当前 zoom 重新设置动画目标，从当前 `grow` 高度继续绝对时间轴，避免楼群永久停在地下。
+- 新增 `scripts/e2e/webgl-recovery.mjs`：headed 浏览器记录恢复前后的 `__zgGrow`、`__zgB`、页面错误和截图。
+- 新增 `docs/hermes/HERMES-07-webgl-recovery.md`，并登记到 `docs/hermes/README.md` 看板。
+- 修正范围根因：`querySourceFeatures` 返回已加载瓦片而非仅当前屏幕建筑，旧代码无序截取前 1100 栋，远处瓦片会挤占前景名额；现在按视口半径过滤、按相机中心距离排序后再进入 Three 构建上限。
+
+### 验证
+- `node scripts/e2e/zoom-lod.mjs`：高 zoom 建筑存在，拉远/拉回动画连续通过。
+- `node scripts/e2e/webgl-recovery.mjs`：合成 context lost/restored 后 `webgl=restored`，恢复后建筑 `1100` 栋/`122820` 顶点；连续一分钟交互后 `130548` 顶点；页面错误 `0`。
+- `npm run test:api`：通过。
+
+### 未闭环
+- 仍需在真实 GPU 机器捕获一次自然发生的 context lost，并保存 `e2e-out/webgl-recovery.json` 与截图。
+- 若真实机未发生 context lost，则继续取证 OpenFreeMap 瓦片 Network pending/失败和 `pendingMove` 是否长期未清除。
+
+---
+
 ## 2026-07-14 · Hermes 工程开张：任务分发体系 + "恰到好处"质量线
 
 ### 用户拍板（工作模式重定义）
