@@ -98,8 +98,8 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | [HERMES-04 平台上下文字段级测绘](HERMES-04-context-matrix.md) | 人+AI | **P0**（7.24 唯一窗口） | 清单即备，7.24 执行 | 待领 | [#19](https://github.com/Suaiii/LIGHTCHASER/issues/19) | agents_output/06/*新增 |
 | [HERMES-05 出片场景扩展先导](HERMES-05-scene-expansion.md) | 混合 | P2（用户定调：不急） | 设计 7.16–7.20 | 待领 | [#20](https://github.com/Suaiii/LIGHTCHASER/issues/20) | agents_output/01/*（schema 设计稿新增，不改 spots.v1.json 主体） |
 | [HERMES-06 原型收尾包](HERMES-06-proto-polish.md) | AI | P1 | 7.15–7.19 | 待领 | [#21](https://github.com/Suaiii/LIGHTCHASER/issues/21) | public/app.jsx, public/subpanels.jsx, public/追·光.html |
-| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中 | #15(PR) | public/light-map-gl.jsx |
-| [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中 | #15 后续 | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
+| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中（PR #15 已合并，收尾并入 HERMES-07） | — | public/light-map-gl.jsx |
+| [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中（完成后走新 PR） | 待开 | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
 
 > 状态由 Hermes 维护；工作者只改任务书内自己的"状态"行 + issue 评论。
 
