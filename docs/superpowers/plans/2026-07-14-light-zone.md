@@ -44,4 +44,5 @@
 - [x] Run `node scripts/e2e/tower-steps.mjs` with the feature off and with `lightZone=both`.
 - [x] Run `node scripts/e2e/rotation-invariance.mjs` and `npm run test:api`.
 - [x] Record timing, layer counts, and remaining manual 3-second-test requirement.
-- [ ] Commit and push to `feat/hermes-03-lightzone`, then update Issue #18.
+- [x] Commit the verified proposal implementation.
+- [ ] Push `codex/hermes-03-lightzone`, update Issue #18, and open the Draft PR.

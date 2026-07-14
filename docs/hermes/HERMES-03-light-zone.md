@@ -55,4 +55,4 @@
 
 ## 7. 交付方式
 
-分支 `feat/hermes-03-lightzone` → 提案文档 + demo 链接先行（issue 评论 @决策者约演示）→ 拍板后清理落选代码 → PR。
+分支 `codex/hermes-03-lightzone` → 提案文档 + demo 链接先行（issue 评论 @决策者约演示）→ 拍板后清理落选代码 → PR。
