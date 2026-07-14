@@ -37,4 +37,5 @@
 - [x] K3 沙盘推演：平台复述结构全对，9 问已消化（报告：checks/）
 - [x] K5 字数复核（checks/k5_wordcount.txt）
 - [ ] `iteration_playbook.md`（13 轮，R2=schema+公式+真数据、R5=P2 三档分支、R9=豆包接入）→ 第二轮
+- [ ] **v1.2 pivot（第二轮改稿）**：feed 卡=照片底+信息浮层（剪影渐变废弃）、新增 R0 资产先行轮、骨架逐页小步；playbook 从"13 轮纯对话"重构为"资产编排型"——依据 decisions.md「第二轮前置」拍板 5–8
 - [ ] C5 schema diff（confidence/sun_pos_10min 定型后跑）；**数据侧待办：sun_events 生成器补太阳高度角**（gen_sun_events.mjs 一行改动，挂 HERMES-02 顺手项）
