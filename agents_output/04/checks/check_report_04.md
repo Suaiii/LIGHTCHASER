@@ -9,6 +9,19 @@
 3. **P4 直接嵌入 vision-engine**（非跳转）。
 4. **改 UI 必须保留 1.0**：已双保险——`public/legacy-v1/` 物理快照 + GitHub Release [`lightchaser-v1.0`](https://github.com/Suaiii/LIGHTCHASER/releases/tag/lightchaser-v1.0)（tag 于合流前节点 347b4d9）。
 
+## 增量验收（2026-07-14 · AI 相机合并至第四页）
+
+| 条目 | 结论 | 证据 |
+|---|---|---|
+| P4 直接嵌入共享相机能力 | ✅ | `lightchaser-camera-session.js` 同时供 P4 与独立相机适配器使用 |
+| 滤镜抽屉全量展示 | ✅ | 5 品牌、23 套预设完整渲染；`test:camera-session` 断言 23/23 |
+| 构图与滤镜决策 | ✅ | guided 模式默认开启；vision 场景/光线优先，机位滤镜作兜底；低置信度回退构图引擎口径 |
+| 快门→回看→发布 | ✅ | canvas 裁切 + FilterLayers 成像；最近成片可回看，发布展示真实成片 |
+| 生命周期与降级 | ✅ | 离开 P4 释放媒体流；拒绝权限保留静态预览；AI 不阻塞快门 |
+| 自动化回归 | ✅ | `npm test` 全绿；Babel 解析通过；`git diff --check` 通过 |
+
+**仍需人工证据**：HTTPS 真机相机授权录屏、iOS/Android 各一轮预览—成片色彩对照。
+
 ## 交付条件（DoD）自评
 | 条目 | 结论 | 证据 |
 |---|---|---|

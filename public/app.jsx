@@ -400,6 +400,10 @@ function withSelectedDestination(sunsetPayload, destination) {
       direction: destination.direction || sunsetPayload.recommendation?.direction,
       distance: destination.distance || sunsetPayload.recommendation?.distance,
       reason: destination.reason || sunsetPayload.recommendation?.reason,
+      scene: destination.scene || sunsetPayload.recommendation?.scene,
+      compose_template: destination.compose_template || sunsetPayload.recommendation?.compose_template,
+      filters: destination.filters || sunsetPayload.recommendation?.filters,
+      bearing: destination.bearing || sunsetPayload.recommendation?.bearing,
     },
   };
 }
@@ -540,7 +544,7 @@ function App() {
           ? <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />
           : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} lightTime={t.lightTime} />,
       () => <SceneCommunity sunsetPayload={displayPayload} />,
-      () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
+      () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} active={index.row === 1 && index.col === 3} />,
     ],
     // Row 2: 蓝调时刻视频
     [() => <SceneNextVideo />],
@@ -577,6 +581,7 @@ function App() {
 
   const cur = feed[index.row];
   const inSunset = index.row === 1;
+  const immersiveCamera = inSunset && index.col === 3;
   const screenLabel = inSunset
     ? `0${index.row+1}.${index.col+1} ${rowLabels[index.row]} · ${colLabels[index.col]}`
     : `0${index.row+1} ${rowLabels[index.row]}`;
@@ -595,7 +600,7 @@ function App() {
             <SwipeFeed feed={feed} index={index} setIndex={setIndex} />
 
             {/* Top tabs */}
-            {t.showChrome && (
+            {t.showChrome && !immersiveCamera && (
               <div style={{ position: "absolute", top: 50, left: 0, right: 0, zIndex: 10 }}>
                 <TopTabs active={inSunset ? "追·光" : "推荐"} />
               </div>
@@ -613,10 +618,10 @@ function App() {
             )}
 
             {/* 底部导航 */}
-            {t.showChrome && !publishedVideoMode && <BottomNav />}
+            {t.showChrome && !publishedVideoMode && !immersiveCamera && <BottomNav />}
 
             {/* 行 / 列指示器 */}
-            {!publishedVideoMode && <FeedIndicators feed={feed} index={index} />}
+            {!publishedVideoMode && !immersiveCamera && <FeedIndicators feed={feed} index={index} />}
 
             {/* 上下滑动 hint — 仅在 sunset 卡片封面显示，且仅前 6 秒 */}
             {inSunset && index.col === 0 && <ScrollHint />}

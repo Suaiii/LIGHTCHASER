@@ -811,362 +811,505 @@ function CommunityVideoPlayer({ src, poster, onClose }) {
 // ============================================
 // 副屏 3 — 快速拍摄 / 一键发布
 // ============================================
-// P4 v1.1：机位滤镜预设（缩略图复用 AI 相机的授权胶片系资产；CSS 近似做取景实时预览，
-// 正式成像走 filterous2——与 ai-camera.html 同一套语言）
-const QUICKSHOOT_FILTERS = [
-  { id: "none",        name: "原生",   css: "none", thumb: null },
-  { id: "k_gold_200",  name: "柯达金", css: "saturate(1.28) contrast(1.05) sepia(0.14) brightness(1.02)", thumb: "/assets/filter-thumbnails/k_gold_200.jpg" },
-  { id: "f_velvia",    name: "维尔维亚", css: "saturate(1.45) contrast(1.12)", thumb: "/assets/filter-thumbnails/f_velvia.jpg" },
-  { id: "f_classic_neg", name: "经典负片", css: "saturate(0.86) contrast(0.96) sepia(0.1)", thumb: "/assets/filter-thumbnails/f_classic_neg.jpg" },
-];
-// vision-engine 场景 → 构图建议（与 AI 相机的 8 场景口径一致）
-const SCENE_COMPOSE_TIP = {
-  portrait: "有人物：剪影压住天空下三分",
-  street: "街景：引导线交给车流与街沿",
-  food: "近物：贴近拍，留出天色背景",
-  landscape: "风光：地平线放下三分之一",
-  general: "开阔场景：三分线锁住天际",
+const CAMERA_DEFAULT_FILTERS = ["dusk_warm", "film_fade", "teal_orange"];
+const CAMERA_COMPOSE_LABELS = {
+  thirds: "三分构图",
+  leading: "引导线",
+  silhouette: "剪影留天",
+  frame: "框景构图",
 };
 
-function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false }) {
+function buildGuidedCameraContext(sunsetPayload) {
+  const recommendation = sunsetPayload?.recommendation || {};
+  return {
+    scene: recommendation.scene || "sunset",
+    composeTemplate: recommendation.compose_template || "thirds",
+    filters: recommendation.filters?.length ? recommendation.filters : CAMERA_DEFAULT_FILTERS,
+    spot: recommendation.spot || "当前机位",
+    direction: recommendation.direction || "建议朝向",
+    score: sunsetPayload?.score ?? 0,
+    peakTime: sunsetPayload?.peakTime || "待更新",
+    bearing: recommendation.bearing || null,
+    sunAzimuth: sunsetPayload?.meta?.sun?.current?.azimuthDeg || null,
+    tips: sunsetPayload?.shootingTips || [],
+  };
+}
+
+function ratioNumber(ratioName) {
+  if (ratioName === "1:1") return 1;
+  if (ratioName === "16:9") return 16 / 9;
+  if (ratioName === "4:3") return 4 / 3;
+  return 3 / 4;
+}
+
+function centerCropForRatio(frame, ratioName) {
+  const target = ratioNumber(ratioName);
+  const sourceRatio = frame.width / frame.height;
+  if (sourceRatio > target) {
+    const width = Math.round(frame.height * target);
+    return { x: Math.round((frame.width - width) / 2), y: 0, width, height: frame.height };
+  }
+  const height = Math.round(frame.width / target);
+  return { x: 0, y: Math.round((frame.height - height) / 2), width: frame.width, height };
+}
+
+function CameraLineIcon({ kind }) {
+  if (kind === "switch") {
+    return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M7 7h9l-2.5-2.5M17 17H8l2.5 2.5"/><path d="M18 8.5a7 7 0 0 1 .3 6M6 15.5a7 7 0 0 1-.3-6"/></svg>;
+  }
+  if (kind === "camera") {
+    return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>;
+  }
+  if (kind === "film") {
+    return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 5v14M16 5v14M4 9h4M16 9h4M4 15h4M16 15h4"/></svg>;
+  }
+  return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg>;
+}
+
+function CameraCompositionGuide({ snapshot }) {
+  if (!snapshot?.aiComposition) return null;
+  const template = snapshot.composeTemplate || "thirds";
+  const decision = snapshot.decision;
+  const crop = snapshot.sampleCount >= 3 && decision?.output?.applyComposition ? decision.cropBox : null;
+  const frame = snapshot?.frame;
+  const cropStyle = crop && frame?.width && frame?.height ? {
+    left: `${Math.max(0, crop.x / frame.width * 100)}%`,
+    top: `${Math.max(0, crop.y / frame.height * 100)}%`,
+    width: `${Math.min(100, crop.width / frame.width * 100)}%`,
+    height: `${Math.min(100, crop.height / frame.height * 100)}%`,
+  } : null;
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
+      <svg viewBox="0 0 402 874" width="100%" height="100%" preserveAspectRatio="none">
+        {template === "thirds" && <>
+          <path d="M134 96V778M268 96V778M16 323H386M16 551H386" stroke="rgba(255,255,255,.24)" strokeWidth=".7" strokeDasharray="3 5"/>
+        </>}
+        {template === "leading" && <>
+          <path d="M22 760L201 430L380 760M38 742L201 474L364 742" stroke="rgba(255,255,255,.28)" strokeWidth="1" fill="none"/>
+        </>}
+        {template === "silhouette" && <>
+          <path d="M16 588H386" stroke="rgba(255,255,255,.32)" strokeWidth="1" strokeDasharray="4 5"/>
+          <path d="M16 96H386V588H16z" fill="rgba(255,138,61,.035)"/>
+        </>}
+        {template === "frame" && <>
+          <path d="M62 176h48M62 176v48M340 176h-48M340 176v48M62 690h48M62 690v-48M340 690h-48M340 690v-48" stroke="rgba(255,255,255,.55)" strokeWidth="2" fill="none"/>
+        </>}
+      </svg>
+      {cropStyle && <div style={{
+        position: "absolute", ...cropStyle,
+        border: "1px solid var(--accent)",
+        boxShadow: "0 0 24px rgba(255,138,61,.18), inset 0 0 0 999px rgba(255,138,61,.025)",
+        transition: "all 350ms cubic-bezier(.2,.7,.2,1)",
+      }}>
+        <span className="mono" style={{
+          position: "absolute", top: -24, left: "50%", transform: "translateX(-50%)",
+          padding: "4px 8px", borderRadius: 999, whiteSpace: "nowrap",
+          background: "rgba(10,10,13,.72)", color: "var(--accent)", fontSize: 9,
+        }}>AI 建议 · {decision.effectiveAspectRatio}</span>
+      </div>}
+    </div>
+  );
+}
+
+function FullFilterDrawer({ open, session, snapshot, onSnapshot, onClose }) {
+  if (!open || !session) return null;
+  const groups = session.getFilterGroups();
+  const chooseAI = () => {
+    session.selectFilter(null);
+    onSnapshot(session.configure({ aiFilter: true }));
+  };
+  const chooseNative = () => {
+    session.selectFilter(null);
+    onSnapshot(session.configure({ aiFilter: false }));
+  };
+  const chooseFilter = (key) => {
+    session.configure({ aiFilter: false });
+    onSnapshot(session.selectFilter(key));
+  };
+  const utilityCard = (label, active, onClick, note) => (
+    <button type="button" onClick={onClick} style={{
+      minHeight: 70, borderRadius: 12, padding: "10px 8px", textAlign: "left",
+      background: active ? "rgba(255,138,61,.14)" : "rgba(255,255,255,.055)",
+      border: active ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,.1)",
+      color: "#fff",
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
+      <div style={{ marginTop: 4, fontSize: 10, color: "rgba(255,255,255,.5)" }}>{note}</div>
+    </button>
+  );
+  return (
+    <div data-swipe-lock="true" style={{
+      position: "absolute", inset: 0, zIndex: 30,
+      background: "rgba(10,10,13,.3)", backdropFilter: "blur(2px)",
+    }} onClick={onClose}>
+      <section onClick={(e) => e.stopPropagation()} style={{
+        position: "absolute", left: 0, right: 0, bottom: 0, height: "64%",
+        borderRadius: "27px 27px 0 0", overflow: "hidden",
+        background: "rgba(10,10,13,.96)",
+        borderTop: "1px solid rgba(255,255,255,.1)",
+        boxShadow: "0 0 48px rgba(255,138,61,.08)",
+        animation: "camera-sheet-in 350ms cubic-bezier(.2,.7,.2,1)",
+      }}>
+        <header style={{
+          height: 62, padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
+          borderBottom: "1px solid rgba(255,255,255,.08)",
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>胶片风格 · 23</div>
+            <div style={{ marginTop: 3, fontSize: 10, color: "rgba(255,255,255,.5)" }}>全量展示 · 按品牌分组</div>
+          </div>
+          <button type="button" aria-label="关闭滤镜抽屉" onClick={onClose} style={{
+            width: 44, height: 44, borderRadius: 999, background: "rgba(255,255,255,.07)",
+            border: "1px solid rgba(255,255,255,.1)", color: "#fff", fontSize: 22,
+          }}>×</button>
+        </header>
+        <div style={{ height: "calc(100% - 62px)", overflowY: "auto", padding: "16px 16px 24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8, marginBottom: 16 }}>
+            {utilityCard("AI 推荐", snapshot.aiFilter && !snapshot.selectedFilterKey, chooseAI, snapshot.spotFilterKeys?.length ? "场景与光线判断 · 机位预设兜底" : "按场景与光线自动判断")}
+            {utilityCard("原生", !snapshot.aiFilter && !snapshot.selectedFilterKey, chooseNative, "关闭滤镜，保留原始色彩")}
+          </div>
+          {groups.map((group) => (
+            <section key={group.brand} style={{ marginBottom: 20 }}>
+              <div className="mono" style={{ marginBottom: 8, fontSize: 10, color: "rgba(255,255,255,.55)", letterSpacing: 1.2 }}>{group.label}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 8 }}>
+                {group.filters.map((filter) => {
+                  const active = snapshot.activeFilterKey === filter.key;
+                  return (
+                    <button key={filter.key} type="button" onClick={() => chooseFilter(filter.key)} aria-pressed={active} style={{
+                      minWidth: 0, padding: 0, overflow: "hidden", borderRadius: 12,
+                      background: "rgba(255,255,255,.055)",
+                      border: active ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,.09)",
+                      boxShadow: active ? "0 0 18px rgba(255,138,61,.2)" : "none",
+                      color: "#fff", textAlign: "left",
+                    }}>
+                      <img src={filter.demoPath || "/assets/jingansi/fig3.jpeg"} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
+                      <div style={{ padding: "8px", fontSize: 10, lineHeight: 1.2, color: active ? "var(--accent)" : "rgba(255,255,255,.78)" }}>{filter.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CameraReview({ photo, titles, selectedTitle, setSelectedTitle, tips, spot, onClose, onPublish }) {
+  if (!photo) return null;
+  return (
+    <div data-swipe-lock="true" style={{ position: "absolute", inset: 0, zIndex: 24, background: "#0a0a0d", display: "grid", gridTemplateRows: "minmax(0,1fr) auto" }}>
+      <div style={{ position: "relative", minHeight: 0, background: "#0a0a0d", padding: "20px 16px 8px", display: "grid", placeItems: "center" }}>
+        <img src={photo.dataUrl} alt="拍摄成片" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 12 }} />
+        <button type="button" aria-label="返回取景" onClick={onClose} style={{
+          position: "absolute", top: 30, left: 16, width: 44, height: 44, borderRadius: 999,
+          background: "rgba(10,10,13,.56)", border: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 22,
+        }}>‹</button>
+      </div>
+      <section style={{
+        padding: "16px 16px 24px", borderRadius: "27px 27px 0 0",
+        background: "rgba(10,10,13,.98)", borderTop: "1px solid rgba(255,255,255,.08)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{titles[selectedTitle]}</div>
+            <div style={{ marginTop: 4, fontSize: 11, color: "rgba(255,255,255,.55)" }}>{spot} · {photo.filterLabel || "原生"} · {photo.aspectRatio}</div>
+          </div>
+          <span className="mono" style={{ padding: "5px 8px", borderRadius: 999, background: "rgba(255,138,61,.12)", color: "var(--accent)", fontSize: 9 }}>AI 已整理</span>
+        </div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 12, paddingBottom: 2 }}>
+          {titles.map((title, index) => (
+            <button key={title} type="button" onClick={() => setSelectedTitle(index)} style={{
+              flex: "0 0 auto", minHeight: 44, padding: "0 12px", borderRadius: 999,
+              background: selectedTitle === index ? "var(--accent)" : "rgba(255,255,255,.06)",
+              border: "1px solid " + (selectedTitle === index ? "var(--accent)" : "rgba(255,255,255,.1)"),
+              color: selectedTitle === index ? "#1a0e08" : "rgba(255,255,255,.8)", fontSize: 11,
+            }}>{title}</button>
+          ))}
+        </div>
+        <div style={{ marginTop: 12, fontSize: 11, lineHeight: 1.55, color: "rgba(255,255,255,.62)" }}>{tips[0]}</div>
+        <div style={{ marginTop: 8, display: "flex", gap: 6, fontSize: 10, color: "var(--accent)" }}><span>#追光</span><span>#晚霞预警</span><span>#刚好的光</span></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.25fr", gap: 10, marginTop: 14 }}>
+          <a href={photo.dataUrl} download={`lightchaser-${Date.now()}.jpg`} style={{
+            minHeight: 46, borderRadius: 12, display: "grid", placeItems: "center", textDecoration: "none",
+            background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)", color: "#fff", fontSize: 13, fontWeight: 600,
+          }}>保存成片</a>
+          <button type="button" onClick={onPublish} style={{
+            minHeight: 46, borderRadius: 12, background: "var(--accent)", border: 0, color: "#1a0e08", fontSize: 13, fontWeight: 800,
+            boxShadow: "0 0 24px rgba(255,138,61,.22)",
+          }}>带话题发布</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false, active = true }) {
+  const context = buildGuidedCameraContext(sunsetPayload);
+  const sessionFactory = window.LightchaserCameraSession;
+  const sessionRef = useRef(null);
+  if (!sessionRef.current && sessionFactory?.createCameraSession) {
+    sessionRef.current = sessionFactory.createCameraSession({
+      core: window.LightchaserAICameraCore,
+      mode: "guided",
+      context,
+    });
+  }
+  const session = sessionRef.current;
+  const [snapshot, setSnapshot] = useState(() => session?.snapshot() || { aiComposition: true, aiFilter: true, composeTemplate: "thirds", previewCss: "none" });
+  const [cameraState, setCameraState] = useState("off");
+  const [facingMode, setFacingMode] = useState("environment");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lastPhoto, setLastPhoto] = useState(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [captureBusy, setCaptureBusy] = useState(false);
+  const [flash, setFlash] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState(0);
-  const [recording, setRecording] = useState(false);
   const [publishProgress, setPublishProgress] = useState(0);
-  const [filterIdx, setFilterIdx] = useState(1); // 默认柯达金（晚霞场景）
-  const [aiSense, setAiSense] = useState(null);   // {scene, confidence} | {failed:true}
-  const [cameraState, setCameraState] = useState("off"); // off | starting | on | denied
   const videoRef = useRef(null);
+  const imageRef = useRef(null);
   const streamRef = useRef(null);
 
-  // 真实摄像头：调取 getUserMedia，取景层实时渲染滤镜（CSS filter 直接作用于 <video>）
-  // 注意：非 localhost 需 HTTPS 才能取摄像头（浏览器安全上下文限制）；失败落 denied 态，静态预览兜底。
-  async function toggleCamera() {
-    if (cameraState === "on" || cameraState === "starting") {
-      streamRef.current?.getTracks().forEach((tr) => tr.stop());
-      streamRef.current = null;
-      setCameraState("off");
-      return;
+  const duration = sunsetPayload?.peakDuration || 0;
+  const tips = context.tips.length ? context.tips : [
+    "把水面或街沿留在画面下三分之一",
+    "等人物或车辆进入画面再按快门",
+    "锁住天空高光，再微微降低曝光",
+  ];
+  const titles = ["今晚的光", duration ? `西天烧了 ${duration} 分钟` : "等光落到刚好的位置", "刚好赶上", `${context.peakTime} · ${context.spot}`, `为这片光我跑到${context.spot}`];
+
+  useEffect(() => {
+    if (!session) return;
+    setSnapshot(session.configure({ context }));
+  }, [context.spot, context.score, context.peakTime, context.composeTemplate, context.filters.join("|")]);
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    if (active) return;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraState("off");
+    setDrawerOpen(false);
+    setReviewOpen(false);
+  }, [active]);
+
+  useEffect(() => {
+    if (!session || !active || publishedVideoMode || reviewOpen) return undefined;
+    let cancelled = false;
+    let timer = null;
+    const vision = window.LightchaserVision;
+    async function sense(source, frame) {
+      if (!source || cancelled) return;
+      try {
+        const ready = vision ? await vision.init() : false;
+        const sample = ready ? await vision.detect(source, frame) : null;
+        if (!cancelled) setSnapshot(session.pushSample(sample, frame));
+      } catch (error) {
+        if (!cancelled) setSnapshot(session.pushSample(null, frame));
+      }
     }
+    if (cameraState === "on" && videoRef.current) {
+      const tick = () => {
+        const video = videoRef.current;
+        if (video?.readyState >= 2) sense(video, { width: video.videoWidth, height: video.videoHeight });
+      };
+      tick();
+      timer = setInterval(tick, 2800);
+    } else if (imageRef.current?.complete) {
+      const image = imageRef.current;
+      sense(image, { width: image.naturalWidth || 1200, height: image.naturalHeight || 1600 });
+    }
+    return () => { cancelled = true; if (timer) clearInterval(timer); };
+  }, [active, cameraState, publishedVideoMode, reviewOpen]);
+
+  async function openCamera(nextFacingMode) {
     if (!navigator.mediaDevices?.getUserMedia) { setCameraState("denied"); return; }
     setCameraState("starting");
     try {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 } },
+        video: { facingMode: { ideal: nextFacingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setFacingMode(nextFacingMode);
       setCameraState("on");
-    } catch (e) {
-      console.info("[LIGHTCHASER] camera unavailable:", e.name);
+    } catch (error) {
+      console.info("[LIGHTCHASER] camera unavailable:", error.name);
       setCameraState("denied");
     }
   }
-  // 卸载时释放摄像头
-  useEffect(() => () => { streamRef.current?.getTracks().forEach((tr) => tr.stop()); }, []);
 
-  // 嵌入队友 vision-engine：相机开启时对视频流周期识别；关闭时对静态取景图识别一次
-  useEffect(() => {
-    if (publishedVideoMode) return undefined;
-    let cancelled = false;
-    let timer = null;
-    const LV = window.LightchaserVision;
-    if (!LV) { setAiSense({ failed: true }); return undefined; }
+  async function toggleCamera() {
+    const nextFacingMode = cameraState === "on"
+      ? (facingMode === "environment" ? "user" : "environment")
+      : facingMode;
+    await openCamera(nextFacingMode);
+  }
 
-    async function senseOnce(source, frame) {
-      try {
-        await LV.init();
-        const sample = await LV.detect(source, frame);
-        if (!cancelled) setAiSense(sample ? { scene: sample.scene, confidence: sample.confidence } : { failed: true });
-      } catch (e) {
-        if (!cancelled) setAiSense({ failed: true });
+  async function capturePhoto() {
+    if (!session || captureBusy) return;
+    const source = cameraState === "on" ? videoRef.current : imageRef.current;
+    const width = source?.videoWidth || source?.naturalWidth;
+    const height = source?.videoHeight || source?.naturalHeight;
+    if (!source || !width || !height) return;
+    setCaptureBusy(true);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 150);
+    try {
+      const plan = session.getCapturePlan({ width, height });
+      const crop = plan.applyComposition && plan.cropBox
+        ? plan.cropBox
+        : centerCropForRatio({ width, height }, plan.effectiveAspectRatio);
+      let canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(crop.width));
+      canvas.height = Math.max(1, Math.round(crop.height));
+      canvas.getContext("2d").drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+      if (plan.filterKey && window.LightchaserFilterLayers?.createRenderer) {
+        const result = await window.LightchaserFilterLayers.createRenderer().render({
+          sourceCanvas: canvas,
+          filterKey: plan.filterKey,
+          preset: plan.preset,
+          sceneContext: { spot: context.spot, aspectRatio: plan.effectiveAspectRatio },
+        });
+        canvas = result?.finalCanvas || canvas;
       }
+      setLastPhoto({
+        dataUrl: canvas.toDataURL("image/jpeg", .94),
+        width: canvas.width,
+        height: canvas.height,
+        filterLabel: plan.preset?.label || null,
+        aspectRatio: plan.effectiveAspectRatio,
+        decision: plan.decision,
+      });
+      setReviewOpen(true);
+      window.GuangbaoHooks?.captureShot(titles[selectedTitle]);
+    } catch (error) {
+      console.warn("[LIGHTCHASER] capture failed", error);
+    } finally {
+      setCaptureBusy(false);
     }
+  }
 
-    if (cameraState === "on" && videoRef.current) {
-      const v = videoRef.current;
-      const tick = () => {
-        if (cancelled || v.readyState < 2) return;
-        senseOnce(v, { width: v.videoWidth, height: v.videoHeight });
-      };
-      tick();
-      timer = setInterval(tick, 4000); // 实时流：每 4s 识别一次
-    } else {
-      const img = new Image();
-      img.src = "/assets/jingansi/fig3.jpeg";
-      img.onload = () => senseOnce(img, { width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => { if (!cancelled) setAiSense({ failed: true }); };
-    }
-    return () => { cancelled = true; if (timer) clearInterval(timer); };
-  }, [publishedVideoMode, cameraState]);
-  const score = sunsetPayload?.score || 87;
-  const peak = sunsetPayload?.peakTime || "18:15";
-  const duration = sunsetPayload?.peakDuration || 14;
-  const spot = sunsetPayload?.recommendation?.spot || "附近开阔水岸";
-  const tips = sunsetPayload?.shootingTips?.length ? sunsetPayload.shootingTips : [
-    "把河面留在画面下三分之一",
-    "等一个人物或车辆剪影经过",
-    "锁住天空高光，再微微降低曝光",
-  ];
+  function toggleComposition() {
+    if (!session) return;
+    setSnapshot(session.configure({ aiComposition: !snapshot.aiComposition }));
+  }
 
-  const titles = [
-    "今晚的光",
-    `西天烧了 ${duration} 分钟`,
-    "刚好赶上",
-    `上海·${peak}`,
-    `为这片光我跑到${spot}`,
-  ];
+  const hasVision = snapshot.sampleCount > 0 && snapshot.decision?.decisionReason !== "low_scene_confidence";
+  const lightDirection = context.sunAzimuth != null ? `朝${context.direction} · 太阳 ${Math.round(context.sunAzimuth)}°` : `朝${context.direction}`;
+  const guideText = context.score < 45
+    ? "今晚不值得跑 · 收藏机位，明晚拍"
+    : hasVision
+      ? `AI ${snapshot.decision?.sceneLabel || "场景"} ${Math.round((snapshot.decision?.sceneConfidence || 0) * 100)}% · ${snapshot.decision?.compositionGuideText || CAMERA_COMPOSE_LABELS[snapshot.composeTemplate]}`
+      : `构图引擎 · ${CAMERA_COMPOSE_LABELS[snapshot.composeTemplate] || "保持当前画幅"} · ${lightDirection}`;
 
-  function tapShutter() {
-    setRecording(true);
-    window.GuangbaoHooks?.captureShot(titles[selectedTitle]);
-    setTimeout(() => {
-      setRecording(false);
-      window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: true }));
-    }, 220);
+  if (publishedVideoMode) {
+    return (
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#0a0a0d" }}>
+        {lastPhoto ? (
+          <img src={lastPhoto.dataUrl} alt="已发布成片" onLoad={() => setPublishProgress(1)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#0a0a0d" }} />
+        ) : (
+          <PublishedVideoScene src="/assets/jingansi/video2.mp4" onProgress={setPublishProgress} />
+        )}
+        <div style={{ position: "absolute", left: 16, right: 16, bottom: 28, zIndex: 12, textAlign: "center" }}>
+          <div style={{ marginBottom: 12, fontSize: 12, color: "rgba(255,255,255,.82)" }}>已带上 #追光 · {context.spot}</div>
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: false }))} style={{
+            minWidth: 160, minHeight: 46, borderRadius: 999, border: 0, background: "var(--accent)", color: "#1a0e08", fontWeight: 800,
+          }}>返回拍摄 · {Math.round(publishProgress * 100)}%</button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {publishedVideoMode ? (
-        <>
-          <PublishedVideoScene
-            src="/assets/jingansi/video2.mp4"
-            onProgress={setPublishProgress}
-          />
-          <div style={{
-            position: "absolute", left: 0, right: 0, bottom: 82, zIndex: 10,
-            padding: "0 14px",
-          }}>
-            <ShootAssistPanel
-              titles={titles}
-              selectedTitle={selectedTitle}
-              setSelectedTitle={setSelectedTitle}
-              tips={tips}
-              transparent
-            />
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              marginTop: 14,
-            }}>
-              <PublishProgressButton
-                progress={publishProgress}
-                onClick={() => window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: false }))}
-              />
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          <div style={{
-            position: "absolute", inset: 0,
-            backgroundImage: 'url("/assets/jingansi/fig3.jpeg")',
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: QUICKSHOOT_FILTERS[filterIdx]?.css || "none",
-            transition: "filter .15s cubic-bezier(.3,.7,.4,1)",
-          }} />
-          {/* 真实摄像头取景层：开启时覆盖静态图，滤镜实时渲染在视频流上 */}
-          <video
-            ref={videoRef}
-            autoPlay muted playsInline
-            style={{
-              position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover",
-              display: cameraState === "on" ? "block" : "none",
-              filter: QUICKSHOOT_FILTERS[filterIdx]?.css || "none",
-              transition: "filter .15s cubic-bezier(.3,.7,.4,1)",
-            }}
-          />
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "linear-gradient(180deg, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.02) 42%, rgba(0,0,0,0.52) 100%)",
-            pointerEvents: "none",
-          }} />
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#0a0a0d" }}>
+      <img ref={imageRef} src="/assets/jingansi/fig3.jpeg" alt="静态取景预览" style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
+        display: cameraState === "on" ? "none" : "block", filter: snapshot.previewCss || "none",
+        transition: "filter 150ms cubic-bezier(.3,.7,.4,1)",
+      }} />
+      <video ref={videoRef} autoPlay muted playsInline style={{
+        position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
+        display: cameraState === "on" ? "block" : "none", filter: snapshot.previewCss || "none",
+        transition: "filter 150ms cubic-bezier(.3,.7,.4,1)",
+      }} />
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(180deg,rgba(10,10,13,.32),transparent 24%,transparent 68%,rgba(10,10,13,.62))" }} />
+      <CameraCompositionGuide snapshot={snapshot} />
 
-          <ViewfinderOverlay recording={recording} />
+      <div style={{ position: "absolute", top: 86, left: 16, right: 16, zIndex: 5, pointerEvents: "none" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 7, minHeight: 32, padding: "0 12px", borderRadius: 999,
+          background: "rgba(10,10,13,.58)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,.1)",
+          boxShadow: "0 0 24px rgba(255,138,61,.12)", color: "#fff", fontSize: 11.5, fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent)", boxShadow: "0 0 12px rgba(255,138,61,.5)" }} />
+          追光 {context.score} · 峰值 {context.peakTime}
+        </div>
+        <div style={{ marginTop: 8, display: "table", maxWidth: 300, padding: "7px 10px", borderRadius: 12,
+          background: "rgba(10,10,13,.52)", backdropFilter: "blur(14px)", border: "1px solid rgba(255,255,255,.08)",
+          color: "rgba(255,255,255,.82)", fontSize: 10.5, lineHeight: 1.35 }}>{guideText}</div>
+      </div>
 
-          <div className="float-pop" style={{
-            position: "absolute", top: 100, left: 16, right: 16, zIndex: 3,
-            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-            "--float-delay": "80ms",
-          }}>
-            <div>
-              <div className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: 1.4, marginBottom: 4 }}>
-                VIEWFINDER&nbsp;·&nbsp;LIVE
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
-                刚好的光
-              </div>
-              {/* AI 场景识别（vision-engine 实时结果；失败回退规则引擎口径，不冒充） */}
-              <div className="mono" style={{
-                marginTop: 6, display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "4px 9px", borderRadius: 999,
-                background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,138,61,0.35)",
-                fontSize: 9.5, color: "rgba(255,255,255,0.85)", letterSpacing: 0.6,
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: 99, background: aiSense && !aiSense.failed ? "#7ee0a0" : "#ffd49a" }} />
-                {aiSense && !aiSense.failed
-                  ? `AI 识别 ${Math.round((aiSense.confidence || 0) * 100)}% · ${SCENE_COMPOSE_TIP[aiSense.scene] || SCENE_COMPOSE_TIP.general}`
-                  : aiSense?.failed
-                    ? `构图引擎 · ${SCENE_COMPOSE_TIP.general}`
-                    : "AI 识别中…"}
-              </div>
-            </div>
-            <div style={{
-              padding: "8px 11px",
-              background: "rgba(0,0,0,0.45)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 12,
-              textAlign: "right",
-            }}>
-              <div className="mono" style={{ fontSize: 8.5, color: "rgba(255,255,255,0.6)", letterSpacing: 1 }}>
-                CURRENT
-              </div>
-              <div className="num" style={{
-                fontFamily: "var(--font-display)", fontStyle: "italic",
-                fontSize: 28, fontWeight: 500, color: "#ffd49a", lineHeight: 1,
-              }}>{score}</div>
-            </div>
-          </div>
+      <div data-swipe-lock="true" style={{ position: "absolute", right: 16, top: 192, zIndex: 6, display: "flex", flexDirection: "column", gap: 8 }}>
+        <button type="button" onClick={toggleComposition} aria-pressed={snapshot.aiComposition} style={{
+          width: 54, minHeight: 48, borderRadius: 12, padding: "5px 3px", display: "grid", placeItems: "center", gap: 2,
+          background: snapshot.aiComposition ? "var(--accent)" : "rgba(10,10,13,.58)",
+          border: snapshot.aiComposition ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,.1)",
+          color: snapshot.aiComposition ? "#1a0e08" : "rgba(255,255,255,.82)", backdropFilter: "blur(14px)", fontSize: 9.5, fontWeight: 700,
+        }}><CameraLineIcon kind="compose"/><span>AI构图</span></button>
+        <button type="button" onClick={() => setDrawerOpen(true)} aria-label="打开全量滤镜" style={{
+          width: 54, minHeight: 48, borderRadius: 12, padding: "5px 3px", display: "grid", placeItems: "center", gap: 2,
+          background: snapshot.activeFilterKey ? "rgba(255,138,61,.16)" : "rgba(10,10,13,.58)",
+          border: snapshot.activeFilterKey ? "1px solid rgba(255,138,61,.5)" : "1px solid rgba(255,255,255,.1)",
+          color: snapshot.activeFilterKey ? "var(--accent)" : "rgba(255,255,255,.82)", backdropFilter: "blur(14px)", fontSize: 9.5, fontWeight: 700,
+        }}><CameraLineIcon kind="film"/><span>滤镜</span></button>
+      </div>
 
-          <div className="float-pop" style={{
-            position: "absolute", right: 16, top: 200, zIndex: 3,
-            display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end",
-            "--float-delay": "170ms",
-          }}>
-            {[
-              ["ISO", score >= 80 ? "200" : "400"],
-              ["快门", score >= 80 ? "1/160" : "1/100"],
-              ["光圈", "f/4"],
-              ["白平衡", score >= 80 ? "5600K" : "5200K"],
-            ].map((p, i) => (
-              <div key={i} className="mono" style={{
-                padding: "3px 8px",
-                background: "rgba(0,0,0,0.5)",
-                backdropFilter: "blur(8px)",
-                borderRadius: 6,
-                fontSize: 10, color: "rgba(255,255,255,0.9)",
-                letterSpacing: 0.5,
-              }}>
-                <span style={{ opacity: 0.55 }}>{p[0]}</span> · <span style={{ color: "#ffd49a", fontWeight: 600 }}>{p[1]}</span>
-              </div>
-            ))}
-          </div>
+      <div data-swipe-lock="true" style={{ position: "absolute", left: 24, right: 24, bottom: 32, zIndex: 7, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button type="button" onClick={() => lastPhoto ? setReviewOpen(true) : setDrawerOpen(true)} aria-label="最近成片" style={{
+          width: 48, height: 48, borderRadius: 12, padding: 0, overflow: "hidden", display: "grid", placeItems: "center",
+          background: "rgba(10,10,13,.58)", border: "1px solid rgba(255,255,255,.12)", color: "#fff", backdropFilter: "blur(14px)",
+        }}>{lastPhoto ? <img src={lastPhoto.dataUrl} alt="最近成片" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <CameraLineIcon kind="film"/>}</button>
 
-          <div className="float-pop" style={{
-            position: "absolute", left: 0, right: 0, bottom: 80, zIndex: 4,
-            padding: "0 14px",
-            "--float-delay": "260ms",
-          }}>
-            {/* 滤镜排：复用 AI 相机授权胶片资产，取景实时预览 */}
-            <div data-swipe-lock="true" style={{ display: "flex", gap: 8, marginBottom: 10, overflowX: "auto", paddingBottom: 2 }}>
-              {QUICKSHOOT_FILTERS.map((f, i) => {
-                const active = i === filterIdx;
-                return (
-                  <button key={f.id} type="button" onClick={() => setFilterIdx(i)} style={{
-                    flexShrink: 0, width: 52, borderRadius: 12, padding: 0, overflow: "hidden",
-                    border: active ? "2px solid var(--accent)" : "2px solid rgba(255,255,255,0.14)",
-                    background: "rgba(0,0,0,0.4)", cursor: "pointer",
-                    boxShadow: active ? "0 0 14px rgba(255,138,61,0.35)" : "none",
-                  }}>
-                    <div style={{
-                      width: "100%", height: 40,
-                      backgroundImage: f.thumb ? `url("${f.thumb}")` : 'url("/assets/jingansi/fig3.jpeg")',
-                      backgroundSize: "cover", backgroundPosition: "center",
-                      filter: f.thumb ? "none" : f.css,
-                    }} />
-                    <div style={{
-                      fontSize: 8.5, padding: "3px 0", textAlign: "center",
-                      color: active ? "var(--accent)" : "rgba(255,255,255,0.75)",
-                      fontWeight: active ? 700 : 500, letterSpacing: 0.5,
-                    }}>{f.name}</div>
-                  </button>
-                );
-              })}
-            </div>
+        <button type="button" onClick={capturePhoto} aria-label="拍照" disabled={captureBusy} style={{
+          width: 82, height: 82, borderRadius: "50%", padding: 6, background: "rgba(10,10,13,.18)",
+          border: "3px solid rgba(255,255,255,.9)", display: "grid", placeItems: "center", opacity: captureBusy ? .55 : 1,
+          boxShadow: "0 0 28px rgba(255,255,255,.18)",
+        }}><span style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,.96)", display: "block" }} /></button>
 
-            <ShootAssistPanel
-              titles={titles}
-              selectedTitle={selectedTitle}
-              setSelectedTitle={setSelectedTitle}
-              tips={tips}
-            />
+        <button type="button" onClick={toggleCamera} aria-label={cameraState === "on" ? "切换前后摄像头" : "开启实况相机"} style={{
+          width: 48, height: 48, borderRadius: 999, display: "grid", placeItems: "center",
+          background: cameraState === "on" ? "rgba(255,138,61,.18)" : "rgba(10,10,13,.58)",
+          border: cameraState === "on" ? "1px solid rgba(255,138,61,.55)" : "1px solid rgba(255,255,255,.12)",
+          color: cameraState === "on" ? "var(--accent)" : "#fff", backdropFilter: "blur(14px)",
+        }}>{cameraState === "starting" ? <span className="mono">…</span> : <CameraLineIcon kind={cameraState === "on" ? "switch" : "camera"}/>}</button>
+      </div>
 
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "0 8px",
-            }}>
-              <button type="button" onClick={toggleCamera} aria-label="开关实况相机" style={{
-                width: 44, height: 44, borderRadius: 14,
-                background: cameraState === "on" ? "rgba(255,138,61,0.28)" : "rgba(255,255,255,0.10)",
-                border: cameraState === "on" ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,0.12)",
-                display: "grid", placeItems: "center",
-                color: "#fff", fontSize: 16, cursor: "pointer",
-                backdropFilter: "blur(10px)",
-                boxShadow: cameraState === "on" ? "0 0 14px rgba(255,138,61,0.35)" : "none",
-              }}>
-                {cameraState === "starting" ? "…" : cameraState === "on" ? "⏹" : "📷"}
-              </button>
+      {(cameraState === "denied" || cameraState === "starting") && <div style={{ position: "absolute", left: 0, right: 0, bottom: 124, zIndex: 7, textAlign: "center", pointerEvents: "none",
+        fontSize: 10, color: cameraState === "denied" ? "var(--accent)" : "rgba(255,255,255,.6)" }}>
+        {cameraState === "denied" ? "相机权限不可用 · 已切换静态预览" : "正在启动相机"}
+      </div>}
 
-              <button type="button" aria-label="播放成片视频" onClick={tapShutter} style={{
-                width: 76, height: 76, borderRadius: "50%",
-                background: "transparent",
-                border: "3px solid rgba(255,255,255,0.85)",
-                display: "grid", placeItems: "center",
-                cursor: "pointer",
-                position: "relative",
-              }}>
-                <div style={{
-                  width: 60, height: 60, borderRadius: recording ? 12 : "50%",
-                  background: recording ? "var(--warn)" : "#fff",
-                  transition: "all 0.25s cubic-bezier(.7,0,.3,1)",
-                  boxShadow: "0 0 24px rgba(255,255,255,0.4)",
-                }} />
-                {recording && (
-                  <div style={{
-                    position: "absolute", inset: -8, borderRadius: "50%",
-                    border: "2px solid var(--warn)",
-                    animation: "shutter-ring 0.6s ease-out",
-                  }} />
-                )}
-              </button>
+      {flash && <div style={{ position: "absolute", inset: 0, zIndex: 18, background: "rgba(255,255,255,.84)", pointerEvents: "none", animation: "camera-flash 150ms ease-out forwards" }} />}
+      {captureBusy && <div className="mono" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", zIndex: 19,
+        padding: "9px 12px", borderRadius: 999, background: "rgba(10,10,13,.72)", color: "#fff", fontSize: 10 }}>正在整理成片</div>}
 
-              <div style={{
-                width: 44, height: 44, borderRadius: 14,
-                background: "rgba(255,255,255,0.10)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                display: "grid", placeItems: "center",
-                color: "#fff", fontSize: 18,
-                backdropFilter: "blur(10px)",
-              }}>⟳</div>
-            </div>
+      <FullFilterDrawer open={drawerOpen} session={session} snapshot={snapshot} onSnapshot={setSnapshot} onClose={() => setDrawerOpen(false)} />
+      <CameraReview photo={reviewOpen ? lastPhoto : null} titles={titles} selectedTitle={selectedTitle} setSelectedTitle={setSelectedTitle} tips={tips} spot={context.spot}
+        onClose={() => setReviewOpen(false)} onPublish={() => window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: true }))} />
 
-            <div style={{
-              marginTop: 10, textAlign: "center",
-              fontSize: 10.5, color: cameraState === "denied" ? "#ffb26f" : "rgba(255,255,255,0.55)",
-              letterSpacing: 1,
-            }}>
-              {cameraState === "on" ? "实况取景中 · 滤镜实时渲染"
-                : cameraState === "denied" ? "相机不可用（需授权，手机端需 HTTPS）· 静态预览中"
-                : "拍完直接发 · 标题已准备好（📷 开实况取景）"}
-            </div>
-          </div>
-
-          <style>{`
-            @keyframes shutter-ring {
-              0%   { transform: scale(1);    opacity: 0.9; }
-              100% { transform: scale(1.35); opacity: 0;   }
-            }
-          `}</style>
-        </>
-      )}
+      <style>{`
+        @keyframes camera-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes camera-flash { from { opacity: 1; } to { opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) {
+          [data-screen-label*="拍摄"] * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+      `}</style>
     </div>
   );
 }

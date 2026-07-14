@@ -2,6 +2,7 @@ const core = window.LightchaserAICameraCore;
 const filterPresets = core.FILTER_PRESETS;
 const filterous = window.filterous;
 const vision = window.LightchaserVision;
+const cameraSessionFactory = window.LightchaserCameraSession;
 
 const FILTEROUS_PRESETS = {
   "iPhone Rich Contrast": "clarendon",
@@ -100,6 +101,16 @@ const state = {
   visionWarmupTimer: null,
 };
 
+// 独立相机是共享 CameraSession 的第二个适配器。它保留“AI 默认关闭”的
+// 标准相机行为；追光 P4 则通过 guided mode 默认开启辅助。
+const sharedCameraSession = cameraSessionFactory?.createCameraSession({
+  core,
+  mode: "standalone",
+  aiComposition: state.aiComposition,
+  aiFilter: state.aiFilter,
+  manualAspectRatio: state.aspectRatio,
+});
+
 let visionRuntimePromise = null;
 
 function loadJson(key, fallback) {
@@ -156,6 +167,11 @@ function setAppMode({ updateDecision: shouldUpdateDecision = true } = {}) {
   gridButton.setAttribute("aria-pressed", String(state.grid));
   compositionToggle.setAttribute("aria-pressed", String(state.aiComposition));
   filterToggle.setAttribute("aria-pressed", String(state.aiFilter));
+  sharedCameraSession?.configure({
+    aiComposition: state.aiComposition,
+    aiFilter: state.aiFilter,
+    manualAspectRatio: state.aspectRatio,
+  });
   if (!state.aiComposition) {
     cropBoxEl.hidden = true;
   }
@@ -1575,7 +1591,8 @@ function renderFilterCards() {
     filterStrip.appendChild(buildNativeCard());
     return;
   }
-  const list = core.FILTERS_BY_BRAND[activeDrawerBrand] || [];
+  const sharedGroup = sharedCameraSession?.getFilterGroups().find((group) => group.brand === activeDrawerBrand);
+  const list = sharedGroup ? sharedGroup.filters.map((filter) => filter.key) : (core.FILTERS_BY_BRAND[activeDrawerBrand] || []);
   for (const key of list) {
     const card = buildFilterCard(key);
     if (card) filterStrip.appendChild(card);
