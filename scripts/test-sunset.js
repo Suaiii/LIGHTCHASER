@@ -57,7 +57,73 @@ function assertRouteShape(label, payload) {
   assert(typeof payload.geometry[0].lng === "number", `${label}: geometry point missing lng`);
 }
 
+async function assertUntrustedRouteFallsBack() {
+  const originalFetch = global.fetch;
+  let attempts = 0;
+  let requestHeaders;
+  global.fetch = async (_url, options) => {
+    attempts += 1;
+    requestHeaders = options?.headers;
+    return {
+      ok: true,
+      async json() {
+        return {
+          code: "Ok",
+          routes: [
+            {
+              distance: 1000,
+              duration: 60,
+              geometry: { coordinates: [[113.9, 22.5], [114.0, 22.6]] },
+            },
+          ],
+        };
+      },
+    };
+  };
+
+  try {
+    const route = await buildRoutePayload({
+      startLat: "22.5",
+      startLng: "113.9",
+      endLat: "22.6",
+      endLng: "114.0",
+    });
+    assert(route.source === "fallback-straight-line", "route-untrusted: expected straight-line fallback");
+    assert(route.fallbackReason === "osrm_untrusted_walking_pace", "route-untrusted: unexpected fallback reason");
+    assert(attempts === 3, `route-untrusted: expected 3 attempts, got ${attempts}`);
+    assert(requestHeaders?.["User-Agent"]?.includes("LIGHTCHASER"), "route-untrusted: missing project User-Agent");
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function assertProviderFailureFallsBack() {
+  const originalFetch = global.fetch;
+  let attempts = 0;
+  global.fetch = async () => {
+    attempts += 1;
+    return { ok: false, status: 500 };
+  };
+
+  try {
+    const route = await buildRoutePayload({
+      startLat: "22.5",
+      startLng: "113.9",
+      endLat: "22.6",
+      endLng: "114.0",
+    });
+    assert(route.source === "fallback-straight-line", "route-500: expected straight-line fallback");
+    assert(route.fallbackReason === "osrm_failed:500", "route-500: unexpected fallback reason");
+    assert(attempts === 3, `route-500: expected 3 attempts, got ${attempts}`);
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
 async function main() {
+  await assertUntrustedRouteFallsBack();
+  await assertProviderFailureFallsBack();
+
   const scenarios = [
     { label: "default-shanghai", query: {}, expectedCity: "Shanghai" },
     { label: "demo-high", query: { demo: "high" } },
@@ -133,6 +199,11 @@ async function main() {
     assert(route.geometry.length > 2, "route-jinshan: OSRM route should not be a straight two-point line");
     assert(route.distanceMeters > 200 && route.distanceMeters < 5000, "route-jinshan: distance should be plausible");
     assert(route.durationSeconds > 60 && route.durationSeconds < 1800, "route-jinshan: duration should be plausible");
+    const minutesPerKilometer = route.durationSeconds / 60 / (route.distanceMeters / 1000);
+    assert(
+      minutesPerKilometer >= 10 && minutesPerKilometer <= 16,
+      `route-jinshan: expected walking pace, got ${minutesPerKilometer.toFixed(2)} min/km`
+    );
   }
 
   console.log("=== route-jinshan ===");
