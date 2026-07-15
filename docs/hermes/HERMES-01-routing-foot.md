@@ -54,10 +54,12 @@
 
 ## 6. 候选服务与 OD 清单
 
-**候选（按序试，第一个达标即选定）**：
-1. FOSSGIS 公共 OSRM：`https://routing.openstreetmap.de/routed-foot/route/v1/foot/...`（OSM 官方生态，真 foot 数据集）
-2. 其他公开 OSRM foot 实例（自查，需注明数据新鲜度）
-3. 均不可用 → 保持 demo 服务器 + 响应校验（duration/distance 不在步行区间即视为不可信、主动落直线兜底），并在报告注明这是权宜
+**候选（按序试，第一个达标即选定；开源优先原则）**：
+1. FOSSGIS 公共 OSRM：`https://routing.openstreetmap.de/routed-foot/route/v1/foot/...`（OSM 官方生态，真 foot 数据集，无需 key）
+2. Valhalla 公共实例：`https://valhalla1.openstreetmap.de/route`（同为 FOSSGIS 运营，`costing=pedestrian`，步行质量口碑好；返回格式不同需薄适配——适配层放 route-service 内部，对外 payload 不变）
+3. openrouteservice：`api.openrouteservice.org` foot-walking（海德堡大学，开源引擎，免费 key 有日额度——若用此项，key 走 env 不入库，参照 ark.env 惯例）
+4. 其他公开 OSRM foot 实例（自查，需注明数据新鲜度）
+5. 均不可用 → 保持 demo 服务器 + 响应校验（duration/distance 不在步行区间即视为不可信、主动落直线兜底），并在报告注明这是权宜
 
 **五条 OD（起点→终点，lat,lng）**：
 1. 南方科技大学 (22.5956,113.9956) → 塘朗山郊野公园观景平台（spots 表 `szw` 对应条目坐标为准）

@@ -22,10 +22,16 @@
 
 三件事，彼此独立可分批交付：
 
-**A. 多源交叉 → confidence 字段**
-- 同时拉 2–3 个气象源对同一时段（日落 ±90min）的关键字段：Open-Meteo（现有）、MET Norway `api.met.no`（免费无 key，UA 必填）、和风（若 key 可得；无 key 则两源也可接受）。
-- 定义源间分歧度：对 `cloud_low/cloud_mid/cloud_high/humidity` 计算跨源差异（建议：各字段跨源极差归一后加权平均，权重与 WEIGHTS 同构——设计写进 `confidence_spec.md`，这是唯一的自由发挥区）。
-- 输出三档 `confidence: high | medium | low` + `confidence_detail`（各源各字段数值表，供卡片"为什么"弹层引用）。
+**A. 不确定性度量 → confidence 字段（两条实现路线，按序验证，选定一条并说明依据）**
+
+*路线 A1（优先验证，开源杠杆）：***Open-Meteo Ensemble API 集合预报**——`ensemble-api.open-meteo.com/v1/ensemble`（免费，与现有 Open-Meteo 同生态）。集合预报 = 同一模型扰动初值跑 N 个成员，**成员间离散度(spread)就是气象学标准的不确定性度量**，比拼装多个数据源更专业、更省事、可讲进路演（"我们用的是 ECMWF/ICON 集合预报的官方不确定性"）。
+- 拉 `cloud_cover`/`relative_humidity_2m` 各成员在日落 ±90min 的值 → spread 归一 → confidence 三档
+- 须实测确认：ensemble 变量是否含云量分层（`cloud_cover_low/mid/high`）；若只有总云量，则 spread 用总云量、评分输入仍取现有确定性预报（设计写进 `confidence_spec.md`）
+- 深圳覆盖、免费额度、响应延迟一并实测记录
+
+*路线 A2（A1 不可行时的保底）：多源交叉*——Open-Meteo（现有）+ MET Norway `api.met.no`（免费无 key，UA 必填）+ 和风（若 key 可得；无 key 两源也可接受）；对 `cloud_low/mid/high/humidity` 计算跨源极差归一加权（权重与 WEIGHTS 同构）。
+
+- 两条路线输出相同接口：三档 `confidence: high | medium | low` + `confidence_detail`（成员/源明细数值表，供卡片"为什么"弹层引用）。
 - `/api/sunset` 响应新增这两个字段（**加字段，不改任何现有字段**）；来源标注 `meta.sources=[...]`。
 
 **B. 回测挂钩**：把 confidence 接进现有回测 `backtest_c6.mjs` 思路——跑最近 8 天，报告各天 confidence 分布，验证"分歧大的天确实是天气系统不稳的天"（定性核对即可）。
@@ -39,7 +45,8 @@
 
 ## 3. DoD（验收标准，二元）
 
-- [ ] `curl "http://127.0.0.1:5174/api/sunset?city=shenzhen"` 响应含 `confidence`（三档之一）与 `confidence_detail`（≥2 源 × ≥4 字段数值表）、`meta.sources`；**现有字段无一变化**（用改动前后响应 diff 证明，demo 模式 `?demo=high|mid|low` 三档照旧）。
+- [ ] `curl "http://127.0.0.1:5174/api/sunset?city=shenzhen"` 响应含 `confidence`（三档之一）与 `confidence_detail`（ensemble：≥N 成员摘要；多源：≥2 源 × ≥4 字段数值表）、`meta.sources`；**现有字段无一变化**（用改动前后响应 diff 证明，demo 模式 `?demo=high|mid|low` 三档照旧）。
+- [ ] 报告写明 A1/A2 路线选择依据（ensemble 变量覆盖/延迟实测数据）。
 - [ ] `node agents_output/02/light_engine.js --selftest` 输出与改动前逐字节一致（引擎零改动的证据）。
 - [ ] `confidence_spec.md`：分歧度公式、三档阈值、以及"为什么这不是第 6 因子"的治理说明（≤60 行）。
 - [ ] 回测报告：最近 8 天 confidence 分布 + ≥1 个"分歧大→confidence 低"的实例数据。

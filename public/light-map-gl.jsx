@@ -7,7 +7,13 @@
 // 兜底链：GL(在线瓦片) → Three 自研(离线) → 经典 2D。
 
 const ZG_GL_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const ZG_BUILD = "v4.6"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_BUILD = "v4.9"; // 构建号显示在 HUD 操作提示行——用户截图即可确认运行版本（代理缓存 localhost 屡次背刺）
+const ZG_LOD_START = 14.6;
+const ZG_LOD_END = 15.4;
+const zgLodProgress = (zoom) => {
+  const t = Math.max(0, Math.min(1, (zoom - ZG_LOD_START) / (ZG_LOD_END - ZG_LOD_START)));
+  return t * t * (3 - 2 * t);
+};
 
 // 逐层暗化 liberty 样式 → 追光夜幕调。核心原则：**确定性调色板**——每类图层给死颜色，
 // 不做任何原色换算（通用混色公式曾把绿地混成深青/品红混成紫，已废除）。
@@ -88,6 +94,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
   // 硬切显隐曾是用户"很不舒服"的关键——消失要有动画语言，才不像故障。
   // 绝对时间轴插值（非逐帧增量）：低帧率设备掉帧自动追赶，动画时长永远精准
   let grow = 0, growTarget = 0, growFrom = 0, growT0 = 0;
+  let contextCanvas = null, contextLostHandler = null, contextRestoredHandler = null;
   const growEase = (g) => g * g * (3 - 2 * g); // smoothstep：双向共用一条曲线，zoom 中途反转不跳变
   const layer = {
     id: "zg-three-buildings",
@@ -99,13 +106,14 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
     //   b) 分帧构建（每帧≤220栋）——1100 栋同步硬算曾一次性卡主线程 ~200ms。
     setBuildings(polys) {
       if (!scene) return 0;
-      const batch = polys.slice(0, 1100); // 性能上限
+      const batch = polys.slice(0, 650); // 近景优先；控制单次几何构建预算
+      this._building = true;
       const token = ++buildToken;
       const gs = [];
       let idx = 0;
       const step = () => {
         if (!scene || token !== buildToken) { gs.forEach((g) => g.dispose()); return; }
-        const end = Math.min(idx + 80, batch.length); // 80栋≈16ms：不挤帧预算（220栋曾致构建期丢帧→画面跳变）
+        const end = Math.min(idx + 40, batch.length); // 小批次让快速拖动时主线程持续可响应
         for (; idx < end; idx++) {
           const b = batch[idx];
           try {
@@ -118,7 +126,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
           } catch (e) { /* 退化多边形跳过 */ }
         }
         if (idx < batch.length) { requestAnimationFrame(step); return; }
-        if (!gs.length) return; // 全部退化：保留旧楼
+        if (!gs.length) { this._building = false; return; } // 全部退化：保留旧楼
         let total = 0;
         for (const g of gs) total += g.attributes.position.count;
         const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3);
@@ -140,10 +148,11 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         buildingMesh.receiveShadow = false;
         // MapLibre 裸相机无正确视锥，Three 的剔除判定会误杀整个合批 mesh（曾致特定角度整片消失）
         buildingMesh.frustumCulled = false;
-        buildingMesh.scale.y = Math.max(growEase(grow), 0.001); // 换装继承当前生长进度
+        buildingMesh.scale.y = Math.max(grow, 0.001); // 换装继承 zoom 已映射的当前高度
         buildingMesh.visible = grow > 0 || growTarget > 0;
         scene.add(buildingMesh);
         this._hasMesh = true;
+        this._building = false;
         // 静态场景：阴影贴图只在满高时算一次（旋转时不再重采样 → 光照稳定 + 帧率解放）
         if (renderer && grow === 1) renderer.shadowMap.needsUpdate = true;
         // 换装就位 → 通知外层同步剪影层显隐（z-fight 根除 + 无空窗，统一归 LOD 管）。
@@ -167,6 +176,17 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       if (buildingMesh && t > 0) buildingMesh.visible = true; // 登场先上台
       if (this._map && this._map.style) this._map.triggerRepaint();
     },
+    setGrowProgress(t) {
+      const next = Math.max(0, Math.min(1, t));
+      grow = growTarget = growFrom = next;
+      if (buildingMesh) {
+        buildingMesh.scale.y = Math.max(next, 0.001);
+        buildingMesh.visible = next > 0;
+      }
+      if (shadowMat) shadowMat.opacity = 0.3 * next;
+      window.__zgGrow = next;
+      if (this._map && this._map.style) this._map.triggerRepaint();
+    },
     onAdd(map, gl) {
       camera = new THREE.Camera();
       scene = new THREE.Scene();
@@ -182,6 +202,31 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.shadowMap.autoUpdate = false; // 场景静态：阴影只在建筑重建时算一次（防每帧重采样抖动+卡顿）
+      // MapLibre and Three share one context. Recreate Three's renderer after a GPU reset.
+      contextCanvas = map.getCanvas();
+      contextLostHandler = (event) => { event.preventDefault(); window.__zgWebgl = "lost"; };
+      contextRestoredHandler = () => {
+        if (!scene || !contextCanvas) return;
+        try {
+          // Keep the existing Three renderer: it owns the resource restore hooks
+          // for geometries/materials created before the shared context reset.
+          renderer.resetState();
+          renderer.shadowMap.needsUpdate = true;
+          // Resume the absolute-time animation from its current height instead of
+          // leaving a restored context stuck at a stale zero-height frame.
+          growFrom = grow;
+          growTarget = zgLodProgress(this._map.getZoom());
+          growT0 = performance.now();
+          window.__zgWebgl = "restored";
+          this._map?.triggerRepaint();
+        } catch (error) {
+          window.__zgWebgl = "restore-failed";
+          console.warn("[LIGHTCHASER] Three WebGL restore failed:", error);
+        }
+      };
+      contextCanvas.addEventListener("webglcontextlost", contextLostHandler, false);
+      contextCanvas.addEventListener("webglcontextrestored", contextRestoredHandler, false);
+      window.__zgWebgl = "ready";
 
       // envMap：天空渐变 + 太阳亮斑 → 金属立面的反光内容
       {
@@ -231,7 +276,7 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
       sunLight.position.set(dir.x * d, dir.y * d, dir.z * d);
       sunLight.target.position.set(0, 0, 0);
       sunLight.castShadow = true;
-      sunLight.shadow.mapSize.set(2048, 2048);
+      sunLight.shadow.mapSize.set(1024, 1024);
       // 掠射角(日落 alt 7°)自阴影 acne 的标准解：法线偏置 + 微负偏置——白噪竖纹的根源
       sunLight.shadow.normalBias = 3;
       sunLight.shadow.bias = -0.0002;
@@ -272,6 +317,13 @@ function zgMakeThreeBuildingsLayer({ originLL, sun, lightHex }) {
         if (o.geometry) o.geometry.dispose();
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
       });
+      if (contextCanvas) {
+        contextCanvas.removeEventListener("webglcontextlost", contextLostHandler, false);
+        contextCanvas.removeEventListener("webglcontextrestored", contextRestoredHandler, false);
+      }
+      contextCanvas = null;
+      contextLostHandler = null;
+      contextRestoredHandler = null;
       renderer = null;
       scene = null;
       this._map = null;
@@ -394,7 +446,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                 "fill-extrusion-height": ["coalesce", ["get", "render_height"], 12],
                 "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
                 "fill-extrusion-opacity": 0.62,
-                "fill-extrusion-opacity-transition": { duration: 450 }, // 与光影楼生长/缩回交叉淡化
+                "fill-extrusion-opacity-transition": { duration: 0 }, // zoom 本身就是连续量，不再叠加滞后动画
                 "fill-extrusion-vertical-gradient": true,
               },
             });
@@ -437,7 +489,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             // "数据到齐"信号自动补建；③已有完整楼群时残缺数据永不上桌（pendingMove 挂起等到齐）；
             // ④ LOD 分级：z<13.8 瓦片里建筑数据天然稀疏/缺失，Three 精品层只管近景，
             //   拉远交回剪影 extrusion 层（全 zoom 有数据）——"拉远+旋转楼消失"的根治。
-            const LOD_Z = 13.8;
+            const LOD_Z = ZG_LOD_START;
             let rebuildTimer = 0, recheckTimer = 0;
             let doneCenter = null, doneZoom = null, doneCount = 0, srcIsPack = false, builtOnce = false;
             let pendingMove = false; // 移动后瓦片未齐、等 sourcedata 一次换准
@@ -448,22 +500,49 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               setBInfo({ src, n });
             };
             const queryPolys = () => {
-              try { return featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" })); }
+              try {
+                const c = map.getCenter();
+                const bounds = map.getBounds();
+                const corners = [bounds.getNorthEast(), bounds.getNorthWest(), bounds.getSouthEast(), bounds.getSouthWest()];
+                const viewRadius = Math.max(...corners.map((p) => metersApart(c, p))) * 1.25;
+                return featsToPolys(map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }))
+                  .map((poly) => {
+                    let lng = 0, lat = 0;
+                    for (const p of poly.rings) { lng += p[0]; lat += p[1]; }
+                    const centroid = { lng: lng / poly.rings.length, lat: lat / poly.rings.length };
+                    return { poly, distance: metersApart(c, centroid) };
+                  })
+                  // querySourceFeatures includes off-screen loaded tiles. Filter and
+                  // prioritize before the 1100-building cap so distant tiles cannot
+                  // consume the whole Three mesh while the foreground stays empty.
+                  .filter((item) => item.distance <= viewRadius)
+                  .sort((a, b) => a.distance - b.distance)
+                  .map((item) => item.poly);
+              }
               catch (e) { return []; /* 源未就绪 */ }
             };
             // LOD 过渡：低 z=剪影层淡入+光影楼缩回地里；高 z 且 Three 有楼=光影楼生长+剪影淡出。
             // 全部连续量（生长动画+透明度过渡）——硬切显隐的"楼突然蒸发"曾是用户最不适的点
             let lodLow = null;
             const syncLod = (force) => {
-              const low = map.getZoom() < LOD_Z;
-              if (!force && low === lodLow) return;
-              lodLow = low;
-              threeLayer.setGrowTarget?.(low ? 0 : 1);
+              const progress = zgLodProgress(map.getZoom());
+              const low = progress <= 0;
+              if (!force && Math.abs(progress - (lodLow ?? -1)) < 0.002) return;
+              lodLow = progress;
+              threeLayer.setGrowProgress?.(progress);
               if (map.getLayer("zg-3d-buildings")) {
-                map.setPaintProperty("zg-3d-buildings", "fill-extrusion-opacity", (low || !threeLayer._hasMesh) ? 0.62 : 0);
+                // Never overlap the native extrusion with Three. The base map still
+                // retains its 2D building footprints at low zoom, while Three alone
+                // owns the grow/shrink animation at high zoom.
+                map.setPaintProperty("zg-3d-buildings", "fill-extrusion-opacity", 0);
               }
             };
-            threeLayer._onSwapped = () => syncLod(true);
+            threeLayer._onSwapped = () => {
+              // setBuildings is intentionally asynchronous; close the bridge
+              // only after the replacement mesh is actually on the scene.
+              pendingMove = false;
+              syncLod(true);
+            };
             map.on("zoom", () => syncLod(false));
             const rebuild = () => { // 相机移动驱动：距上次成功 >400m 或 zoom >0.5 才动（小拖动不重算）
               if (disposed || !threeLayer._ready) return;
@@ -485,7 +564,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               if (disposed || !threeLayer._ready) return;
               if (map.getZoom() < LOD_Z) return;
               // 手势/动画中不换装——旋转途中楼群突变=肉眼跳变，顺延到交互结束
-              if (map.isMoving()) { recheckTimer = setTimeout(recheck, 900); return; }
+              if (map.isMoving()) { recheckTimer = setTimeout(recheck, 150); return; }
               const polys = queryPolys();
               if (polys.length < 10) return;
               const richer = polys.length >= Math.max(doneCount * 1.2, doneCount + 40);
@@ -506,9 +585,9 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
               if (schedCenter && metersApart(c, schedCenter) < 1 && Math.abs(z - schedZoom) < 1e-6) return;
               schedCenter = c; schedZoom = z;
               clearTimeout(rebuildTimer);
-              rebuildTimer = setTimeout(rebuild, 450);
+              rebuildTimer = setTimeout(rebuild, 120);
             });
-            rebuildTimer = setTimeout(rebuild, 500); // 首响应：有部分数据先建起来，sourcedata 到齐后自动补全
+            rebuildTimer = setTimeout(rebuild, 240); // 首响应：有部分数据先建起来，sourcedata 到齐后自动补全
             setTimeout(() => { // 离线兜底：12s 仍无楼（断网/瓦片全挂）才动用离线包，按视口就近筛
               if (disposed || builtOnce || map.getZoom() < LOD_Z || typeof zgLoadBuildings !== "function") return;
               zgLoadBuildings().then((geo) => {
@@ -516,7 +595,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
                 const c = map.getCenter();
                 const near = geo.buildings
                   .map((b) => ({ b, d: metersApart({ lng: b.p[0][1], lat: b.p[0][0] }, c) }))
-                  .filter((x) => x.d < 2600).sort((a, b2) => a.d - b2.d).slice(0, 1100)
+                  .filter((x) => x.d < 2600).sort((a, b2) => a.d - b2.d).slice(0, 650)
                   .map((x) => ({ rings: x.b.p.map(([la, ln]) => [ln, la]), h: x.b.h, base: 0 }));
                 const n = threeLayer.setBuildings(near);
                 if (n > 0) commit(n, near.length, "pack");
@@ -575,7 +654,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             if (disposed) return;
             t0 += 1 / 60;
             // 脉冲隔帧更新：setData 会强制整图重绘，60fps 更新=静止时 GPU 也全速跑
-            if (!reducedMotion && (fno++ % 2 === 0) && map.getSource("zg-pulse")) {
+            if (!reducedMotion && (fno++ % 4 === 0) && map.getSource("zg-pulse")) {
               map.getSource("zg-pulse").setData({
                 type: "FeatureCollection",
                 features: [0, 0.5].map((off) => ({ type: "Feature", geometry: { type: "Point", coordinates: at((t0 * 0.045 + off) % 1) } })),

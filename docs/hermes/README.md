@@ -26,6 +26,8 @@
 
 **冲突纪律**：一个文件同一时间只属于一个任务。接任务前先看看板"占用文件"列；正在被占用的文件出现在你的改动里 = 直接打回。
 
+**开源优先（负责人定调）**：动手前先找开源替代/公共服务（例证：MapLibre GL 让 3D 地图一步到位），自研是最后手段；自研前须在交付报告说明"找过什么轮子、为什么不能用"。许可核对与 vendored 规则见 `CLAUDE.md` §3。
+
 ## 二、任务书模板（新任务书复制此骨架）
 
 ```markdown
@@ -77,6 +79,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 |---|---|---|---|
 | 弹药 | 机位库 25 点 / 光线引擎 / 文案引擎 | ✅ 已交付 | `agents_output/01 02 03` |
 | 弹药 | 晚霞算法置信度 + 多源 + 竞品对标 | **待领（开发）** | HERMES-02 |
+| 弹药 | 历史爆发日回测（命中率真值证据） | **待领（H2 收集日期 + AI 回测）** | HERMES-08 |
 | 弹药 | 出片场景扩展（schema+泛化筛选设计） | 待领（设计稿先行） | HERMES-05 |
 | 原型 | 步行导航走反路根治 | ✅ PR #28 验收 6/6 过，待终审 merge | HERMES-01 |
 | 原型 | **板块二融合：地图照片气泡社区层** | **待领（P0，phase1 立即可开工）** | HERMES-10 |
@@ -91,7 +94,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | 叙事 | 路演脚本 / 海报 / 商业延展 | Hermes 起草（7.15–7.27） | `Thoughts/AGENT_08_*` |
 | 人工 | 外联回收（发送 7.13 已开始）/ 可颂链接 / 7.28 实拍 / 盲评 / PR#8 | 人工池 | [#26 残留追踪](https://github.com/Suaiii/LIGHTCHASER/issues/26) |
 
-> 一句话回答"开发 part 有哪些"：**现在可领 = 02 / 06a / 09 / 10 四个**（09 混合受众、7.23 硬截止；10 phase1 立即可开工且 7.18 前要出 photos schema 喂 09；01 已交付待 merge；07 进行中（部分解决，相位二 GL 引擎）；**03 已取消**、11 committed 相位二待启动）；**最大的开发 part 是产品本体**，但它的"编码"发生在 7.24 后的平台对话里，源代码=需求包+迁移资产包（Hermes 主线，不外包）。
+> 一句话回答"开发 part 有哪些"：**现在可领 = 02 / 06a / 08 / 09 / 10 五个**（09 混合受众、7.23 硬截止；10 phase1 立即可开工且 7.18 前要出 photos schema 喂 09；08 历史回测叙事弹药、P1；01 已交付待 merge；07 进行中（部分解决，相位二 GL 引擎）；**03 已取消**、11 committed 相位二待启动）；**最大的开发 part 是产品本体**，但它的"编码"发生在 7.24 后的平台对话里，源代码=需求包+迁移资产包（Hermes 主线，不外包）。
 
 ## 四、看板
 
@@ -103,8 +106,9 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | [HERMES-04 平台上下文字段级测绘](HERMES-04-context-matrix.md) | 人+AI | **P0**（7.24 唯一窗口） | 清单即备，7.24 执行 | 待领 | [#19](https://github.com/Suaiii/LIGHTCHASER/issues/19) | agents_output/06/*新增 |
 | [HERMES-05 出片场景扩展先导](HERMES-05-scene-expansion.md) | 混合 | P2（用户定调：不急） | 设计 7.16–7.20 | 待领 | [#20](https://github.com/Suaiii/LIGHTCHASER/issues/20) | agents_output/01/*（schema 设计稿新增，不改 spots.v1.json 主体） |
 | [HERMES-06 原型收尾包（06a 有效/06b 冻结）](HERMES-06-proto-polish.md) | AI | P1 | 7.15–7.19（#29 合入起） | **已被 Suaiii 领取**（拆单已发 #21 评论） | [#21](https://github.com/Suaiii/LIGHTCHASER/issues/21) | public/app.jsx, public/subpanels.jsx（06a 只碰 QuickShoot/P1 区段）, public/追·光.html |
-| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中 | #15(PR) | public/light-map-gl.jsx |
-| [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中 | #15 后续 | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
+| 3D 真机楼消失（存量，交接文档制） | AI | P0 | 进行中 | 进行中（PR #15 已合并，收尾并入 HERMES-07） | — | public/light-map-gl.jsx |
+| [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中（部分解决，相位二 GL 引擎） | [#22](https://github.com/Suaiii/LIGHTCHASER/issues/22) | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
+| [HERMES-08 历史爆发日回测](HERMES-08-history-backtest.md) | 混合（H2 日期 + AI 回测） | P1（叙事硬证据） | A 7.15–7.18 / B 7.18–7.20 | 待领 | [#23](https://github.com/Suaiii/LIGHTCHASER/issues/23) | agents_output/02/burst_days.v1.json, checks/backtest_history.* （新增，引擎零改动） |
 | [HERMES-09 迁移资产包（五包，开箱即传）](HERMES-09-migration-kit.md) | 混合 | **P0**（7.23 Gate 0 硬截止） | 7.15–7.22 | 待领（§2c 有 7.15 条件增补） | [#25](https://github.com/Suaiii/LIGHTCHASER/issues/25) | agents_output/09/*（全新增） |
 | [HERMES-10 板块二融合：地图照片气泡社区层（提案制）](HERMES-10-photo-map-community.md) | AI | **P0**（三板块整合主载体） | p1: 7.15–7.18 / p2: 7.18–7.21 | 待领（p2 有闸门） | [#31](https://github.com/Suaiii/LIGHTCHASER/issues/31) | p1: agents_output/10/*；p2: public/subpanels.jsx(SceneCommunity/地图区段), app.jsx（#29 合入→06a→本任务 rebase） |
 | HERMES-11 板块二 GL 招牌：3D 光影地图上移植气泡层（相位二·committed D-e） | AI | P1（招牌，相位二） | 待相位一 2D 稳 + HERMES-07 结案后成书 | committed（待启动） | 待开 | public/light-map-gl.jsx |
