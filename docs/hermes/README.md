@@ -80,9 +80,10 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | 弹药 | 出片场景扩展（schema+泛化筛选设计） | 待领（设计稿先行） | HERMES-05 |
 | 原型 | 步行导航走反路根治 | ✅ PR #28 验收 6/6 过，待终审 merge | HERMES-01 |
 | 原型 | **板块二融合：地图照片气泡社区层** | **待领（P0，phase1 立即可开工）** | HERMES-10 |
-| 原型 | 3D 楼群消失（真机）+ WebGL 恢复 | 进行中 | `docs/3d光影地图-交接文档.md` + HERMES-07 |
-| 原型 | 3D 光域高亮"哪里有光" | 排队（等上行结案） | HERMES-03 |
-| 原型 | P1 前5秒 / P4 相机收尾（06a 可领；06b P3 冻结待拍板；先等 PR #29 合入） | 待领（开发） | HERMES-06 |
+| 原型 | 3D 楼群消失（真机）+ WebGL 恢复 | 进行中（⚠️ 与 D2"光影搁置"关系待负责人裁，见 product-arch-v3 §6 张力） | `docs/3d光影地图-交接文档.md` + HERMES-07 |
+| 原型 | GL 3D 招牌+气泡（争取目标） | backlog（光影搁置中） | HERMES-11 |
+| 原型 | ~~3D 光域高亮~~ | **取消（7.15 D-c）** | HERMES-03 |
+| 原型 | P1 前5秒 / P4 相机收尾（06a 可领；06b P3 取消；先等 PR #29 合入） | 待领（开发） | HERMES-06 |
 | 平台 | 上下文字段级测绘 | 7.24 执行（人） | HERMES-04 |
 | 平台 | **迁移资产包（数据/设计/动效/提示词/Skill 五包，开箱即传）** | **待领（P0，7.23 硬截止）** | HERMES-09 |
 | 平台 | **需求包 = 产品本体的"源代码"** | Hermes+决策者结对中（7.14–7.22） | `Thoughts/AGENT_05_Vibecoding需求包.md` |
@@ -90,7 +91,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | 叙事 | 路演脚本 / 海报 / 商业延展 | Hermes 起草（7.15–7.27） | `Thoughts/AGENT_08_*` |
 | 人工 | 外联回收（发送 7.13 已开始）/ 可颂链接 / 7.28 实拍 / 盲评 / PR#8 | 人工池 | [#26 残留追踪](https://github.com/Suaiii/LIGHTCHASER/issues/26) |
 
-> 一句话回答"开发 part 有哪些"：**现在可领 = 02 / 06a / 09 / 10 四个**（09 混合受众、7.23 硬截止；10 phase1 立即可开工且 7.18 前要出 photos schema 喂 09；01 已交付待 merge；07 进行中、03 等拍板）；**最大的开发 part 是产品本体**，但它的"编码"发生在 7.24 后的平台对话里，源代码=需求包+迁移资产包（Hermes 主线，不外包）。
+> 一句话回答"开发 part 有哪些"：**现在可领 = 02 / 06a / 09 / 10 四个**（09 混合受众、7.23 硬截止；10 phase1 立即可开工且 7.18 前要出 photos schema 喂 09；01 已交付待 merge；07 进行中但受"光影搁置"影响待裁；**03 已取消**、11 backlog）；**最大的开发 part 是产品本体**，但它的"编码"发生在 7.24 后的平台对话里，源代码=需求包+迁移资产包（Hermes 主线，不外包）。
 
 ## 四、看板
 
@@ -98,7 +99,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 |---|---|---|---|---|---|---|
 | [HERMES-01 导航走反路根治](HERMES-01-routing-foot.md) | AI | **P0**（演示可信度） | 7.14–7.17 | ✅ PR #28 验收 6/6，待终审 merge | [#16](https://github.com/Suaiii/LIGHTCHASER/issues/16) | lib/route-service.js, api/route.js, docs/page_specs.md(P2节) |
 | [HERMES-02 晚霞算法置信度+多源+竞品对标](HERMES-02-confidence.md) | AI | **P0**（AI×产品 15%+叙事弹药） | 7.15–7.20 | 待领 | [#17](https://github.com/Suaiii/LIGHTCHASER/issues/17) | api/sunset.js, lib/sunset-service.js, agents_output/02/checks/*新增 |
-| [HERMES-03 3D 光域高亮层（提案制）](HERMES-03-light-zone.md) | AI | P1（排队：3D 真机消失结案后） | 7.18–7.22 | 排队 | [#18](https://github.com/Suaiii/LIGHTCHASER/issues/18) | public/light-map-gl.jsx（**当前被 3D 存量任务占用**） |
+| ~~HERMES-03 3D 光域高亮层~~ | AI | — | — | **取消（7.15 D-c：见光点效果糟糕删除）** | [#18](https://github.com/Suaiii/LIGHTCHASER/issues/18) | — |
 | [HERMES-04 平台上下文字段级测绘](HERMES-04-context-matrix.md) | 人+AI | **P0**（7.24 唯一窗口） | 清单即备，7.24 执行 | 待领 | [#19](https://github.com/Suaiii/LIGHTCHASER/issues/19) | agents_output/06/*新增 |
 | [HERMES-05 出片场景扩展先导](HERMES-05-scene-expansion.md) | 混合 | P2（用户定调：不急） | 设计 7.16–7.20 | 待领 | [#20](https://github.com/Suaiii/LIGHTCHASER/issues/20) | agents_output/01/*（schema 设计稿新增，不改 spots.v1.json 主体） |
 | [HERMES-06 原型收尾包（06a 有效/06b 冻结）](HERMES-06-proto-polish.md) | AI | P1 | 7.15–7.19（#29 合入起） | **已被 Suaiii 领取**（拆单已发 #21 评论） | [#21](https://github.com/Suaiii/LIGHTCHASER/issues/21) | public/app.jsx, public/subpanels.jsx（06a 只碰 QuickShoot/P1 区段）, public/追·光.html |
@@ -106,7 +107,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | [HERMES-07 GL 楼群消失捕获与动画恢复](HERMES-07-webgl-recovery.md) | AI | **P0** | 7.14 起 | 进行中 | #15 后续 | public/light-map-gl.jsx, scripts/e2e/webgl-recovery.mjs |
 | [HERMES-09 迁移资产包（五包，开箱即传）](HERMES-09-migration-kit.md) | 混合 | **P0**（7.23 Gate 0 硬截止） | 7.15–7.22 | 待领（§2c 有 7.15 条件增补） | [#25](https://github.com/Suaiii/LIGHTCHASER/issues/25) | agents_output/09/*（全新增） |
 | [HERMES-10 板块二融合：地图照片气泡社区层（提案制）](HERMES-10-photo-map-community.md) | AI | **P0**（三板块整合主载体） | p1: 7.15–7.18 / p2: 7.18–7.21 | 待领（p2 有闸门） | [#31](https://github.com/Suaiii/LIGHTCHASER/issues/31) | p1: agents_output/10/*；p2: public/subpanels.jsx(SceneCommunity/地图区段), app.jsx（#29 合入→06a→本任务 rebase） |
-| HERMES-11 板块二 GL 整合：3D 光影地图上移植气泡层（占位，待成书） | AI | P1（Gate 1 GL 演示形态所需，见 D-e） | 待 03/07 结案后 | 占位（未成书） | 待开 | public/light-map-gl.jsx |
+| HERMES-11 板块二 GL 招牌：3D 光影地图上移植气泡层（backlog·争取目标 D-e） | AI | 争取（GL 招牌，非近期路径） | 待光影解锁后成书 | backlog（光影搁置中，见 decisions GL 张力） | 待开 | public/light-map-gl.jsx |
 
 > 状态由 Hermes 维护；工作者只改任务书内自己的"状态"行 + issue 评论。
 
