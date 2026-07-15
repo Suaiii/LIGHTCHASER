@@ -1,8 +1,14 @@
 # HERMES-06 ｜ 原型收尾包：P1 前5秒违规修复 + P3 打磨 + P4 相机 HTTPS
 
+> **⚠️ 7.15 拆单增补（三板块整合，全案见 `docs/hermes/product-arch-v3.md`）**：
+> ①本任务拆为 **06a＝目标 1（P1 前 5 秒）+ 目标 3（P4 HTTPS），立即有效**；**06b＝目标 2（P3 打磨）→ 取消**（D-b 按建议"重排"推进：P3「社区」列并入板块二地图气泡层，由 HERMES-10 承接，无独立 P3 可打磨；如负责人改判"不重排"再解冻）。
+> ②**开工顺序前置**：PR #29（AI 相机并入 P4，+881/-328，重写 SceneQuickShoot）与本任务占用文件完全重叠——**先等 #29 终审合入 main 再开工并 rebase**，否则必起实质冲突。与 HERMES-10 p2 同动 subpanels.jsx，**按区段划界**：06a 只碰 QuickShoot/P1 区段、10-p2 只碰 SceneCommunity/地图区段；顺序 #29 合入 → 06a → 10-p2 接管 rebase。
+> ③背景修正：§1 的 P4 描述（"QuickShoot 已实现 getUserMedia+CSS 滤镜"）在 #29 合入后过时——新现状=CameraSession 共享会话+LUT 真渲染成像+23 套滤镜抽屉，HTTPS 真机路径仍缺（#29 自列人工项），**目标 3 照做且是 #29 的直接补位**。
+> ④DoD 口径注记：「四页横滑无回归」在列结构重排（D-b）前照旧执行；重排后口径由 Hermes 更新。
+
 - **受众**：AI 编码代理
-- **状态**：待领
-- **时间窗**：7.15–7.19
+- **状态**：待领（06a 可领；06b 冻结）
+- **时间窗**：7.15–7.19（06a；以 #29 合入为起点顺延）
 - **占用文件**：`public/app.jsx`、`public/subpanels.jsx`、`public/追·光.html`、`scripts/dev-preview.js`（仅 HTTPS 方案需要时）。**禁止触碰** `public/light-map-gl.jsx`（被 3D 存量任务占用）与 `public/legacy-v1/`（1.0 快照）。
 
 ## 0. 为什么做（对赛题的回答）

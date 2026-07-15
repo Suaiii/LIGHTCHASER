@@ -1,0 +1,16 @@
+K5 复核 · first_prompt v1.2.1（2026-07-14 深夜）
+口径：仅计中文汉字（CJK 统一表意文字），字母/数字/标点不计；逐块限额。
+脚本：CJK 正则逐节统计引用块行。
+
+PASS  R0-1 开场            279 / 300
+PASS  R0-2 建表 spots       59 / 120
+PASS  R0-3 建表 sun_events  73 / 120
+PASS  R0-3 备用（分片）      42 / 120
+PASS  R0-4 weather_daily   103 / 120
+PASS  R0-5 copy_corpus      75 / 120
+PASS  R0-6 user_prefs       52 / 120
+PASS  R0-7 挂规则           85 / 120
+PASS  R0-8 传参考           80 / 120
+PASS  R1 feed 卡           430 / 450
+
+10/10 全过。
