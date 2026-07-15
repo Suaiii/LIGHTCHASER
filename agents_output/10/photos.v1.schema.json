@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lightchaser.local/schemas/photos.v1.schema.json",
+  "title": "LIGHTCHASER photos.v1",
+  "description": "AGENT_10 地图照片气泡数据；外部照片授权与垫图来源由 consent_ref 区分。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "photos"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "agent",
+        "city",
+        "count",
+        "data_nature",
+        "time_basis",
+        "location_policy"
+      ],
+      "properties": {
+        "schema_version": { "type": "string", "const": "1.0" },
+        "agent": { "type": "string", "const": "AGENT_10" },
+        "city": { "type": "string", "const": "深圳" },
+        "count": { "type": "integer", "minimum": 20 },
+        "data_nature": { "type": "string", "minLength": 1 },
+        "time_basis": { "type": "string", "minLength": 1 },
+        "location_policy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "photos": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "spot_id",
+          "lat",
+          "lng",
+          "taken_at",
+          "image",
+          "author_name",
+          "caption",
+          "score_at_taken",
+          "credit",
+          "consent_ref",
+          "consent_scope",
+          "status"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^photo-[0-9]{3}$" },
+          "spot_id": {
+            "description": "可空；非空时引用 agents_output/01/spots.v1.json 的 spots.id。",
+            "anyOf": [
+              { "type": "string", "pattern": "^sz(?:w|s|e|c)-[0-9]{3}$" },
+              { "type": "null" }
+            ]
+          },
+          "lat": { "type": "number", "minimum": 22.4, "maximum": 22.9 },
+          "lng": { "type": "number", "minimum": 113.7, "maximum": 114.7 },
+          "taken_at": { "type": "string", "format": "date-time" },
+          "image": { "type": "string" },
+          "author_name": { "type": "string", "minLength": 1 },
+          "caption": { "type": "string", "minLength": 1 },
+          "score_at_taken": {
+            "anyOf": [
+              { "type": "number", "minimum": 0, "maximum": 100 },
+              { "type": "null" }
+            ]
+          },
+          "credit": { "type": "string" },
+          "consent_ref": { "type": "string" },
+          "consent_scope": {
+            "type": "string",
+            "enum": ["image_only", "location_ok", "feed_card_ok"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["已核", "待核", "垫图"]
+          }
+        },
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "properties": {
+                  "image": { "const": "" },
+                  "credit": { "const": "" },
+                  "consent_ref": { "const": "" }
+                }
+              },
+              {
+                "properties": {
+                  "image": { "minLength": 1 },
+                  "credit": { "minLength": 1 },
+                  "consent_ref": { "minLength": 1 }
+                }
+              }
+            ]
+          },
+          {
+            "if": {
+              "properties": { "consent_scope": { "const": "image_only" } },
+              "required": ["consent_scope"]
+            },
+            "then": {
+              "properties": {
+                "spot_id": { "type": "null" },
+                "lat": { "multipleOf": 0.01 },
+                "lng": { "multipleOf": 0.01 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "status": { "const": "垫图" } },
+              "required": ["status"]
+            },
+            "then": {
+              "properties": {
+                "image": { "pattern": "^placeholder://gradient/" },
+                "author_name": { "pattern": "示例数据" },
+                "consent_ref": { "pattern": "^internal-demo://AGENT_10/" }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
