@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = path.resolve(TEST_DIR, "../refresh_photo_times.mjs");
-const RUN_DATE = "2026-07-15";
+const RUN_DATE = "2026-07-16";
+const RUN_NOW = "2026-07-16T23:30:45+08:00";
 
 function fixture() {
   return {
@@ -25,8 +26,8 @@ function fixture() {
   };
 }
 
-function runRefresh(inputPath) {
-  return spawnSync(process.execPath, [SCRIPT_PATH, inputPath, "--date", RUN_DATE], {
+function runRefresh(inputPath, now = RUN_NOW) {
+  return spawnSync(process.execPath, [SCRIPT_PATH, inputPath, "--now", now], {
     encoding: "utf8",
   });
 }
@@ -80,4 +81,20 @@ test("is deterministic for the same run date and preserves every non-time field"
     assert.notEqual(refreshedTime, originalTime);
     assert.deepEqual(refreshedRest, originalRest);
   }
+});
+
+test("does not create future D0 timestamps when refreshed just after midnight", () => {
+  const earlyNow = "2026-07-16T00:05:00+08:00";
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hermes10-midnight-"));
+  const inputPath = path.join(tempDir, "photos.json");
+  fs.writeFileSync(inputPath, `${JSON.stringify(fixture(), null, 2)}\n`, "utf8");
+
+  const result = runRefresh(inputPath, earlyNow);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const after = JSON.parse(fs.readFileSync(inputPath, "utf8"));
+  const placeholders = after.photos.filter((photo) => photo.status === "垫图");
+  const today = placeholders.filter((photo) => photo.taken_at.startsWith(RUN_DATE));
+
+  assert.ok(today.length > 0, "today must remain non-empty after a midnight refresh");
+  assert.ok(placeholders.every((photo) => Date.parse(photo.taken_at) <= Date.parse(earlyNow)), "no refreshed timestamp may be in the future");
 });

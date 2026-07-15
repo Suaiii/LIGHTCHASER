@@ -1,20 +1,21 @@
 # AGENT_10 检查报告（HERMES-10 Phase 1）
 
-执行日期：2026-07-15 ｜ 范围：仅 `agents_output/10/**` ｜ 结论：Phase 1 数据与设计交付通过；Phase 2 未执行。
+执行日期：2026-07-16 ｜ 范围：仅 `agents_output/10/**` ｜ 结论：Phase 1 数据与设计交付通过；Phase 2 未执行。
 
 ## Phase 1 DoD
 
 | 条目 | 结论 | 证据 |
 |---|---|---|
-| `{meta,photos}` schema、snake_case、授权枚举与设计说明 | 通过 | `photos.v1.schema.json` + `photos_schema_design.md`；validator 同时检查 schema 必需字段和枚举 |
+| `{meta,photos}` schema、snake_case、授权枚举与设计说明 | 通过 | `photos.v1.schema.json` + `photos_schema_design.md`；validator 镜像 root/meta/photo 类型、常量、范围、格式、额外字段禁令与 allOf |
 | 种子不少于 20 条 | 通过 | 20 条，20 个不同 `spot_id`，单 spot 最大 1 条 |
 | validator 0 error | 通过 | `node agents_output/10/validate_photos.mjs`：`Errors: 0`、`Warnings: 0` |
 | credit / consent_ref / consent_scope / status 与 F6 | 通过 | 20/20 为明确团队生成渐变垫图；内部占位 URI、示例作者名、非真实 UGC credit、内部生成来源引用均非空 |
 | 抽 5 条坐标核 | 通过 | 五条均与 `agents_output/01/spots.v1.json` 完全相同；上游 `check_report_01.md` 已记录这些 spots 属于 25/25 OSM 深圳区县核验集合 |
 | 无静安寺素材映射深圳 | 通过 | 数据扫描 `jingansi_mapped=0`；20/20 `image` 均为 `placeholder://gradient/...`，没有真实照片 URL |
-| 时间再生成与真实时间保护 | 通过 | 垫图分布 D-7..D0；今天 3 条、本周 18 条；测试夹具中的 `已核/待核` 全记录保持不变 |
+| 时间再生成与真实时间保护 | 通过 | 默认按真实上海当前时刻生成；垫图分布 D-7..D0；今天 3 条、本周 18 条；拒绝未来；测试夹具中的 `已核/待核` 全记录保持不变 |
 | “今天/本周”集合不同 | 通过 | validator 输出 `今天: 3; 本周: 18` |
 | bubble_spec 恰好八节且有具体值 | 通过 | 标题扫描为 1–8 共 8 节；含 48/64/80px、聚合阈值、默认今天、sheet/平移、隐私、亮度、示例角标、三档降级 |
+| 真实照片授权不靠字符串放行 | 通过 | 7 项 validator 回归覆盖 row 存在性、示例行、已同意状态、凭证存在、图片/署名/机位/范围匹配；当前 row-1“已触达”明确失败 |
 | Phase 2 边界 | 未执行，符合本次范围 | 未修改 `public/**`；未实现气泡 UI、bottom-sheet、路线联动、三列改造、截图/录屏或 3 秒用户测试，不能声称 Phase 2 完成 |
 
 ## TDD 证据
@@ -52,19 +53,35 @@ tests 2
 pass 2
 fail 0
 
-$ node agents_output/10/refresh_photo_times.mjs agents_output/10/photos.v1.json --date 2026-07-15
-refresh_photo_times: date=2026-07-15 placeholders=20 today=3 real_unchanged=0
+$ node agents_output/10/refresh_photo_times.mjs agents_output/10/photos.v1.json
+refresh_photo_times: date=2026-07-16 placeholders=20 today=3 real_unchanged=0
 
 $ node agents_output/10/validate_photos.mjs
 记录数: 20
 引用 spot 数: 20; 单 spot 最大条数: 1
-时间基准: 2026-07-15; 今天: 3; 本周: 18
+时间基准: 2026-07-16; 今天: 3; 本周: 18
 Errors: 0
 Warnings: 0
 === PASS (0 error) ===
 ```
 
-时间测试的临时夹具包含 4 条垫图、1 条 `已核`、1 条 `待核`。第一项测试确认仅仅垫图时间进入 D-7..D0，后两条对象完全不变；第二项测试确认同一运行日重复生成文本完全相同，且垫图除 `taken_at` 外的字段不变。
+时间测试的临时夹具包含 4 条垫图、1 条 `已核`、1 条 `待核`。第一项测试确认仅仅垫图时间进入 D-7..D0，后两条对象完全不变；第二项确认同一 `--now` 重复生成完全相同；第三项在 00:05 运行，确认 D0 非空且所有时间不晚于 00:05。
+
+### 规格审查修复 RED / GREEN
+
+修复前先新增并运行审查回归：`test_refresh_photo_times.mjs` 为 0/3，`test_validate_photos.mjs` 为 0/7。失败原因分别是 `--now` 未实现，以及 validator 不识别 `--now/--ledger`、未产生预期时间/授权/schema 错误。
+
+修复后：
+
+```text
+$ node --test agents_output/10/checks/test_refresh_photo_times.mjs
+tests 3; pass 3; fail 0
+
+$ node --test agents_output/10/checks/test_validate_photos.mjs
+tests 7; pass 7; fail 0
+```
+
+授权测试使用临时 CSV 与临时凭证文件：完整匹配的 row-2 通过；仓库现有 row-1 因“示例行 + 已触达 + 无凭证 + 无显式授权范围”失败。实际 `agents_output/07/consent_ledger.csv` 未修改。
 
 ## 五条坐标证据
 
@@ -86,9 +103,15 @@ test:api passed; AI camera core tests passed
 
 $ git diff --check
 exit 0
+
+$ git diff --cached --check
+exit 0
+
+$ git diff --cached --name-only
+仅 agents_output/10/**
 ```
 
-最终提交前还需对暂存 diff 再运行一次 `git diff --cached --check`，并确认文件列表仅在 `agents_output/10/**`。
+以上暂存 diff 与范围检查已在本次提交前实际执行，不是待办项。
 
 ## Phase 2 明确未完成
 
