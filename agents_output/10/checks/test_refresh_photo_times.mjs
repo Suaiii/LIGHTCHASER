@@ -98,3 +98,34 @@ test("does not create future D0 timestamps when refreshed just after midnight", 
   assert.ok(today.length > 0, "today must remain non-empty after a midnight refresh");
   assert.ok(placeholders.every((photo) => Date.parse(photo.taken_at) <= Date.parse(earlyNow)), "no refreshed timestamp may be in the future");
 });
+
+test("rejects duplicate placeholder ids before writing and leaves the file byte-identical", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hermes10-duplicate-id-"));
+  const inputPath = path.join(tempDir, "photos.json");
+  const data = fixture();
+  data.photos[1].id = data.photos[0].id;
+  const before = `${JSON.stringify(data, null, 4)}\n`;
+  fs.writeFileSync(inputPath, before, "utf8");
+
+  const result = runRefresh(inputPath);
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}${result.stderr}`, /垫图 id 重复: photo-001/);
+  assert.equal(fs.readFileSync(inputPath, "utf8"), before);
+  assert.deepEqual(fs.readdirSync(tempDir), ["photos.json"]);
+});
+
+test("rejects malformed placeholder ids before writing", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hermes10-invalid-id-"));
+  const inputPath = path.join(tempDir, "photos.json");
+  const data = fixture();
+  data.photos[0].id = "bad-id";
+  const before = `${JSON.stringify(data, null, 2)}\n`;
+  fs.writeFileSync(inputPath, before, "utf8");
+
+  const result = runRefresh(inputPath);
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}${result.stderr}`, /垫图 id 格式错误: bad-id/);
+  assert.equal(fs.readFileSync(inputPath, "utf8"), before);
+});

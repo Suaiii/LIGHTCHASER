@@ -15,7 +15,10 @@
 | 时间再生成与真实时间保护 | 通过 | 默认按真实上海当前时刻生成；垫图分布 D-7..D0；今天 3 条、本周 18 条；拒绝未来；测试夹具中的 `已核/待核` 全记录保持不变 |
 | “今天/本周”集合不同 | 通过 | validator 输出 `今天: 3; 本周: 18` |
 | bubble_spec 恰好八节且有具体值 | 通过 | 标题扫描为 1–8 共 8 节；含 48/64/80px、聚合阈值、默认今天、sheet/平移、隐私、亮度、示例角标、三档降级 |
-| 真实照片授权不靠字符串放行 | 通过 | 7 项 validator 回归覆盖 row 存在性、示例行、已同意状态、凭证存在、图片/署名/机位/范围匹配；当前 row-1“已触达”明确失败 |
+| 真实照片授权不靠字符串放行 | 通过 | 专项回归覆盖 row 存在性、示例行、已同意状态、凭证存在、图片/署名/机位/范围匹配；当前 row-1“已触达”明确失败 |
+| 台账与凭证边界 | 通过 | BOM/CRLF/quoted comma 正例；重复/空/非正整数行号、绝对/穿越/越出 consents/、错误扩展、作者/图片/机位不匹配均有负例 |
+| 时间刷新写入安全 | 通过 | 重复/坏 id 在写入前失败且原文件字节不变；生成后复核时间集合；同目录临时文件 + 原子 rename，异常清理 |
+| schema 合同未被弱化 | 通过 | `--schema` 注入变异覆盖 meta required、minItems、范围、pattern、allOf，全部按预期失败 |
 | Phase 2 边界 | 未执行，符合本次范围 | 未修改 `public/**`；未实现气泡 UI、bottom-sheet、路线联动、三列改造、截图/录屏或 3 秒用户测试，不能声称 Phase 2 完成 |
 
 ## TDD 证据
@@ -82,6 +85,19 @@ tests 7; pass 7; fail 0
 ```
 
 授权测试使用临时 CSV 与临时凭证文件：完整匹配的 row-2 通过；仓库现有 row-1 因“示例行 + 已触达 + 无凭证 + 无显式授权范围”失败。实际 `agents_output/07/consent_ledger.csv` 未修改。
+
+### 质量审查第二轮 RED / GREEN
+
+实现前分四组运行：台账/凭证组 2/5 通过、3/5 失败；refresh 新增用例 0/2；schema 变异 0/1；CLI 1/2。失败分别证明重复/非法 row 会被忽略或覆盖、凭证路径可越界、坏/重复 id 会写回、`--schema` 不存在且 validator 会吐堆栈。
+
+最小修复后全量专项结果：
+
+```text
+$ node --test agents_output/10/checks/test_refresh_photo_times.mjs agents_output/10/checks/test_validate_photos.mjs agents_output/10/checks/test_cli_errors.mjs
+tests 20; pass 20; fail 0
+```
+
+成功授权 fixture 使用真实 1×1 PNG；凭证校验覆盖相对路径、`consents/` realpath、扩展名、非空与图片签名。schema 检查对约束做精确比较（忽略说明性 `description`），报告不把未覆盖项写成通过。
 
 ## 五条坐标证据
 

@@ -46,6 +46,65 @@ function timeFromSecondOfDay(secondOfDay) {
   return [hour, minute, second].map((value) => String(value).padStart(2, "0")).join(":");
 }
 
+function requireOptionValue(argv, index, option) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${option} 缺少值`);
+  return value;
+}
+
+function dayNumber(dateText) {
+  const [year, month, day] = dateText.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+function validatePlaceholderIds(photos) {
+  const seen = new Set();
+  for (const photo of photos.filter((item) => item?.status === "垫图")) {
+    if (typeof photo.id !== "string" || !/^photo-\d{3}$/.test(photo.id)) {
+      throw new Error(`垫图 id 格式错误: ${photo.id}`);
+    }
+    if (seen.has(photo.id)) throw new Error(`垫图 id 重复: ${photo.id}`);
+    seen.add(photo.id);
+  }
+}
+
+function validateRefreshedTimes(data, now, runDate) {
+  const basisDay = dayNumber(runDate);
+  const today = new Set();
+  const week = new Set();
+  for (const photo of data.photos.filter((item) => item?.status === "垫图")) {
+    const timestamp = Date.parse(photo.taken_at);
+    if (!Number.isFinite(timestamp)) throw new Error(`垫图 taken_at 非法: ${photo.id}`);
+    if (timestamp > now.getTime()) throw new Error(`垫图 taken_at 晚于当前时刻: ${photo.id}`);
+    const photoDate = shanghaiParts(new Date(timestamp)).date;
+    const ageDays = basisDay - dayNumber(photoDate);
+    if (ageDays < 0 || ageDays > 7) throw new Error(`垫图 taken_at 不在 D-7..D0: ${photo.id}`);
+    if (ageDays === 0) today.add(photo.id);
+    if (ageDays <= 6) week.add(photo.id);
+  }
+  if (today.size === 0) throw new Error("刷新后“今天”集合为空");
+  if (week.size === 0) throw new Error("刷新后“本周”集合为空");
+  if (today.size === week.size && [...today].every((id) => week.has(id))) {
+    throw new Error("刷新后“今天/本周”集合相同");
+  }
+}
+
+function writeJsonAtomically(inputPath, data) {
+  const directory = path.dirname(inputPath);
+  const tempPath = path.join(directory, `.${path.basename(inputPath)}.${process.pid}.${Date.now()}.tmp`);
+  try {
+    fs.writeFileSync(tempPath, `${JSON.stringify(data, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    fs.renameSync(tempPath, inputPath);
+  } catch (error) {
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {
+      // Keep the original error; cleanup failure must not hide the write failure.
+    }
+    throw error;
+  }
+}
+
 function parseArgs(argv) {
   let inputPath = path.join(ROOT, "photos.v1.json");
   let now = new Date();
@@ -54,10 +113,10 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--now") {
-      now = parseNow(argv[index + 1]);
+      now = parseNow(requireOptionValue(argv, index, argument));
       index += 1;
     } else if (argument === "--date") {
-      explicitDate = argv[index + 1];
+      explicitDate = requireOptionValue(argv, index, argument);
       parseDate(explicitDate);
       index += 1;
     } else if (argument.startsWith("--")) {
@@ -79,6 +138,7 @@ export function refreshPlaceholderTimes(data, nowValue = new Date()) {
   const now = nowValue instanceof Date ? nowValue : parseNow(nowValue);
   if (!Number.isFinite(now.getTime())) throw new Error(`now 非法: ${nowValue}`);
   if (!data || !Array.isArray(data.photos)) throw new Error("输入必须包含 photos 数组");
+  validatePlaceholderIds(data.photos);
 
   const runDate = shanghaiParts(now).date;
   const placeholderIds = data.photos
@@ -92,7 +152,7 @@ export function refreshPlaceholderTimes(data, nowValue = new Date()) {
   const nowParts = shanghaiParts(now);
   const nowSecondOfDay = nowParts.hour * 3600 + nowParts.minute * 60 + nowParts.second;
 
-  return {
+  const refreshed = {
     ...data,
     photos: data.photos.map((photo) => {
       if (photo?.status !== "垫图") return photo;
@@ -107,13 +167,15 @@ export function refreshPlaceholderTimes(data, nowValue = new Date()) {
       };
     }),
   };
+  validateRefreshedTimes(refreshed, now, runDate);
+  return refreshed;
 }
 
 function main() {
   const { inputPath, now, runDate } = parseArgs(process.argv.slice(2));
   const original = JSON.parse(fs.readFileSync(inputPath, "utf8"));
   const refreshed = refreshPlaceholderTimes(original, now);
-  fs.writeFileSync(inputPath, `${JSON.stringify(refreshed, null, 2)}\n`, "utf8");
+  writeJsonAtomically(inputPath, refreshed);
 
   const placeholders = refreshed.photos.filter((photo) => photo.status === "垫图");
   const todayCount = placeholders.filter((photo) => photo.taken_at.startsWith(runDate)).length;

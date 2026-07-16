@@ -1,6 +1,7 @@
-// AGENT_10 照片种子校验；用法: node agents_output/10/validate_photos.mjs [photos.json] [--now ISO] [--ledger CSV]
+// AGENT_10 照片种子校验；用法: node agents_output/10/validate_photos.mjs [photos.json] [--now ISO] [--ledger CSV] [--schema JSON]
 import fs from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -98,15 +99,85 @@ function readConsentLedger(filePath, errors) {
       if (!headers.includes(header)) errors.push(`授权台账缺列: ${header}`);
     }
     const ledger = new Map();
-    for (const values of rows.slice(1)) {
+    for (const [rowIndex, values] of rows.slice(1).entries()) {
       const entry = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
       const rowNumber = String(entry["行号"] || "").trim();
-      if (rowNumber) ledger.set(rowNumber, entry);
+      if (!/^[1-9]\d*$/.test(rowNumber)) {
+        errors.push(`授权台账行号须为正整数: CSV第${rowIndex + 2}行值=${rowNumber || "空"}`);
+        continue;
+      }
+      if (ledger.has(rowNumber)) {
+        errors.push(`授权台账行号重复: ${rowNumber}`);
+        continue;
+      }
+      ledger.set(rowNumber, entry);
     }
     return ledger;
   } catch (error) {
     errors.push(`授权台账无法读取或解析: ${error.message}`);
     return new Map();
+  }
+}
+
+function isPathInside(rootPath, candidatePath) {
+  const relative = path.relative(rootPath, candidatePath);
+  return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
+function hasImageSignature(filePath, extension) {
+  const bytes = fs.readFileSync(filePath);
+  if (bytes.length === 0) return false;
+  if (extension === ".png") {
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    return bytes.length >= signature.length && bytes.subarray(0, signature.length).equals(signature);
+  }
+  if (extension === ".jpg" || extension === ".jpeg") {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  return bytes.length >= 12
+    && bytes.subarray(0, 4).toString("ascii") === "RIFF"
+    && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+}
+
+function validateProofPath(proofPath, ledgerPath, tag, errors) {
+  if (path.isAbsolute(proofPath)) {
+    errors.push(`${tag} 授权凭证路径必须为相对路径`);
+    return;
+  }
+  if (proofPath.split(/[\\/]+/).includes("..")) {
+    errors.push(`${tag} 授权凭证路径禁止包含 ..`);
+    return;
+  }
+  const extension = path.extname(proofPath).toLowerCase();
+  if (![".png", ".jpg", ".jpeg", ".webp"].includes(extension)) {
+    errors.push(`${tag} 授权凭证扩展名必须为 png/jpg/jpeg/webp`);
+    return;
+  }
+
+  const ledgerDir = path.dirname(ledgerPath);
+  const consentsDir = path.resolve(ledgerDir, "consents");
+  const candidate = path.resolve(ledgerDir, proofPath);
+  if (!isPathInside(consentsDir, candidate)) {
+    errors.push(`${tag} 授权凭证必须位于台账目录的 consents/ 内`);
+    return;
+  }
+
+  try {
+    const realLedgerDir = fs.realpathSync(ledgerDir);
+    const realConsentsDir = fs.realpathSync(consentsDir);
+    const realCandidate = fs.realpathSync(candidate);
+    if (!isPathInside(realLedgerDir, realConsentsDir) || !isPathInside(realConsentsDir, realCandidate)) {
+      errors.push(`${tag} 授权凭证 realpath 越出台账 consents/ 目录`);
+      return;
+    }
+    const stat = fs.statSync(realCandidate);
+    if (!stat.isFile()) {
+      errors.push(`${tag} 授权凭证不是文件: ${proofPath}`);
+      return;
+    }
+    if (!hasImageSignature(realCandidate, extension)) errors.push(`${tag} 授权凭证为空或图片签名不匹配: ${proofPath}`);
+  } catch {
+    errors.push(`${tag} 授权凭证不存在: ${proofPath}`);
   }
 }
 
@@ -177,29 +248,126 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function sameStringSet(actual, expected) {
+  return Array.isArray(actual)
+    && actual.length === expected.length
+    && expected.every((value) => actual.includes(value));
+}
+
+function samePropertyNames(actual, expected) {
+  return isPlainObject(actual) && sameStringSet(Object.keys(actual), expected);
+}
+
+function removeSchemaDescriptions(value) {
+  if (Array.isArray(value)) return value.map(removeSchemaDescriptions);
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== "description")
+      .map(([key, nestedValue]) => [key, removeSchemaDescriptions(nestedValue)]),
+  );
+}
+
+function matchesContract(actual, expected) {
+  return isDeepStrictEqual(removeSchemaDescriptions(actual), expected);
+}
+
 function checkSchema(schema, errors) {
   if (!schema) return;
-  const photoSchema = schema?.properties?.photos?.items;
-  const schemaRequired = new Set(photoSchema?.required || []);
-  const consentEnum = photoSchema?.properties?.consent_scope?.enum || [];
-  const statusEnum = photoSchema?.properties?.status?.enum || [];
-
+  const metaSchema = schema?.properties?.meta;
+  const photosSchema = schema?.properties?.photos;
+  const photoSchema = photosSchema?.items;
   if (schema.type !== "object") errors.push("schema 根节点 type 必须为 object");
   if (schema.additionalProperties !== false) errors.push("schema 根节点 additionalProperties 必须为 false");
-  for (const key of ["meta", "photos"]) {
-    if (!schema.required?.includes(key)) errors.push(`schema 根节点 required 缺 ${key}`);
+  if (!sameStringSet(schema.required, ["meta", "photos"])) errors.push("schema 根节点 required 必须恰含 meta,photos");
+  if (!samePropertyNames(schema.properties, ["meta", "photos"])) errors.push("schema 根节点 properties 必须恰含 meta,photos");
+
+  if (metaSchema?.type !== "object") errors.push("schema meta type 必须为 object");
+  if (metaSchema?.additionalProperties !== false) errors.push("schema meta additionalProperties 必须为 false");
+  if (!sameStringSet(metaSchema?.required, META_REQUIRED)) errors.push("schema meta.required 必须恰含全部 meta 字段");
+  if (!samePropertyNames(metaSchema?.properties, META_REQUIRED)) errors.push("schema meta.properties 必须恰含全部 meta 字段");
+
+  const metaContracts = {
+    schema_version: { type: "string", const: "1.0" },
+    agent: { type: "string", const: "AGENT_10" },
+    city: { type: "string", const: "深圳" },
+    count: { type: "integer", minimum: 20 },
+    data_nature: { type: "string", minLength: 1 },
+    time_basis: { type: "string", minLength: 1 },
+    location_policy: { type: "string", minLength: 1 },
+  };
+  for (const [field, contract] of Object.entries(metaContracts)) {
+    if (!matchesContract(metaSchema?.properties?.[field], contract)) errors.push(`schema meta.${field} 定义不符合合同`);
   }
-  if (schema?.properties?.photos?.type !== "array") errors.push("schema photos 必须为 array");
-  if (schema?.properties?.meta?.additionalProperties !== false) errors.push("schema meta additionalProperties 必须为 false");
+
+  if (photosSchema?.type !== "array") errors.push("schema photos type 必须为 array");
+  if (photosSchema?.minItems !== 20) errors.push("schema photos.minItems 必须为 20");
+  if (photoSchema?.type !== "object") errors.push("schema photo type 必须为 object");
   if (photoSchema?.additionalProperties !== false) errors.push("schema photo additionalProperties 必须为 false");
-  for (const field of PHOTO_REQUIRED) {
-    if (!schemaRequired.has(field)) errors.push(`schema photo.required 缺 ${field}`);
+  if (!sameStringSet(photoSchema?.required, PHOTO_REQUIRED)) errors.push("schema photo.required 必须恰含全部 photo 字段");
+  if (!samePropertyNames(photoSchema?.properties, PHOTO_REQUIRED)) errors.push("schema photo.properties 必须恰含全部 photo 字段");
+
+  if (photoSchema?.properties?.id?.pattern !== "^photo-[0-9]{3}$") errors.push("schema photo.id pattern 不符合合同");
+  if (photoSchema?.properties?.lat?.minimum !== 22.4) errors.push("schema photo.lat minimum 必须为 22.4");
+  const photoContracts = {
+    id: { type: "string", pattern: "^photo-[0-9]{3}$" },
+    spot_id: {
+      anyOf: [
+        { type: "string", pattern: "^sz(?:w|s|e|c)-[0-9]{3}$" },
+        { type: "null" },
+      ],
+    },
+    lat: { type: "number", minimum: 22.4, maximum: 22.9 },
+    lng: { type: "number", minimum: 113.7, maximum: 114.7 },
+    taken_at: { type: "string", format: "date-time" },
+    image: { type: "string" },
+    author_name: { type: "string", minLength: 1 },
+    caption: { type: "string", minLength: 1 },
+    score_at_taken: {
+      anyOf: [
+        { type: "number", minimum: 0, maximum: 100 },
+        { type: "null" },
+      ],
+    },
+    credit: { type: "string" },
+    consent_ref: { type: "string" },
+    consent_scope: { type: "string", enum: [...CONSENT_SCOPES] },
+    status: { type: "string", enum: [...STATUSES] },
+  };
+  for (const [field, contract] of Object.entries(photoContracts)) {
+    if (!matchesContract(photoSchema?.properties?.[field], contract)) errors.push(`schema photo.${field} 定义不符合合同`);
   }
-  if (JSON.stringify(consentEnum) !== JSON.stringify([...CONSENT_SCOPES])) {
-    errors.push(`schema consent_scope 枚举错误: ${JSON.stringify(consentEnum)}`);
-  }
-  if (JSON.stringify(statusEnum) !== JSON.stringify([...STATUSES])) {
-    errors.push(`schema status 枚举错误: ${JSON.stringify(statusEnum)}`);
+
+  const allOfContracts = [
+    {
+      anyOf: [
+        { properties: { image: { const: "" }, credit: { const: "" }, consent_ref: { const: "" } } },
+        { properties: { image: { minLength: 1 }, credit: { minLength: 1 }, consent_ref: { minLength: 1 } } },
+      ],
+    },
+    {
+      if: { properties: { consent_scope: { const: "image_only" } }, required: ["consent_scope"] },
+      then: {
+        properties: {
+          spot_id: { type: "null" },
+          lat: { multipleOf: 0.01 },
+          lng: { multipleOf: 0.01 },
+        },
+      },
+    },
+    {
+      if: { properties: { status: { const: "垫图" } }, required: ["status"] },
+      then: {
+        properties: {
+          image: { pattern: "^placeholder://gradient/" },
+          author_name: { pattern: "示例数据" },
+          consent_ref: { pattern: "^internal-demo://AGENT_10/" },
+        },
+      },
+    },
+  ];
+  if (!matchesContract(photoSchema?.allOf, allOfContracts)) {
+    errors.push("schema photo.allOf 三个关键约束缺失或顺序错误");
   }
 }
 
@@ -227,12 +395,7 @@ function validateRealPhotoAuthorization(photo, tag, ledger, ledgerPath, errors) 
   if (!proofPath) {
     errors.push(`${tag} 授权凭证路径为空`);
   } else {
-    const resolvedProof = path.resolve(path.dirname(ledgerPath), proofPath);
-    try {
-      if (!fs.statSync(resolvedProof).isFile()) errors.push(`${tag} 授权凭证不是文件: ${proofPath}`);
-    } catch {
-      errors.push(`${tag} 授权凭证不存在: ${proofPath}`);
-    }
+    validateProofPath(proofPath, ledgerPath, tag, errors);
   }
 
   const ledgerImage = String(entry["图片链接"] || "").trim();
@@ -421,19 +584,23 @@ function validateData(data, spotsData, ledger, ledgerPath, now, explicitDate, er
 function parseArgs(argv) {
   let targetPath = path.join(ROOT, "photos.v1.json");
   let ledgerPath = path.resolve(ROOT, "../07/consent_ledger.csv");
+  let schemaPath = path.join(ROOT, "photos.v1.schema.json");
   let now = new Date();
   let explicitDate = null;
   let hasTargetPath = false;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--date") {
-      explicitDate = argv[index + 1];
+      explicitDate = requireOptionValue(argv, index, argument);
       index += 1;
     } else if (argument === "--now") {
-      now = parseNow(argv[index + 1]);
+      now = parseNow(requireOptionValue(argv, index, argument));
       index += 1;
     } else if (argument === "--ledger") {
-      ledgerPath = path.resolve(argv[index + 1]);
+      ledgerPath = path.resolve(requireOptionValue(argv, index, argument));
+      index += 1;
+    } else if (argument === "--schema") {
+      schemaPath = path.resolve(requireOptionValue(argv, index, argument));
       index += 1;
     } else if (argument.startsWith("--")) {
       throw new Error(`未知参数: ${argument}`);
@@ -443,29 +610,44 @@ function parseArgs(argv) {
       hasTargetPath = true;
     }
   }
-  return { targetPath, ledgerPath, now, explicitDate };
+  return { targetPath, ledgerPath, schemaPath, now, explicitDate };
 }
 
-const { targetPath, ledgerPath, now, explicitDate } = parseArgs(process.argv.slice(2));
-const errors = [];
-const warnings = [];
-const schema = readJson(path.join(ROOT, "photos.v1.schema.json"), "photos schema", errors);
-const data = readJson(targetPath, "photos data", errors);
-const spotsData = readJson(path.resolve(ROOT, "../01/spots.v1.json"), "spots data", errors);
-const ledger = data?.photos?.some((photo) => photo?.status !== "垫图")
-  ? readConsentLedger(ledgerPath, errors)
-  : new Map();
+function requireOptionValue(argv, index, option) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${option} 缺少值`);
+  return value;
+}
 
-checkSchema(schema, errors);
-const summary = validateData(data, spotsData, ledger, ledgerPath, now, explicitDate, errors, warnings);
+function main() {
+  const { targetPath, ledgerPath, schemaPath, now, explicitDate } = parseArgs(process.argv.slice(2));
+  const errors = [];
+  const warnings = [];
+  const schema = readJson(schemaPath, "photos schema", errors);
+  const data = readJson(targetPath, "photos data", errors);
+  const spotsData = readJson(path.resolve(ROOT, "../01/spots.v1.json"), "spots data", errors);
+  const ledger = data?.photos?.some((photo) => photo?.status !== "垫图")
+    ? readConsentLedger(ledgerPath, errors)
+    : new Map();
 
-console.log("=== validate_photos 结果 ===");
-console.log(`记录数: ${summary.photos.length}`);
-console.log(`引用 spot 数: ${summary.distinctSpots || 0}; 单 spot 最大条数: ${summary.maxPerSpot || 0}`);
-console.log(`时间基准: ${summary.basisDate || "无"}; 今天: ${summary.todayCount}; 本周: ${summary.weekCount}`);
-console.log(`Errors: ${errors.length}`);
-errors.forEach((error) => console.log(`  [ERROR] ${error}`));
-console.log(`Warnings: ${warnings.length}`);
-warnings.forEach((warning) => console.log(`  [WARN] ${warning}`));
-console.log(`=== ${errors.length ? "FAIL" : "PASS (0 error)"} ===`);
-process.exit(errors.length ? 1 : 0);
+  checkSchema(schema, errors);
+  const summary = validateData(data, spotsData, ledger, ledgerPath, now, explicitDate, errors, warnings);
+
+  console.log("=== validate_photos 结果 ===");
+  console.log(`记录数: ${summary.photos.length}`);
+  console.log(`引用 spot 数: ${summary.distinctSpots || 0}; 单 spot 最大条数: ${summary.maxPerSpot || 0}`);
+  console.log(`时间基准: ${summary.basisDate || "无"}; 今天: ${summary.todayCount}; 本周: ${summary.weekCount}`);
+  console.log(`Errors: ${errors.length}`);
+  errors.forEach((error) => console.log(`  [ERROR] ${error}`));
+  console.log(`Warnings: ${warnings.length}`);
+  warnings.forEach((warning) => console.log(`  [WARN] ${warning}`));
+  console.log(`=== ${errors.length ? "FAIL" : "PASS (0 error)"} ===`);
+  return errors.length ? 1 : 0;
+}
+
+try {
+  process.exitCode = main();
+} catch (error) {
+  console.error(`validate_photos ERROR: ${error.message}`);
+  process.exitCode = 1;
+}

@@ -15,7 +15,9 @@
 | `location_ok` | 可展示位置、署名和拍摄时间 | 禁止 |
 | `feed_card_ok` | 同 `location_ok` | 允许 |
 
-授权范围按 `image_only < location_ok < feed_card_ok` 递增。真实外部照片的非空 `consent_ref` 必须指向 `agents_output/07/consent_ledger.csv#row-N`；validator 会解析该行，并要求：不是示例行、`授权状态=已同意`、凭证路径非空且文件存在、图片链接一致、署名一致、机位一致，并从备注读取显式 `授权范围=<consent_scope>`。当前台账没有独立授权范围列，因此备注缺该键时保守失败；不会仅仅因为引用字符串形似 row-N 就放行。测试可用 `--ledger <csv>` 注入临时台账，不修改 AGENT_07 文件。团队生成垫图使用 `internal-demo://AGENT_10/<id>` 记录内部来源，不冒充外部授权。
+授权范围按 `image_only < location_ok < feed_card_ok` 递增。真实外部照片的非空 `consent_ref` 必须指向 `agents_output/07/consent_ledger.csv#row-N`；validator 会解析该行，并要求：行号为不重复的正整数、不是示例行、`授权状态=已同意`、图片链接一致、署名一致、机位一致，并从备注读取显式 `授权范围=<consent_scope>`。当前台账没有独立授权范围列，因此备注缺该键时保守失败；不会仅仅因为引用字符串形似 row-N 就放行。测试可用 `--ledger <csv>` 注入临时台账，不修改 AGENT_07 文件。团队生成垫图使用 `internal-demo://AGENT_10/<id>` 记录内部来源，不冒充外部授权。
+
+授权凭证路径必须是台账目录下 `consents/` 内的相对路径，禁止绝对路径和 `..`。validator 对目录和文件执行 `realpath`，防止符号链接越界；仅接受 `.png/.jpg/.jpeg/.webp`，并检查文件非空及对应图片签名。路径、扩展名或签名任一不合格即保守失败。
 
 ## 三件套与命名
 
@@ -30,6 +32,8 @@
 
 ## 时间再生成
 
-运行 `node agents_output/10/refresh_photo_times.mjs [photos.json]`；默认取真实当前时刻并换算为 `Asia/Shanghai`。测试或复算可注入 `--now <带时区 ISO>`；旧 `--date` 仅在与该当前时刻的上海日期一致时兼容，不能覆盖真实日期边界。脚本按稳定的 `id` 排序，把 `status=垫图` 分配到 D-7..D0；D0 时刻按运行时钟上限分配，凌晨运行也不会生成未来时间。同一 `--now` 重复运行结果相同。“今天”为 D0，“本周”为 D-6..D0，两档都非空且集合不同。脚本测试用 `已核/待核` 夹具证明真实记录的全部字段保持不变。
+运行 `node agents_output/10/refresh_photo_times.mjs [photos.json]`；默认取真实当前时刻并换算为 `Asia/Shanghai`。测试或复算可注入 `--now <带时区 ISO>`；旧 `--date` 仅在与该当前时刻的上海日期一致时兼容，不能覆盖真实日期边界。写入前，脚本拒绝格式错误或重复的垫图 id；生成后重新检查 D-7..D0、future、“今天/本周”非空且不同。所有检查通过后才把 JSON 写到输入文件同目录的临时文件，并用原子 rename 替换；异常时清理临时文件，原文件字节不变。脚本按稳定的 `id` 排序，D0 时刻不超过运行时钟，凌晨运行也不会生成未来时间。同一 `--now` 重复运行结果相同。脚本测试用 `已核/待核` 夹具证明真实记录的全部字段保持不变。
 
-validator 不引入 JSON Schema 依赖，但逐项镜像当前 schema：根/meta/photo 的对象或数组类型、`additionalProperties:false`、meta 常量与非空字段、数量、photo 字段类型/模式/范围/ISO 格式，以及三件套、`image_only` 和垫图三组 `allOf` 规则。变异测试覆盖 root/meta/photo 额外字段、错误常量、错误类型与空字符串。
+validator 不引入 JSON Schema 依赖，但逐项锁定当前 schema：root/meta/photo 的 `properties/required/additionalProperties`、`photos.minItems`、meta 常量与非空字段、每个 photo 字段的类型/模式/范围/ISO 格式，以及三件套、`image_only` 和垫图三组 `allOf` 规则。`--schema <json>` 仅供测试注入；变异测试覆盖缺 meta required、降低 minItems、修改范围/pattern/allOf，以及数据额外字段、错误常量、错误类型与空字符串。
+
+所有 CLI 选项都必须紧跟非 option 值；缺值、下一项仍是 option 或未知参数时，仅输出一行 `... ERROR:` 并以 1 退出，不输出堆栈。
