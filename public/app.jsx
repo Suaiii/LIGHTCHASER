@@ -473,6 +473,8 @@ function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
   const [index, setIndex] = useState({ row: 0, col: 0 }); // 默认从第一条视频进入
   const [publishedVideoMode, setPublishedVideoMode] = useState(false);
+  const cameraIntroPlayedRef = useRef(false);
+  const [cameraIntroVisible, setCameraIntroVisible] = useState(false);
   const [, force] = useState(0);
   const {
     payload: sunsetPayload,
@@ -544,7 +546,11 @@ function App() {
           ? <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />
           : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} lightTime={t.lightTime} />,
       () => <SceneCommunity sunsetPayload={displayPayload} />,
-      () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} active={index.row === 1 && index.col === 3} />,
+      () => <SceneQuickShoot
+        sunsetPayload={displayPayload}
+        publishedVideoMode={publishedVideoMode}
+        active={index.row === 1 && index.col === 3}
+      />,
     ],
     // Row 2: 蓝调时刻视频
     [() => <SceneNextVideo />],
@@ -582,6 +588,14 @@ function App() {
   const cur = feed[index.row];
   const inSunset = index.row === 1;
   const immersiveCamera = inSunset && index.col === 3;
+  useEffect(() => {
+    if (immersiveCamera && !cameraIntroPlayedRef.current) {
+      cameraIntroPlayedRef.current = true;
+      setCameraIntroVisible(true);
+    } else if (!immersiveCamera && cameraIntroVisible) {
+      setCameraIntroVisible(false);
+    }
+  }, [immersiveCamera, cameraIntroVisible]);
   const screenLabel = inSunset
     ? `0${index.row+1}.${index.col+1} ${rowLabels[index.row]} · ${colLabels[index.col]}`
     : `0${index.row+1} ${rowLabels[index.row]}`;
@@ -598,6 +612,10 @@ function App() {
             background: "#0a0a0d", overflow: "hidden",
           }}>
             <SwipeFeed feed={feed} index={index} setIndex={setIndex} />
+            {cameraIntroVisible && <CameraIntroPreview
+              active={immersiveCamera}
+              onFinished={() => setCameraIntroVisible(false)}
+            />}
 
             {/* Top tabs */}
             {t.showChrome && !immersiveCamera && (

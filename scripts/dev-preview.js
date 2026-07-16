@@ -22,6 +22,7 @@ const MIME_TYPES = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".mp4": "video/mp4",
+  ".webm": "video/webm",
   ".pdf": "application/pdf",
 };
 
@@ -33,8 +34,8 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload, null, 2));
 }
 
-function sendFile(res, filePath) {
-  fs.readFile(filePath, (error, content) => {
+function sendFile(req, res, filePath) {
+  fs.stat(filePath, (error, stat) => {
     if (error) {
       res.writeHead(error.code === "ENOENT" ? 404 : 500, {
         "Content-Type": "text/plain; charset=utf-8",
@@ -43,11 +44,38 @@ function sendFile(res, filePath) {
       return;
     }
 
+    const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+    const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
+    if (range) {
+      const suffixLength = !range[1] && range[2] ? Number(range[2]) : null;
+      const start = suffixLength === null ? Number(range[1]) : Math.max(stat.size - suffixLength, 0);
+      const end = suffixLength === null && range[2] ? Math.min(Number(range[2]), stat.size - 1) : stat.size - 1;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= stat.size) {
+        res.writeHead(416, { "Content-Range": `bytes */${stat.size}` });
+        res.end();
+        return;
+      }
+
+      res.writeHead(206, {
+        "Content-Type": contentType,
+        "Content-Length": end - start + 1,
+        "Content-Range": `bytes ${start}-${end}/${stat.size}`,
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-store",
+      });
+      if (req.method === "HEAD") res.end();
+      else fs.createReadStream(filePath, { start, end }).pipe(res);
+      return;
+    }
+
     res.writeHead(200, {
-      "Content-Type": MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream",
+      "Content-Type": contentType,
+      "Content-Length": stat.size,
+      "Accept-Ranges": "bytes",
       "Cache-Control": "no-store",
     });
-    res.end(content);
+    if (req.method === "HEAD") res.end();
+    else fs.createReadStream(filePath).pipe(res);
   });
 }
 
@@ -103,11 +131,11 @@ async function handleRequest(req, res) {
 
   fs.stat(staticPath, (error, stat) => {
     if (error) {
-      sendFile(res, INDEX_FILE);
+      sendFile(req, res, INDEX_FILE);
       return;
     }
 
-    sendFile(res, stat.isDirectory() ? INDEX_FILE : staticPath);
+    sendFile(req, res, stat.isDirectory() ? INDEX_FILE : staticPath);
   });
 }
 

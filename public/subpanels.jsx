@@ -1045,6 +1045,97 @@ function CameraReview({ photo, titles, selectedTitle, setSelectedTitle, tips, sp
   );
 }
 
+function CameraIntroPreview({ active, onFinished }) {
+  const [phase, setPhase] = useState("idle");
+  const videoRef = useRef(null);
+  const dismissedRef = useRef(false);
+  const fallbackTimerRef = useRef(null);
+  const fadeTimerRef = useRef(null);
+
+  function clearFallbackTimer() {
+    if (!fallbackTimerRef.current) return;
+    window.clearTimeout(fallbackTimerRef.current);
+    fallbackTimerRef.current = null;
+  }
+
+  function dismissIntro(immediate = false) {
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    clearFallbackTimer();
+    if (immediate) {
+      videoRef.current?.pause();
+      setPhase("hidden");
+      onFinished?.();
+      return;
+    }
+    setPhase("dismissing");
+    fadeTimerRef.current = window.setTimeout(() => {
+      videoRef.current?.pause();
+      setPhase("hidden");
+      onFinished?.();
+    }, 440);
+  }
+
+  useEffect(() => {
+    if (!active) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      dismissedRef.current = true;
+      setPhase("hidden");
+      onFinished?.();
+      return;
+    }
+    setPhase("visible");
+  }, [active]);
+
+  useEffect(() => {
+    if (phase !== "visible") return undefined;
+    const video = videoRef.current;
+    fallbackTimerRef.current = window.setTimeout(dismissIntro, 9000);
+    const playback = video?.play();
+    playback?.catch(() => dismissIntro());
+    return () => {
+      clearFallbackTimer();
+      video?.pause();
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    if (!active && (phase === "visible" || phase === "dismissing")) dismissIntro(true);
+  }, [active]);
+
+  useEffect(() => () => {
+    dismissedRef.current = true;
+    clearFallbackTimer();
+    if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
+    videoRef.current?.pause();
+  }, []);
+
+  if (phase === "idle" || phase === "hidden") return null;
+
+  return (
+    <section data-camera-intro="true" data-swipe-lock="true" aria-label="AI 相机效果预览" style={{
+      position: "absolute", inset: 0, zIndex: 40, overflow: "hidden",
+      display: "grid", placeItems: "center", background: "#050403",
+      opacity: phase === "dismissing" ? 0 : 1,
+      pointerEvents: phase === "dismissing" ? "none" : "auto",
+      transition: "opacity 420ms ease",
+    }}>
+      <video ref={videoRef} autoPlay muted playsInline preload="auto" onEnded={() => dismissIntro()} onError={() => dismissIntro()} style={{
+        display: "block", width: "100%", height: "100%", objectFit: "contain", background: "#050403",
+      }}>
+        <source src="/assets/ai-camera-intro.webm" type="video/webm" />
+        <source src="/assets/ai-camera-intro.mp4" type="video/mp4" />
+      </video>
+      <button type="button" onClick={() => dismissIntro()} aria-label="跳过启动动画" title="跳过" style={{
+        position: "absolute", top: "max(16px, env(safe-area-inset-top))", right: "max(16px, env(safe-area-inset-right))",
+        width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center",
+        border: "1px solid rgba(255,255,255,.28)", background: "rgba(5,4,3,.72)",
+        color: "rgba(255,255,255,.86)", backdropFilter: "blur(16px)", fontSize: 24, lineHeight: 1,
+      }}>×</button>
+    </section>
+  );
+}
+
 function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false, active = true }) {
   const context = buildGuidedCameraContext(sunsetPayload);
   const sessionFactory = window.LightchaserCameraSession;
@@ -1302,7 +1393,6 @@ function SceneQuickShoot({ sunsetPayload, publishedVideoMode = false, active = t
       <FullFilterDrawer open={drawerOpen} session={session} snapshot={snapshot} onSnapshot={setSnapshot} onClose={() => setDrawerOpen(false)} />
       <CameraReview photo={reviewOpen ? lastPhoto : null} titles={titles} selectedTitle={selectedTitle} setSelectedTitle={setSelectedTitle} tips={tips} spot={context.spot}
         onClose={() => setReviewOpen(false)} onPublish={() => window.dispatchEvent(new CustomEvent("guangbao:publishedVideo", { detail: true }))} />
-
       <style>{`
         @keyframes camera-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes camera-flash { from { opacity: 1; } to { opacity: 0; } }

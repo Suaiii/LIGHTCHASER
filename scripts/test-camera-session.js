@@ -115,6 +115,20 @@ function testQuickShootUsesFullCatalogDrawer() {
   assert(!source.includes("const QUICKSHOOT_FILTERS"), "P4 should not keep the old four-filter hard-coded strip");
 }
 
+function testQuickShootHasSessionScopedIntroPreview() {
+  const appSource = fs.readFileSync(path.join(__dirname, "../public/app.jsx"), "utf8");
+  const panelSource = fs.readFileSync(path.join(__dirname, "../public/subpanels.jsx"), "utf8");
+  assert(appSource.includes("cameraIntroPlayedRef = useRef(false)"), "App should own the once-per-page-session intro marker");
+  assert(appSource.includes("setCameraIntroVisible(true)"), "P4 should show its intro when the camera page first becomes active");
+  assert(appSource.includes("cameraIntroPlayedRef.current = true"), "P4 should consume the intro entitlement as soon as it becomes active");
+  assert(appSource.includes("onFinished={() => setCameraIntroVisible(false)}"), "P4 should release its stable overlay after dismissal");
+  assert(panelSource.includes("data-camera-intro=\"true\""), "P4 should expose a full-screen intro overlay");
+  assert(panelSource.includes("/assets/ai-camera-intro.webm"), "P4 should prefer the WebM intro source");
+  assert(panelSource.includes("/assets/ai-camera-intro.mp4"), "P4 should retain an MP4 fallback source");
+  assert(panelSource.includes("window.setTimeout(dismissIntro, 9000)"), "P4 intro should fail open after nine seconds");
+  assert(panelSource.includes("prefers-reduced-motion: reduce"), "P4 intro should honor reduced-motion preferences");
+}
+
 function run() {
   testGuidedSessionDefaultsToVisibleAI();
   testStandaloneSessionKeepsManualDefaults();
@@ -123,6 +137,7 @@ function run() {
   testSessionBuildsStableCapturePlan();
   testMainPrototypeLoadsSharedCameraModulesBeforeReactPanel();
   testQuickShootUsesFullCatalogDrawer();
+  testQuickShootHasSessionScopedIntroPreview();
   console.log("Camera session integration tests passed");
 }
 
