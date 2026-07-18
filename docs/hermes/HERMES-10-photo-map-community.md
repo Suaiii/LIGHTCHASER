@@ -4,7 +4,12 @@
 > ① **photos.score_at_taken 通用化**：从"拍摄时晚霞评分"改为**"此刻值得度"（可空、场景无关）**——晚霞评分只是其一路来源信号（差异化锋刃），非唯一。字段名保留 `score_at_taken`，语义在 schema 设计说明里改为通用。
 > ② **坐标红线放宽**：从"lat/lng 必须落深圳行政区"放宽为 **"演示单城可任选（深圳/上海皆可）、产品设计支持全国任意坐标"**；`photos` 自由散点模型本就全国就绪。**F6 红线保留**：静安寺（上海）素材禁赋深圳坐标仍是 Blocking 级（禁编造地点）——放宽的是"只能深圳"，不是"可以张冠李戴"。DoD 里"全部坐标落深圳"的反查改为"坐标与素材真实产地一致"。
 > ③ **demo 密度双分支**：本任务 seed 数据量取决于 HERMES-04 #13 探针——平台开放附近内容=少量兜底即可（真实密度白来）；拿不到=单城造密度。schema/气泡层两分支都要能承载，phase 2 演示态口径随 7.24 定档。
-> ④ **底座序**：v3"相位一 2D 先行"改为 GL 优先+2D 保底并行（见 HERMES-07/11）——但**本任务 phase 2 仍先在 2D Leaflet 版落地气泡**（保底、无 GL 依赖、可先出 demo），GL 版移植归 HERMES-11，两者不冲突。
+> ④ **底座序**：v3"相位一 2D 先行"改为 GL 优先+2D 保底并行（见 HERMES-07/11）——但**本任务 phase 2 仍先在 2D Leaflet 版落地气泡**（保底、无 GL 依赖、可先出 demo），GL 版移植归 HERMES-11，两者不冲突。**Campus 实机拆解（`campus-teardown.md`）证实其地图即纯 2D 矢量、非 3D GL——"Campus 感"在 2D Leaflet 上即可 100% 兑现，本任务 phase 2 就是那块拿得稳的招牌。**
+>
+> **⑤ Campus 实机拆解落地（7.19，[campus-teardown.md](campus-teardown.md) + `assets/campus/`）**：负责人提供真机截图+屏录，抄板焦点＝"地图 tab 效果"。三处增补进本任务规格：
+> - **§2.3 气泡视觉补第三形态「文字便签气泡」**：便利贴色块（桃/黄）、圆角、一句话闲聊/求助/问路（Campus 实证这是"此刻有活人在场"的关键，比纯照片更强的社区活人味；现原型 `NoteCard` 只有照片卡，便签为新增轻量 CSS 卡）。schema 侧：`caption`/`image` 已可承载"纯文字条目"（`image` 可空时即便签），设计说明须写明便签条目的字段取值。
+> - **§2.3 补建议项「朝向光锥定位标」**：蓝点 + 随手机朝向转动的扇形锥（苹果地图同款，Campus signature；低成本高观感，Leaflet `L.divIcon` 小改）。列为建议项非硬 DoD。
+> - **§2.3 第4节「点开半屏」补差异声明**：Campus 实录点气泡是**近全屏详情页**；本任务有意做**半屏 bottom-sheet 保持地图可见**（核心价值是把人留在"附近正在发生什么"的地图上，非逐帖深读）——**这是有意差异，实机对比时勿当遗漏**。
 
 - **受众**：AI 编码代理
 - **状态**：待领（phase 1 立即可开工；phase 2 有前置闸门，见 §6）
@@ -42,10 +47,10 @@
 - 种子分布须均匀或按真实授权照片实际分布撒布，**不得刻意把种子密度堆成"今晚爆点"误导评委**（角标数/尺寸档位在演示数据下属演示态信号，与"N 位在线"伪造同禁，见 §5）。
 
 **2.3 交互规格书** `bubble_spec.md`，八节：
-1. 气泡视觉（照片缩略图封面+数字角标聚合，尺寸 3 档 48/64/80px 编码热度，参照 product-arch-v3 §3 范式表）；
+1. 气泡视觉（**三形态**：a 照片/视频缩略图封面卡[白边微倾拍立得质感]，b **文字便签卡**[便利贴色块桃/黄、圆角、一句话，`image` 空时走此形态]，c 数字角标聚合簇；照片卡尺寸 3 档 48/64/80px 编码热度，参照 product-arch-v3 §3 范式表 + `campus-teardown.md` §2.2）；**另补建议项：朝向光锥定位标**（蓝点+扇形随朝向转，`campus-teardown.md` §2.3）；
 2. 聚合规则（缩放重聚合，簇内选代表照片作封面）；
 3. 时间筛选（今天/本周胶囊，切换全量重聚合，"今天"默认）；
-4. 点开行为（半屏 bottom-sheet，地图平移保持该点可见）；
+4. 点开行为（半屏 bottom-sheet，地图平移保持该点可见）——**差异声明**：Campus 实录点气泡是近全屏详情页，本任务有意做半屏保持地图可见（核心价值＝把人留在"附近正在发生"的地图上），实机对比勿当遗漏（`campus-teardown.md` §5.2）；
 5. 隐私规格（事件位置≠人身位置；正式版位置模糊化条款；外联照片未取 `location_ok` 授权→坐标模糊到机位级/区级或不上气泡层）；
 6. 亮度纪律（D-c 裁定后简化——见光点与常驻金线已删，气泡是默认视图主体；按需路线出现时须清晰压过气泡，实测口径见 DoD）；
 7. **演示态标识规格**（垫图/被重排时间的条目，气泡与半屏卡上带可见"示例数据"角标：文案/位置/尺寸具体值）；
@@ -80,7 +85,7 @@
 
 ## 4. 输入材料
 
-`docs/hermes/product-arch-v3.md`（§0 解读/§3 范式表/§6 拍板项）｜`public/subpanels.jsx`（SceneCommunity/NoteCard/LightNavigationMap）｜`public/scenes.jsx`（SceneSpotDetail）｜`agents_output/01/spots.v1.json`+`validate_spots.mjs`（schema 风格与校验模式，`{meta,spots}`/id/三件套 sample_img·sample_credit·consent_ref）｜`agents_output/02/sun_events.v1.json`（spot_id 引用惯例）｜`docs/hermes/HERMES-05-scene-expansion.md` §2A（三件套/授权台账规则，非 schema 底稿）｜`docs/tokens.md`（视觉令牌唯一来源）
+**`docs/hermes/campus-teardown.md` + `docs/hermes/assets/campus/`（Campus 真机一手拆解 + 截图，轴二形态首要视觉参照）**｜`docs/hermes/product-arch-v3.md`（§0 解读/§3 范式表/§6 拍板项）｜`public/subpanels.jsx`（SceneCommunity/NoteCard/LightNavigationMap）｜`public/scenes.jsx`（SceneSpotDetail）｜`agents_output/01/spots.v1.json`+`validate_spots.mjs`（schema 风格与校验模式，`{meta,spots}`/id/三件套 sample_img·sample_credit·consent_ref）｜`agents_output/02/sun_events.v1.json`（spot_id 引用惯例）｜`docs/hermes/HERMES-05-scene-expansion.md` §2A（三件套/授权台账规则，非 schema 底稿）｜`docs/tokens.md`（视觉令牌唯一来源）
 
 ## 5. 红线
 
