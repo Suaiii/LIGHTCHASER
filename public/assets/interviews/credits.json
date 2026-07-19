@@ -1,0 +1,911 @@
+{
+  "title": "追光访谈素材授权与映射",
+  "source_archive": "批量下载-追光素材等76个文件.zip",
+  "generated_on": "2026-07-19",
+  "media_count": 76,
+  "authors": [
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview"
+    },
+    {
+      "author_id": "kellys-image",
+      "author_name": "凯利斯映像",
+      "role": "interview"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview"
+    },
+    {
+      "author_id": "xuan-long-vacation",
+      "author_name": "Xuan long vacation",
+      "role": "interview"
+    },
+    {
+      "author_id": "tmj",
+      "author_name": "Tmj",
+      "role": "interview_text_only"
+    },
+    {
+      "author_id": "travis",
+      "author_name": "崔维斯",
+      "role": "interview"
+    },
+    {
+      "author_id": "shenzhen-xiaotan",
+      "author_name": "深圳豪宅小谭",
+      "role": "interview_text_only"
+    },
+    {
+      "author_id": "douyin-xiaobai",
+      "author_name": "抖音创作者：xiaobai📷",
+      "role": "gallery"
+    },
+    {
+      "author_id": "douyin-xiaoye",
+      "author_name": "抖音创作者：小叶同学",
+      "role": "gallery"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery"
+    }
+  ],
+  "media": [
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/01.jpeg",
+      "original_name": "10.jpeg",
+      "media_type": "image",
+      "bytes": 1132122,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/02.jpeg",
+      "original_name": "11.jpeg",
+      "media_type": "image",
+      "bytes": 3431636,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/03.jpeg",
+      "original_name": "3.jpeg",
+      "media_type": "image",
+      "bytes": 3701675,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/04.jpeg",
+      "original_name": "4.jpeg",
+      "media_type": "image",
+      "bytes": 1539549,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/05.jpeg",
+      "original_name": "5.jpeg",
+      "media_type": "image",
+      "bytes": 1218478,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/06.jpeg",
+      "original_name": "6.jpeg",
+      "media_type": "image",
+      "bytes": 1381077,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/07.jpeg",
+      "original_name": "8.jpeg",
+      "media_type": "image",
+      "bytes": 4285053,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/08.jpeg",
+      "original_name": "追光素材.jpeg",
+      "media_type": "image",
+      "bytes": 2919367,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "xuan-long-vacation",
+      "author_name": "Xuan long vacation",
+      "role": "interview",
+      "file": "xuan-long-vacation/01.jpg",
+      "original_name": "微信图片_20260715160709.jpg",
+      "media_type": "image",
+      "bytes": 1093135,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "xuan-long-vacation",
+      "author_name": "Xuan long vacation",
+      "role": "interview",
+      "file": "xuan-long-vacation/02.jpg",
+      "original_name": "微信图片_20260715160724.jpg",
+      "media_type": "image",
+      "bytes": 1869584,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "xuan-long-vacation",
+      "author_name": "Xuan long vacation",
+      "role": "interview",
+      "file": "xuan-long-vacation/03.jpg",
+      "original_name": "微信图片_20260715160730.jpg",
+      "media_type": "image",
+      "bytes": 1211130,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "travis",
+      "author_name": "崔维斯",
+      "role": "interview",
+      "file": "travis/01.jpeg",
+      "original_name": "13428576563174069.jpeg",
+      "media_type": "image",
+      "bytes": 1296288,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "travis",
+      "author_name": "崔维斯",
+      "role": "interview",
+      "file": "travis/02.jpeg",
+      "original_name": "13428576585231889.jpeg",
+      "media_type": "image",
+      "bytes": 1156383,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "travis",
+      "author_name": "崔维斯",
+      "role": "interview",
+      "file": "travis/03.jpeg",
+      "original_name": "13428576587317747.jpeg",
+      "media_type": "image",
+      "bytes": 1361186,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "douyin-xiaobai",
+      "author_name": "抖音创作者：xiaobai📷",
+      "role": "gallery",
+      "file": "douyin-xiaobai/01.mp4",
+      "original_name": "13428577088428193.mp4",
+      "media_type": "video",
+      "bytes": 3664859,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "douyin-xiaoye",
+      "author_name": "抖音创作者：小叶同学",
+      "role": "gallery",
+      "file": "douyin-xiaoye/01.mp4",
+      "original_name": "13428577130025617.mp4",
+      "media_type": "video",
+      "bytes": 4084360,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/01.jpeg",
+      "original_name": "13428576731094951.jpeg",
+      "media_type": "image",
+      "bytes": 1394211,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/01.jpeg",
+      "original_name": "1.jpeg",
+      "media_type": "image",
+      "bytes": 1337421,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/02.jpeg",
+      "original_name": "13428576487183054.jpeg",
+      "media_type": "image",
+      "bytes": 1192212,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/03.jpeg",
+      "original_name": "13428576525494201.jpeg",
+      "media_type": "image",
+      "bytes": 1217929,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/04.jpeg",
+      "original_name": "13428576527148441.jpeg",
+      "media_type": "image",
+      "bytes": 1148694,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/01.webp",
+      "original_name": "13428577170606547.webp",
+      "media_type": "image",
+      "bytes": 200350,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/02.webp",
+      "original_name": "13428577206766018.webp",
+      "media_type": "image",
+      "bytes": 208826,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/03.webp",
+      "original_name": "13428577212352075.webp",
+      "media_type": "image",
+      "bytes": 257994,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/04.webp",
+      "original_name": "13428577214386035.webp",
+      "media_type": "image",
+      "bytes": 221766,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/05.webp",
+      "original_name": "13428577216239672.webp",
+      "media_type": "image",
+      "bytes": 247290,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/06.webp",
+      "original_name": "13428577218089739.webp",
+      "media_type": "image",
+      "bytes": 208050,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/07.webp",
+      "original_name": "13428577220031362.webp",
+      "media_type": "image",
+      "bytes": 249646,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/08.webp",
+      "original_name": "13428577221921829.webp",
+      "media_type": "image",
+      "bytes": 158858,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/09.webp",
+      "original_name": "13428577223673784.webp",
+      "media_type": "image",
+      "bytes": 159398,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/10.webp",
+      "original_name": "13428577227363739.webp",
+      "media_type": "image",
+      "bytes": 190048,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/11.webp",
+      "original_name": "13428577229558353.webp",
+      "media_type": "image",
+      "bytes": 113476,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/12.webp",
+      "original_name": "13428577233514945.webp",
+      "media_type": "image",
+      "bytes": 152524,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "calm-breeze",
+      "author_name": "Calm Breeze",
+      "role": "interview",
+      "file": "calm-breeze/13.webp",
+      "original_name": "13428577237484900.webp",
+      "media_type": "image",
+      "bytes": 95396,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/09.jpeg",
+      "original_name": "2.jpeg",
+      "media_type": "image",
+      "bytes": 343959,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/10.jpeg",
+      "original_name": "7.jpeg",
+      "media_type": "image",
+      "bytes": 575098,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "peng",
+      "author_name": "Peng",
+      "role": "interview",
+      "file": "peng/11.jpeg",
+      "original_name": "9.jpeg",
+      "media_type": "image",
+      "bytes": 474369,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "xuan-long-vacation",
+      "author_name": "Xuan long vacation",
+      "role": "interview",
+      "file": "xuan-long-vacation/04.jpg",
+      "original_name": "微信图片_20260715160720.jpg",
+      "media_type": "image",
+      "bytes": 647578,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/01.mp4",
+      "original_name": "13428576316151151.mp4",
+      "media_type": "video",
+      "bytes": 769473,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/02.mp4",
+      "original_name": "13428576355405659.mp4",
+      "media_type": "video",
+      "bytes": 750427,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/03.mp4",
+      "original_name": "13428576361039180.mp4",
+      "media_type": "video",
+      "bytes": 788284,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/04.mp4",
+      "original_name": "13428576365131141.mp4",
+      "media_type": "video",
+      "bytes": 782948,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/05.mp4",
+      "original_name": "13428576368820091.mp4",
+      "media_type": "video",
+      "bytes": 836207,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/06.mp4",
+      "original_name": "13428576371939372.mp4",
+      "media_type": "video",
+      "bytes": 838027,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/07.mp4",
+      "original_name": "13428576375332801.mp4",
+      "media_type": "video",
+      "bytes": 818729,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "zhao-lives",
+      "author_name": "zhao-lives",
+      "role": "interview",
+      "file": "zhao-lives/08.mp4",
+      "original_name": "13428576378587011.mp4",
+      "media_type": "video",
+      "bytes": 821003,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "kellys-image",
+      "author_name": "凯利斯映像",
+      "role": "interview",
+      "file": "kellys-image/01.mp4",
+      "original_name": "13428576266718019.mp4",
+      "media_type": "video",
+      "bytes": 781363,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "kellys-image",
+      "author_name": "凯利斯映像",
+      "role": "interview",
+      "file": "kellys-image/02.mp4",
+      "original_name": "13428576286934718.mp4",
+      "media_type": "video",
+      "bytes": 650272,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "kellys-image",
+      "author_name": "凯利斯映像",
+      "role": "interview",
+      "file": "kellys-image/03.mp4",
+      "original_name": "13428576292638786.mp4",
+      "media_type": "video",
+      "bytes": 608778,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "kellys-image",
+      "author_name": "凯利斯映像",
+      "role": "interview",
+      "file": "kellys-image/04.mp4",
+      "original_name": "13428576297342949.mp4",
+      "media_type": "video",
+      "bytes": 767816,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "kellys-image",
+      "author_name": "凯利斯映像",
+      "role": "interview",
+      "file": "kellys-image/05.mp4",
+      "original_name": "13428576301344255.mp4",
+      "media_type": "video",
+      "bytes": 488866,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/02.jpeg",
+      "original_name": "13428576709926993.jpeg",
+      "media_type": "image",
+      "bytes": 956142,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/03.jpeg",
+      "original_name": "13428576722395749.jpeg",
+      "media_type": "image",
+      "bytes": 194932,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/04.jpeg",
+      "original_name": "13428576725306180.jpeg",
+      "media_type": "image",
+      "bytes": 596604,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/05.jpeg",
+      "original_name": "13428576727424328.jpeg",
+      "media_type": "image",
+      "bytes": 843415,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/06.jpeg",
+      "original_name": "13428576729254667.jpeg",
+      "media_type": "image",
+      "bytes": 866580,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "napoleon-dayanhu",
+      "author_name": "拿破仑大眼糊",
+      "role": "gallery",
+      "file": "napoleon-dayanhu/07.jpeg",
+      "original_name": "13428576732940756.jpeg",
+      "media_type": "image",
+      "bytes": 274452,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/01.mp4",
+      "original_name": "13428576599604577.mp4",
+      "media_type": "video",
+      "bytes": 574075,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/02.mp4",
+      "original_name": "13428576646161596.mp4",
+      "media_type": "video",
+      "bytes": 493076,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/03.mp4",
+      "original_name": "13428576650667037.mp4",
+      "media_type": "video",
+      "bytes": 479668,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/04.mp4",
+      "original_name": "13428576654555414.mp4",
+      "media_type": "video",
+      "bytes": 261435,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/05.mp4",
+      "original_name": "13428576657943693.mp4",
+      "media_type": "video",
+      "bytes": 650667,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/06.mp4",
+      "original_name": "13428576662071498.mp4",
+      "media_type": "video",
+      "bytes": 606764,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/07.mp4",
+      "original_name": "13428576665603212.mp4",
+      "media_type": "video",
+      "bytes": 455531,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/08.mp4",
+      "original_name": "13428576671512321.mp4",
+      "media_type": "video",
+      "bytes": 455531,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/09.mp4",
+      "original_name": "13428576678390244.mp4",
+      "media_type": "video",
+      "bytes": 508357,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/10.mp4",
+      "original_name": "13428576686920014.mp4",
+      "media_type": "video",
+      "bytes": 724642,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "photographer-tim",
+      "author_name": "摄影师：Tim",
+      "role": "gallery",
+      "file": "photographer-tim/11.mp4",
+      "original_name": "13428576692422898.mp4",
+      "media_type": "video",
+      "bytes": 789946,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/05.jpeg",
+      "original_name": "13428576512469959.jpeg",
+      "media_type": "image",
+      "bytes": 503152,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/06.jpeg",
+      "original_name": "13428576514830210.jpeg",
+      "media_type": "image",
+      "bytes": 587973,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/07.jpeg",
+      "original_name": "13428576528635085.jpeg",
+      "media_type": "image",
+      "bytes": 298483,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/08.jpeg",
+      "original_name": "13428576530044219.jpeg",
+      "media_type": "image",
+      "bytes": 857212,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/09.jpeg",
+      "original_name": "13428576531469502.jpeg",
+      "media_type": "image",
+      "bytes": 986092,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/10.jpeg",
+      "original_name": "13428576532876632.jpeg",
+      "media_type": "image",
+      "bytes": 224423,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/11.jpeg",
+      "original_name": "13428576534412854.jpeg",
+      "media_type": "image",
+      "bytes": 634719,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    },
+    {
+      "author_id": "manyou-kaka",
+      "author_name": "漫游kaka",
+      "role": "gallery",
+      "file": "manyou-kaka/12.jpeg",
+      "original_name": "13428576538094457.jpeg",
+      "media_type": "image",
+      "bytes": 485253,
+      "consent_status": "authorized",
+      "consent_ref": "project-owner-confirmation-2026-07-19"
+    }
+  ]
+}

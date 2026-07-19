@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <title>追光对谈｜为了等一道光，你愿意等多久？</title>
+  <meta name="description" content="追光摄影者访谈与授权影像专题。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@300;400;500&family=Noto+Serif+SC:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #050505;
+      --paper: #f4f1eb;
+      --soft: rgba(244, 241, 235, 0.68);
+      --faint: rgba(244, 241, 235, 0.38);
+      --line: rgba(255, 255, 255, 0.14);
+      --glass: rgba(8, 8, 8, 0.22);
+      --amber: #d78a43;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--ink); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      overflow-x: hidden;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    body.dialog-open { overflow: hidden; }
+    a { color: inherit; text-decoration: none; }
+    button { color: inherit; font: inherit; }
+    img, video { display: block; max-width: 100%; }
+    ::selection { background: var(--amber); color: #090909; }
+
+    .serif { font-family: "Instrument Serif", "Noto Serif SC", serif; }
+    .cn-serif { font-family: "Noto Serif SC", serif; }
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--soft);
+    }
+
+    .liquid-glass {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.018);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(18px) saturate(135%);
+      -webkit-backdrop-filter: blur(18px) saturate(135%);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.11), 0 16px 48px rgba(0, 0, 0, 0.12);
+    }
+    .liquid-glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(180deg, rgba(255,255,255,.48), rgba(255,255,255,.1) 28%, transparent 50%, rgba(255,255,255,.16));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .page-progress {
+      position: fixed;
+      z-index: 100;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      transform: scaleX(0);
+      transform-origin: left;
+      background: var(--amber);
+      box-shadow: 0 0 18px rgba(215, 138, 67, 0.65);
+    }
+
+    .site-nav {
+      position: fixed;
+      z-index: 90;
+      top: max(18px, env(safe-area-inset-top));
+      left: 0;
+      width: 100%;
+      padding: 0 clamp(18px, 3vw, 52px);
+      pointer-events: none;
+    }
+    .nav-inner {
+      width: min(1120px, 100%);
+      min-height: 48px;
+      margin: 0 auto;
+      padding: 5px 6px 5px 16px;
+      border-radius: 999px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 18px;
+      pointer-events: auto;
+      transition: background .45s ease, transform .45s var(--ease);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: max-content;
+      font-size: 14px;
+      letter-spacing: .08em;
+      font-weight: 400;
+    }
+    .brand-mark {
+      width: 19px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 50%;
+      position: relative;
+    }
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+      top: 3px;
+      right: -2px;
+      box-shadow: 0 0 12px rgba(215,138,67,.9);
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-links a {
+      padding: 9px 13px;
+      border-radius: 999px;
+      color: var(--soft);
+      font-size: 12px;
+      letter-spacing: .08em;
+      transition: color .25s ease, background .25s ease;
+    }
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--paper); background: rgba(255,255,255,.08); }
+    .chapter-indicator {
+      justify-self: end;
+      min-width: 166px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      color: #0b0b0b;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      overflow: hidden;
+      background: #030608 url("assets/interviews/calm-breeze/01.webp") center / cover no-repeat;
+    }
+    .hero-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 0;
+      animation: heroVideoIn 1.4s ease .15s forwards;
+    }
+    @keyframes heroVideoIn { to { opacity: 1; } }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.24), transparent 28%),
+        linear-gradient(0deg, #050505 0%, rgba(5,5,5,.78) 10%, rgba(5,5,5,.02) 42%),
+        radial-gradient(circle at 50% 40%, transparent 25%, rgba(0,0,0,.26) 100%);
+    }
+    .film-grain {
+      position: absolute;
+      z-index: 2;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      opacity: .05;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+      animation: grain .22s steps(2) infinite;
+    }
+    @keyframes grain {
+      0% { transform: translate(0,0); }
+      25% { transform: translate(2%,-3%); }
+      50% { transform: translate(-4%,2%); }
+      75% { transform: translate(3%,4%); }
+      100% { transform: translate(-2%,-2%); }
+    }
+    #particles {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 4; min-height: 100svh; }
+    .hero-kicker {
+      position: absolute;
+      top: 16%;
+      left: clamp(22px, 6vw, 92px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,.72);
+      font-size: 11px;
+      letter-spacing: .2em;
+    }
+    .hero-kicker::before { content: ""; width: 34px; height: 1px; background: var(--amber); }
+    .hero-title { position: absolute; inset: 0; margin: 0; font-weight: 400; }
+    .hero-word {
+      position: absolute;
+      display: block;
+      font-family: "Noto Serif SC", serif;
+      line-height: .9;
+      letter-spacing: -.07em;
+      text-shadow: 0 8px 36px rgba(0,0,0,.22);
+      opacity: 0;
+      filter: blur(14px);
+      transform: translateY(42px);
+      animation: wordIn 1s var(--ease) forwards;
+    }
+    .hero-word.one { top: 21%; left: clamp(20px, 5vw, 78px); font-size: clamp(70px, 13vw, 198px); animation-delay: .25s; }
+    .hero-word.two { top: 42%; left: 50%; transform: translate(-50%, 42px); font-size: clamp(80px, 15vw, 228px); white-space: nowrap; animation-delay: .43s; }
+    .hero-word.three { right: clamp(24px, 6vw, 92px); top: 67%; font-size: clamp(35px, 6vw, 88px); letter-spacing: -.05em; animation-delay: .61s; }
+    @keyframes wordIn {
+      to { opacity: 1; filter: blur(0); transform: translateY(0); }
+    }
+    .hero-word.two { animation-name: wordInCenter; }
+    @keyframes wordInCenter {
+      to { opacity: 1; filter: blur(0); transform: translate(-50%, 0); }
+    }
+    .hero-bottom {
+      position: absolute;
+      z-index: 5;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      left: clamp(22px, 4vw, 62px);
+      right: clamp(22px, 4vw, 62px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .hero-stats { display: flex; align-items: flex-end; gap: clamp(24px, 4vw, 62px); }
+    .hero-stat strong {
+      display: block;
+      font-family: "Instrument Serif", serif;
+      font-size: clamp(30px, 3vw, 48px);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1;
+    }
+    .hero-stat span { display: block; margin-top: 5px; color: var(--soft); font-size: 10px; letter-spacing: .13em; }
+    .start-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 15px;
+      padding: 13px 17px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: .08em;
+    }
+    .start-link .arrow { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: #090909; }
+
+    .opening {
+      min-height: 105svh;
+      display: grid;
+      place-items: center;
+      padding: 140px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .opening::before {
+      content: "";
+      position: absolute;
+      width: min(56vw, 680px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(215,138,67,.12), transparent 67%);
+      filter: blur(20px);
+    }
+    .opening-lines { position: relative; width: min(980px, 100%); text-align: center; }
+    .opening-line {
+      margin: 0;
+      font-family: "Noto Serif SC", serif;
+      font-size: clamp(30px, 5vw, 68px);
+      line-height: 1.48;
+      letter-spacing: -.04em;
+      color: rgba(244,241,235,.2);
+      transition: color 1s ease, filter 1s ease, transform 1s var(--ease);
+      filter: blur(5px);
+      transform: translateY(24px);
+    }
+    .opening-line.is-visible { color: var(--paper); filter: blur(0); transform: translateY(0); }
+
+    .chapter {
+      position: relative;
+      min-height: 150svh;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .chapter-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 58%) minmax(360px, 42%);
+      min-height: 150svh;
+    }
+    .media-column { position: relative; min-width: 0; }
+    .media-stage {
+      position: sticky;
+      top: 0;
+      height: 100svh;
+      margin: 0;
+      overflow: hidden;
+      background: #0b0b0b;
+    }
+    .media-stage img, .media-stage video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 1.8s var(--ease), filter 1.2s ease;
+    }
+    .chapter.is-active .media-stage img { transform: scale(1.025); }
+    .media-stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 65%, rgba(5,5,5,.52)), linear-gradient(0deg, rgba(5,5,5,.46), transparent 35%);
+      pointer-events: none;
+    }
+    .media-credit {
+      position: absolute;
+      z-index: 2;
+      left: 28px;
+      bottom: 26px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 10px;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.78);
+    }
+    .media-credit::before { content: ""; width: 23px; height: 1px; background: var(--amber); }
+    .conversation {
+      padding: 17svh clamp(28px, 5vw, 78px) 12svh;
+      background: #070707;
+      position: relative;
+    }
+    .chapter-heading { margin-bottom: clamp(72px, 11svh, 130px); }
+    .chapter-count { color: var(--amber); font-family: "Instrument Serif", serif; font-style: italic; font-size: 20px; }
+    .chapter-name {
+      margin: 18px 0 16px;
+      max-width: 12ch;
+      font-family: "Noto Serif SC", serif;
+      font-size: clamp(42px, 5vw, 76px);
+      font-weight: 400;
+      line-height: .98;
+      letter-spacing: -.055em;
+      overflow-wrap: anywhere;
+    }
+    .chapter-quote { margin: 0; max-width: 28ch; color: var(--soft); font-size: 13px; line-height: 1.8; }
+    .exchange { margin: 0 0 clamp(72px, 11svh, 128px); }
+    .speaker {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      color: var(--faint);
+      font-size: 10px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .speaker::before { content: ""; width: 18px; height: 1px; background: currentColor; }
+    .exchange p {
+      margin: 0;
+      font-family: "Noto Serif SC", serif;
+      font-size: clamp(20px, 2vw, 30px);
+      line-height: 1.72;
+      letter-spacing: -.025em;
+    }
+    .exchange.host p { color: rgba(244,241,235,.55); font-size: clamp(16px, 1.45vw, 21px); }
+    .exchange.answer p strong { color: var(--paper); font-weight: 400; }
+    .reveal {
+      opacity: 0;
+      filter: blur(8px);
+      transform: translateY(34px);
+      transition: opacity 1s var(--ease), filter 1s var(--ease), transform 1s var(--ease);
+    }
+    .reveal.is-visible { opacity: 1; filter: blur(0); transform: translateY(0); }
+
+    .ambient-stage {
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 28% 36%, rgba(215,138,67,.24), transparent 25%),
+        radial-gradient(circle at 72% 68%, rgba(69,104,132,.22), transparent 29%),
+        #060606;
+    }
+    .ambient-stage::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 44%;
+      aspect-ratio: 1;
+      left: 28%;
+      top: 27%;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 50%;
+      box-shadow: 0 0 100px rgba(215,138,67,.14), inset 0 0 80px rgba(255,255,255,.035);
+      animation: breathe 7s ease-in-out infinite;
+    }
+    @keyframes breathe { 50% { transform: scale(1.12); opacity: .62; } }
+    .ambient-word {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-family: "Instrument Serif", "Noto Serif SC", serif;
+      font-style: italic;
+      font-size: clamp(70px, 12vw, 185px);
+      color: rgba(255,255,255,.055);
+      transform: rotate(-8deg);
+      white-space: nowrap;
+    }
+
+    .author-reel {
+      padding: 72px clamp(20px, 4vw, 56px) 110px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      background: #050505;
+    }
+    .reel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .reel-head h3 { margin: 0; font-family: "Instrument Serif", "Noto Serif SC", serif; font-style: italic; font-weight: 400; font-size: 30px; }
+    .reel-head span { color: var(--faint); font-size: 10px; letter-spacing: .16em; }
+    .reel-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .media-item {
+      position: relative;
+      grid-column: span 3;
+      min-height: clamp(210px, 30vw, 430px);
+      overflow: hidden;
+      border: 0;
+      padding: 0;
+      background: #111;
+      cursor: zoom-in;
+    }
+    .media-item:nth-child(7n + 1), .media-item:nth-child(7n + 5) { grid-column: span 6; }
+    .media-item img, .media-item video { width: 100%; height: 100%; object-fit: cover; transition: transform .8s var(--ease), filter .8s ease; }
+    .media-item:hover img, .media-item:focus-visible img { transform: scale(1.025); filter: brightness(1.08); }
+    .media-index {
+      position: absolute;
+      left: 12px;
+      bottom: 10px;
+      font-family: "Instrument Serif", serif;
+      font-size: 16px;
+      font-style: italic;
+      color: rgba(255,255,255,.72);
+      text-shadow: 0 1px 8px #000;
+      pointer-events: none;
+    }
+    .video-shell { cursor: default; }
+    .video-shell video { background: #090909; }
+
+    .triad {
+      min-height: 120svh;
+      padding: 16svh clamp(24px, 5vw, 72px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .triad::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("assets/interviews/peng/01.jpeg") center / cover;
+      opacity: .21;
+      filter: saturate(.7) contrast(1.12);
+    }
+    .triad::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,#050505 8%,transparent 54%,#050505), linear-gradient(0deg,#050505,transparent 30%,#050505); }
+    .triad-row {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(255,255,255,.13);
+      padding: 2.5vh 0;
+    }
+    .triad-word { font-family: "Noto Serif SC", serif; font-size: clamp(74px, 14vw, 210px); line-height: .9; letter-spacing: -.08em; }
+    .triad-note { justify-self: end; max-width: 22ch; color: var(--soft); font-size: 13px; line-height: 1.7; }
+
+    .chorus { padding: 17svh 0 8svh; background: #060606; }
+    .chorus-head { padding: 0 clamp(22px, 5vw, 76px) 11svh; }
+    .chorus-head h2 { margin: 14px 0 0; font-family: "Noto Serif SC", serif; font-size: clamp(58px, 10vw, 152px); font-weight: 400; line-height: .92; letter-spacing: -.07em; }
+    .chorus-author { margin-bottom: 15svh; }
+    .chorus-name {
+      position: sticky;
+      z-index: 3;
+      top: 90px;
+      width: max-content;
+      max-width: calc(100% - 44px);
+      margin: 0 0 30px clamp(22px, 5vw, 76px);
+      padding: 12px 17px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: .1em;
+    }
+    .chorus .author-reel { border-top: 0; padding-top: 0; background: transparent; }
+
+    .finale {
+      position: relative;
+      min-height: 105svh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      text-align: center;
+      padding: 100px 24px;
+      background: url("assets/interviews/xuan-long-vacation/01.jpg") center / cover;
+    }
+    .finale::before { content: ""; position: absolute; inset: 0; background: rgba(2,4,8,.72); backdrop-filter: saturate(.7); }
+    .finale-copy { position: relative; z-index: 1; width: min(1060px, 100%); }
+    .finale-copy p { margin: 0; font-family: "Noto Serif SC", serif; font-size: clamp(43px, 8vw, 118px); line-height: 1.23; letter-spacing: -.065em; }
+    .finale-copy small { display: block; margin-top: 42px; color: var(--soft); font-size: 10px; letter-spacing: .16em; }
+    .credits {
+      position: absolute;
+      z-index: 2;
+      left: clamp(20px, 4vw, 60px);
+      right: clamp(20px, 4vw, 60px);
+      bottom: max(22px, env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      color: rgba(255,255,255,.48);
+      font-size: 9px;
+      letter-spacing: .09em;
+    }
+
+    .lightbox {
+      width: 100vw;
+      height: 100svh;
+      max-width: none;
+      max-height: none;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: rgba(2,2,2,.94);
+      color: #fff;
+    }
+    .lightbox::backdrop { background: rgba(0,0,0,.8); }
+    .lightbox-inner { width: 100%; height: 100%; display: grid; place-items: center; padding: 58px 24px 44px; }
+    .lightbox img { max-width: min(94vw, 1500px); max-height: 84svh; object-fit: contain; }
+    .lightbox-close {
+      position: absolute;
+      top: max(18px, env(safe-area-inset-top));
+      right: 20px;
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+      cursor: pointer;
+    }
+
+    @media (max-width: 900px) {
+      .nav-inner { grid-template-columns: 1fr auto; }
+      .nav-links { display: none; }
+      .chapter-indicator { min-width: 0; }
+      .chapter-layout { display: block; min-height: 0; }
+      .chapter { min-height: 0; }
+      .media-stage { position: relative; height: 72svh; }
+      .media-stage::after { background: linear-gradient(0deg, rgba(5,5,5,.65), transparent 40%); }
+      .conversation { padding: 90px clamp(22px, 6vw, 54px) 50px; }
+      .media-item { grid-column: span 6; min-height: 52vw; }
+      .media-item:nth-child(7n + 1), .media-item:nth-child(7n + 5) { grid-column: span 12; }
+    }
+    @media (max-width: 620px) {
+      .site-nav { top: max(12px, env(safe-area-inset-top)); }
+      .nav-inner { min-height: 44px; padding-left: 13px; gap: 8px; }
+      .chapter-indicator { padding: 8px 11px; max-width: 52vw; overflow: hidden; text-overflow: ellipsis; }
+      .hero-word.one { top: 25%; }
+      .hero-word.two { top: 43%; font-size: clamp(64px, 20vw, 104px); }
+      .hero-word.three { top: 61%; }
+      .hero-kicker { top: 18%; }
+      .hero-bottom { align-items: flex-end; }
+      .hero-stats { gap: 18px; }
+      .hero-stat:nth-child(2) { display: none; }
+      .start-link { padding: 9px; }
+      .start-link > span:first-child { display: none; }
+      .opening { min-height: 95svh; }
+      .opening-line { font-size: clamp(26px, 8vw, 42px); }
+      .media-stage { height: 62svh; }
+      .chapter-heading { margin-bottom: 78px; }
+      .exchange { margin-bottom: 82px; }
+      .reel-grid { gap: 6px; }
+      .author-reel { padding-inline: 14px; }
+      .media-item { min-height: 66vw; }
+      .triad { min-height: 100svh; }
+      .triad-row { display: block; padding: 32px 0; }
+      .triad-note { margin-top: 12px; max-width: 100%; }
+      .chorus-name { top: 72px; }
+      .credits { display: block; text-align: center; line-height: 1.8; }
+      .credits span:last-child { display: block; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .reveal, .opening-line { opacity: 1; filter: none; transform: none; }
+      #particles, .film-grain { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
+
+  <header class="site-nav" aria-label="页面导航">
+    <nav class="nav-inner liquid-glass">
+      <a class="brand" href="#top" aria-label="返回开场"><span class="brand-mark" aria-hidden="true"></span><span>追·光</span></a>
+      <div class="nav-links">
+        <a href="#conversations">对谈</a>
+        <a href="#echoes">回响</a>
+        <a href="#works">作品</a>
+      </div>
+      <div class="chapter-indicator" id="chapterIndicator" aria-live="polite">00 / OPENING</div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="top" data-section-title="OPENING">
+      <video class="hero-video" autoplay muted loop playsinline preload="auto" aria-label="海边蓝调时刻影像">
+        <source src="assets/interviews/douyin-xiaobai/01.mp4" type="video/mp4" />
+      </video>
+      <div class="film-grain" aria-hidden="true"></div>
+      <canvas id="particles" aria-hidden="true"></canvas>
+      <div class="hero-content">
+        <div class="hero-kicker">LIGHT CHASER RADIO · 2026</div>
+        <h1 class="hero-title" aria-label="为了等一道光，你愿意等多久？">
+          <span class="hero-word one">为了</span>
+          <span class="hero-word two">等一道光</span>
+          <span class="hero-word three">你愿意等多久？</span>
+        </h1>
+        <div class="hero-bottom">
+          <div class="hero-stats" aria-label="访谈统计">
+            <div class="hero-stat"><strong>08</strong><span>位对谈者</span></div>
+            <div class="hero-stat"><strong>76</strong><span>件影像</span></div>
+            <div class="hero-stat"><strong>20m—2h</strong><span>等待时间</span></div>
+          </div>
+          <a class="start-link liquid-glass" href="#opening"><span>开始这场对谈</span><span class="arrow" aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="opening" id="opening" data-section-title="开场">
+      <div class="opening-lines">
+        <p class="opening-line">有人提前二十分钟抵达。</p>
+        <p class="opening-line">有人愿意等待两个小时。</p>
+        <p class="opening-line">也有人从不计划，只相信偶遇。</p>
+      </div>
+    </section>
+
+    <div id="conversations">
+      <article class="chapter" id="calm-breeze" data-section-title="Calm Breeze">
+        <div class="chapter-layout">
+          <div class="media-column"><figure class="media-stage"><img src="assets/interviews/calm-breeze/01.webp" alt="Calm Breeze 拍摄的海湾晚霞" /><figcaption class="media-credit">CALM BREEZE · 01</figcaption></figure></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">01 / 08</span><h2 class="chapter-name">Calm Breeze</h2><p class="chapter-quote">“最好看的，可能是太阳出来以前。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>先聊聊你拍日出的经历吧。拍这种照片主要靠运气，还是会提前查好时间和天气？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Calm Breeze</div><p>这次拍的是日出。日出肯定要提前准备，至少要先查清楚每天的日出时间。如果去晚了，太阳已经出来，那个感觉可能就没那么好看了。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>所以你不会卡着日出时间到，而是会更早一点？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Calm Breeze</div><p>对，一般提前二十分钟左右。其实日出的过程没有那么长，反而是太阳出来之前那一段<strong>蓝调时间最好看</strong>。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>真正重要的不只是“太阳几点出来”，还有日出前那一段光线变化。</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Calm Breeze</div><p>是的。最好能告诉我蓝调从什么时候开始、建议几点到达。先找好地点，再定好时间，别去得太晚。</p></div>
+          </div>
+        </div>
+        <section class="author-reel" data-author="calm-breeze" data-start="2" data-count="13" data-ext="webp" aria-label="Calm Breeze 的其余作品"></section>
+      </article>
+
+      <article class="chapter" id="peng" data-section-title="Peng">
+        <div class="chapter-layout">
+          <div class="media-column"><figure class="media-stage"><img src="assets/interviews/peng/01.jpeg" alt="Peng 拍摄的金色海面" /><figcaption class="media-credit">PENG · 01</figcaption></figure></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">02 / 08</span><h2 class="chapter-name">Peng</h2><p class="chapter-quote">“雨天前后，天空会更加通透。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>你通常会选择什么样的天气去拍晚霞？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Peng</div><p>一般会选择晴天。另外，台风或者雨天前后的天空也很适合。那段时间空气会更加通透，拍到晚霞的概率也会更高。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>这种天气窗口会不会比较短，很难把握？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Peng</div><p>是的。如果等到自己看到天空变漂亮了再出发，有时已经来不及。我通常会<strong>提前三十分钟</strong>到现场，先找好位置，调整设备，然后等光线变化。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>所以你期待的是一种“摄影视角的天气预报”。</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Peng</div><p>对。不只是告诉我天气，而是告诉我这种天气对拍摄意味着什么。</p></div>
+          </div>
+        </div>
+        <section class="author-reel" data-author="peng" data-start="2" data-count="11" data-ext="jpeg" aria-label="Peng 的其余作品"></section>
+      </article>
+
+      <article class="chapter" id="kellys-image" data-section-title="凯利斯映像">
+        <div class="chapter-layout">
+          <div class="media-column"><figure class="media-stage"><video data-src="assets/interviews/kellys-image/01.mp4" muted loop playsinline preload="none" aria-label="凯利斯映像拍摄的海边影像"></video><figcaption class="media-credit">凯利斯映像 · 01</figcaption></figure></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">03 / 08</span><h2 class="chapter-name">凯利斯映像</h2><p class="chapter-quote">“多云并不一定是坏天气。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>你拍日落之前，会提前查看天气信息吗？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">凯利斯映像</div><p>会提前看。通常我会等一个小时左右，拍摄的时候也会观察太阳的颜色。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>很多人觉得大晴天最适合拍日落，你怎么看？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">凯利斯映像</div><p>其实<strong>多云天气也很适合</strong>。完全没有云，天空可能比较单调。有一些云，夕阳的颜色才能形成层次。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>简单的“晴”或者“阴”，可能不足以帮助你判断？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">凯利斯映像</div><p>对。最好能看到云量、云层的位置，还有太阳附近会不会被厚云挡住。用户真正想知道的，还是今天值不值得去拍。</p></div>
+          </div>
+        </div>
+        <section class="author-reel" data-author="kellys-image" data-start="2" data-count="5" data-ext="mp4" aria-label="凯利斯映像的其余作品"></section>
+      </article>
+
+      <article class="chapter" id="zhao-lives" data-section-title="zhao-lives">
+        <div class="chapter-layout">
+          <div class="media-column"><figure class="media-stage"><video data-src="assets/interviews/zhao-lives/01.mp4" muted loop playsinline preload="none" aria-label="zhao-lives 拍摄的城市夕阳"></video><figcaption class="media-credit">ZHAO-LIVES · 01</figcaption></figure></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">04 / 08</span><h2 class="chapter-name">zhao-lives</h2><p class="chapter-quote">“为了最佳晚霞，我会等一到两个小时。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>你拍摄日落时，会提前观察天气吗？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">zhao-lives</div><p>会。拍摄前我会先看天气。如果判断当天可能有夕阳，我就会提前到草坪上蹲机位。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>一般需要等多久？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">zhao-lives</div><p>为了拍到最佳晚霞，通常会等<strong>一到两个小时</strong>。天空一直在变，你不知道最好看的颜色会在哪一分钟出现。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>太阳落下去以后，会马上离开吗？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">zhao-lives</div><p>不会。有时候真正好看的晚霞会晚一点出现。我会隔几分钟拍一次，覆盖不同时间段，结束后再比较哪一个阶段最好。</p></div>
+          </div>
+        </div>
+        <section class="author-reel" data-author="zhao-lives" data-start="2" data-count="8" data-ext="mp4" aria-label="zhao-lives 的其余作品"></section>
+      </article>
+
+      <article class="chapter" id="xuan" data-section-title="Xuan long vacation">
+        <div class="chapter-layout">
+          <div class="media-column"><figure class="media-stage"><img src="assets/interviews/xuan-long-vacation/01.jpg" alt="Xuan long vacation 拍摄的城市晚霞" /><figcaption class="media-credit">XUAN LONG VACATION · 01</figcaption></figure></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">05 / 08</span><h2 class="chapter-name">Xuan long vacation</h2><p class="chapter-quote">“我不会专门等，但遇到了就一定会拍。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>你拍日落时会提前看天气、找机位吗？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Xuan long vacation</div><p>我比较随意，主要还是凭运气。刚好碰上了，觉得很好看，就拍下来。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>你不会为了一个日落，提前一两个小时去现场等？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Xuan long vacation</div><p>一般不会。我更多是在旅行或者散步的时候，刚好看到天空很好看，就顺手拍一下。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>如果提醒你，附近半小时后可能会有很好看的晚霞呢？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Xuan long vacation</div><p>如果就在附近，而且不用做太多准备，我可能会去。最好直接告诉我往哪个方向走、现在过去还来不来得及。</p></div>
+          </div>
+        </div>
+        <section class="author-reel" data-author="xuan-long-vacation" data-start="2" data-count="4" data-ext="jpg" aria-label="Xuan long vacation 的其余作品"></section>
+      </article>
+
+      <article class="chapter" id="tmj" data-section-title="Tmj">
+        <div class="chapter-layout">
+          <div class="media-column"><div class="media-stage ambient-stage" role="img" aria-label="为无作者影像章节设计的抽象光场"><div class="ambient-word">Observe</div><div class="media-credit">NO VISUAL · LIVE FIELD</div></div></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">06 / 08</span><h2 class="chapter-name">Tmj</h2><p class="chapter-quote">“别替我决定怎么拍，让我看到现场。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>我们想帮助用户寻找附近的出片地点，推荐拍摄时间和机位。你最希望它有什么功能？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Tmj</div><p>我可能跟大多数人不太一样，因为我是偏专业练习的。我不太会直接看平台推荐，通常到了一个空间以后，先观察和感受，再决定怎么拍。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>所以直接告诉你“站在这里拍”，反而可能限制太多？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Tmj</div><p>对。空间、光线和现场人物都会影响最后怎么拍，很难通过一个固定推荐决定。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>什么功能会真正有帮助？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">Tmj</div><p>如果可以看到那个地方<strong>当下的实时状况</strong>，会很有帮助。产品把天气、光线、云量和现场画面提供给我，最后怎么拍，让我自己判断。</p></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="chapter" id="travis" data-section-title="崔维斯">
+        <div class="chapter-layout">
+          <div class="media-column"><figure class="media-stage"><img src="assets/interviews/travis/01.jpeg" alt="崔维斯拍摄的深圳城市天际线与晚霞" /><figcaption class="media-credit">崔维斯 · 01</figcaption></figure></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">07 / 08</span><h2 class="chapter-name">崔维斯</h2><p class="chapter-quote">“我想在出发以前，就看到那个机位会拍到什么。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>如果有一款帮助摄影师寻找优质阳光机位的产品，你希望它具备什么功能？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">崔维斯</div><p>我希望它可以模拟机位的实时取景，最好还能有 VR 功能。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>是希望提前看到站在某个位置时，镜头里的画面大概是什么样？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">崔维斯</div><p>对。还没到现场，就能看看面前有哪些建筑，太阳会从哪个方向过来，画面里会不会有遮挡。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>如果还能拖动时间轴，看看下午四点和六点的光线呢？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">崔维斯</div><p>这样就更好了。VR 或全景让我判断现场是否开阔、机位之间怎么移动，以及那个角度到底能不能拍。</p></div>
+          </div>
+        </div>
+        <section class="author-reel" data-author="travis" data-start="2" data-count="3" data-ext="jpeg" aria-label="崔维斯的其余作品"></section>
+      </article>
+
+      <article class="chapter" id="xiaotan" data-section-title="深圳豪宅小谭">
+        <div class="chapter-layout">
+          <div class="media-column"><div class="media-stage ambient-stage" role="img" aria-label="为无作者影像章节设计的抽象光场"><div class="ambient-word">Share</div><div class="media-credit">NO VISUAL · SHARED FIELD</div></div></div>
+          <div class="conversation">
+            <header class="chapter-heading reveal"><span class="chapter-count">08 / 08</span><h2 class="chapter-name">深圳豪宅小谭</h2><p class="chapter-quote">“好的摄影工具，也应该由大家共同维护。”</p></header>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>如果有一款帮助大家摄影的小程序，你最希望它提供什么功能？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">深圳豪宅小谭</div><p>我希望它有同步上传的功能。大家拍完可以直接传上去，也可以参加摄影话题。平台还能提供打卡点，或者让用户补充新的打卡点。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>它不只是告诉大家去哪里拍，还应该把用户拍到的内容沉淀下来？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">深圳豪宅小谭</div><p>对。比如我发现了一个不错的位置，就把地点、照片和拍摄时间传上去。你们收集起来，其他人以后去这个地方，就能看到真实参考。</p></div>
+            <div class="exchange host reveal"><div class="speaker">主持人</div><p>同一个地方有很多人上传照片，你最想看到什么？</p></div>
+            <div class="exchange answer reveal"><div class="speaker">深圳豪宅小谭</div><p>照片是什么时间拍的，当时是什么天气，以及站在哪个方向。这样照片不只是一张作品，也能成为下一位用户的拍摄参考。</p></div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <section class="triad" id="echoes" data-section-title="三种追光者">
+      <div class="triad-row reveal"><div class="triad-word">提前</div><div class="triad-note">先知道几点出发，才不会错过。</div></div>
+      <div class="triad-row reveal"><div class="triad-word">观察</div><div class="triad-note">给我真实信息，把决定留给我。</div></div>
+      <div class="triad-row reveal"><div class="triad-word">偶遇</div><div class="triad-note">如果光就在附近，请及时告诉我。</div></div>
+    </section>
+
+    <section class="chorus" id="works" data-section-title="光的旁听席">
+      <header class="chorus-head reveal"><div class="eyebrow">THE SILENT CHORUS · 32 WORKS</div><h2>光的<br />旁听席</h2></header>
+      <div id="chorusAuthors"></div>
+    </section>
+
+    <section class="finale" data-section-title="ENDING">
+      <div class="finale-copy reveal"><p>光快到了。<br />现在出发，<br />还来得及。</p><small>LIGHTCHASER · FOLLOW THE LIGHT</small></div>
+      <footer class="credits"><span>对话据真实访谈整理，部分追问为情境化补充</span><span>影像版权归各署名创作者所有 · 已授权展示</span></footer>
+    </section>
+  </main>
+
+  <dialog class="lightbox" id="lightbox" aria-label="作品大图">
+    <button class="lightbox-close" type="button" id="lightboxClose" aria-label="关闭大图">×</button>
+    <div class="lightbox-inner"><img id="lightboxImage" alt="" /></div>
+  </dialog>
+
+  <script>
+    (() => {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const pad = (value) => String(value).padStart(2, "0");
+
+      const createReel = (container, author, displayName, start, count, ext, showHeader = true) => {
+        if (showHeader) {
+          const head = document.createElement("div");
+          head.className = "reel-head";
+          head.innerHTML = `<h3>${displayName}</h3><span>${pad(count - start + 1)} WORKS</span>`;
+          container.appendChild(head);
+        }
+        const grid = document.createElement("div");
+        grid.className = "reel-grid";
+        for (let index = start; index <= count; index += 1) {
+          const path = `assets/interviews/${author}/${pad(index)}.${ext}`;
+          const isVideo = ext === "mp4";
+          const item = document.createElement(isVideo ? "div" : "button");
+          item.className = `media-item${isVideo ? " video-shell" : ""}`;
+          if (!isVideo) item.type = "button";
+          item.setAttribute("aria-label", `${displayName} 作品 ${pad(index)}`);
+          if (isVideo) {
+            const video = document.createElement("video");
+            video.dataset.src = path;
+            video.controls = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.preload = "none";
+            item.appendChild(video);
+          } else {
+            const image = document.createElement("img");
+            image.src = path;
+            image.loading = "lazy";
+            image.decoding = "async";
+            image.alt = `${displayName} 摄影作品 ${pad(index)}`;
+            item.appendChild(image);
+            item.addEventListener("click", () => openLightbox(path, image.alt));
+          }
+          const label = document.createElement("span");
+          label.className = "media-index";
+          label.textContent = pad(index);
+          item.appendChild(label);
+          grid.appendChild(item);
+        }
+        container.appendChild(grid);
+      };
+
+      document.querySelectorAll(".author-reel[data-author]").forEach((reel) => {
+        const displayName = reel.closest(".chapter")?.querySelector(".chapter-name")?.textContent || reel.dataset.author;
+        createReel(reel, reel.dataset.author, displayName, Number(reel.dataset.start), Number(reel.dataset.count), reel.dataset.ext);
+      });
+
+      const chorusData = [
+        ["douyin-xiaobai", "抖音创作者：xiaobai📷", 1, "mp4"],
+        ["douyin-xiaoye", "抖音创作者：小叶同学", 1, "mp4"],
+        ["napoleon-dayanhu", "拿破仑大眼糊", 7, "jpeg"],
+        ["manyou-kaka", "漫游kaka", 12, "jpeg"],
+        ["photographer-tim", "摄影师：Tim", 11, "mp4"]
+      ];
+      const chorusRoot = document.getElementById("chorusAuthors");
+      chorusData.forEach(([author, name, count, ext]) => {
+        const section = document.createElement("section");
+        section.className = "chorus-author";
+        section.innerHTML = `<div class="chorus-name liquid-glass">${name}</div>`;
+        const reel = document.createElement("div");
+        reel.className = "author-reel";
+        createReel(reel, author, name, 1, count, ext, false);
+        section.appendChild(reel);
+        chorusRoot.appendChild(section);
+      });
+      if (window.location.hash) {
+        const initialTarget = document.getElementById(window.location.hash.slice(1));
+        if (initialTarget) requestAnimationFrame(() => initialTarget.scrollIntoView());
+      }
+
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImage = document.getElementById("lightboxImage");
+      const lightboxClose = document.getElementById("lightboxClose");
+      function openLightbox(src, alt) {
+        lightboxImage.src = src;
+        lightboxImage.alt = alt;
+        document.body.classList.add("dialog-open");
+        lightbox.showModal();
+      }
+      function closeLightbox() {
+        lightbox.close();
+        lightboxImage.removeAttribute("src");
+        document.body.classList.remove("dialog-open");
+      }
+      lightboxClose.addEventListener("click", closeLightbox);
+      lightbox.addEventListener("click", (event) => { if (event.target === lightbox || event.target.classList.contains("lightbox-inner")) closeLightbox(); });
+      lightbox.addEventListener("close", () => document.body.classList.remove("dialog-open"));
+
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.16 });
+      document.querySelectorAll(".reveal, .opening-line").forEach((element) => revealObserver.observe(element));
+
+      const mediaObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target;
+          if (entry.isIntersecting) {
+            if (!video.src && video.dataset.src) {
+              video.src = video.dataset.src;
+              video.load();
+            }
+            if (!video.controls && !reducedMotion) video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      }, { rootMargin: "400px 0px", threshold: 0.05 });
+      document.querySelectorAll("video[data-src]").forEach((video) => mediaObserver.observe(video));
+
+      const indicator = document.getElementById("chapterIndicator");
+      const sections = [...document.querySelectorAll("[data-section-title]")];
+      const chapters = [...document.querySelectorAll(".chapter")];
+      const progress = document.getElementById("pageProgress");
+      let ticking = false;
+      const updateScroll = () => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+        const marker = window.innerHeight * .44;
+        const activeSection = sections.find((section) => {
+          const bounds = section.getBoundingClientRect();
+          return bounds.top <= marker && bounds.bottom > marker;
+        }) || sections[sections.length - 1];
+        const index = Math.max(0, sections.indexOf(activeSection));
+        const chapterIndex = chapters.indexOf(activeSection);
+        const displayIndex = chapterIndex >= 0 ? chapterIndex + 1 : Math.max(0, index - 1);
+        indicator.textContent = `${pad(displayIndex)} / ${activeSection.dataset.sectionTitle}`;
+        chapters.forEach((chapter) => chapter.classList.toggle("is-active", chapter === activeSection));
+        ticking = false;
+      };
+      window.addEventListener("scroll", () => {
+        if (!ticking) { ticking = true; requestAnimationFrame(updateScroll); }
+      }, { passive: true });
+      updateScroll();
+
+      if (!reducedMotion) {
+        const canvas = document.getElementById("particles");
+        const context = canvas.getContext("2d");
+        let points = [];
+        const resize = () => {
+          const ratio = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.width = Math.round(canvas.clientWidth * ratio);
+          canvas.height = Math.round(canvas.clientHeight * ratio);
+          context.setTransform(ratio, 0, 0, ratio, 0, 0);
+          points = Array.from({ length: Math.min(46, Math.round(canvas.clientWidth / 22)) }, () => ({
+            x: Math.random() * canvas.clientWidth,
+            y: Math.random() * canvas.clientHeight,
+            size: Math.random() * 1.4 + .25,
+            speed: Math.random() * .12 + .04,
+            alpha: Math.random() * .34 + .08
+          }));
+        };
+        const draw = () => {
+          context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+          points.forEach((point) => {
+            point.y -= point.speed;
+            if (point.y < -4) { point.y = canvas.clientHeight + 4; point.x = Math.random() * canvas.clientWidth; }
+            context.beginPath();
+            context.arc(point.x, point.y, point.size, 0, Math.PI * 2);
+            context.fillStyle = `rgba(255,229,199,${point.alpha})`;
+            context.fill();
+          });
+          requestAnimationFrame(draw);
+        };
+        resize();
+        window.addEventListener("resize", resize, { passive: true });
+        requestAnimationFrame(draw);
+      }
+    })();
+  </script>
+</body>
+</html>
