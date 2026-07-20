@@ -1,0 +1,1234 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="八位摄影者的真实访谈：有人提前二十分钟等蓝调，有人蹲两个小时等晚霞。关于一道光的不同等法，以及我们为什么做追光。">
+<title>追·光对谈 — 八位摄影者，关于一道光的不同等法</title>
+<script>document.documentElement.className += " js";</script>
+<style>
+:root {
+  --ink: #E8E4DC;
+  --ink2: #9A948A;
+  --ink3: #6B7280;
+  --hairline: rgba(232, 228, 220, 0.10);
+  --card: #141A26;
+  --song: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", Georgia, serif;
+  --hei: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, "Courier New", monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body { margin: 0; padding: 0; overflow-x: clip; }
+body {
+  background: #0B0E14;
+  color: var(--ink);
+  font-family: var(--hei);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, video { max-width: 100%; }
+h1, h2, p, figure { margin: 0; }
+ul { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 1px solid #E8C87E; outline-offset: 3px; }
+
+/* ————— 章节天色：滚动即时间流逝 ————— */
+.chapter { padding-top: 160px; }
+.s-prologue { padding-top: 0; background-color: #0B0E14; }
+.s-calm    { background-color: #101828; background-image: linear-gradient(to bottom, #0B0E14 0px, transparent 240px); }
+.s-tmj     { background-color: #0E1420; background-image: linear-gradient(to bottom, #101828 0px, transparent 240px); }
+.s-xiaotan { background-color: #0E1420; }
+.s-travis  { background-color: #131A24; background-image: linear-gradient(to bottom, #0E1420 0px, transparent 240px); }
+.s-xuan    { background-color: #1A1A22; background-image: linear-gradient(to bottom, #131A24 0px, transparent 240px); }
+.s-kellys  { background-color: #1C1820; background-image: linear-gradient(to bottom, #1A1A22 0px, transparent 240px); }
+.s-zhao    { background-color: #1E1618; background-image: linear-gradient(to bottom, #1C1820 0px, transparent 240px); }
+.s-peng    { background-color: #1C1518; background-image: linear-gradient(to bottom, #1E1618 0px, transparent 240px); }
+.s-gallery { background-color: #16121A; background-image: linear-gradient(to bottom, #1C1518 0px, transparent 240px); }
+.s-epi     { background-color: #0B0E14; background-image: linear-gradient(to bottom, #16121A 0px, transparent 240px); }
+
+/* ————— 栏宽 ————— */
+.col { max-width: 640px; margin: 0 auto; padding: 0 24px; }
+.plate { max-width: 920px; margin: 72px auto; padding: 0 16px; }
+
+/* ————— 章节头 ————— */
+.chap-head { text-align: center; margin: 0 auto 56px; }
+.tc {
+  font-family: var(--mono); font-size: 14px; letter-spacing: 0.18em;
+  color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.tc::after {
+  content: ""; display: block; width: 24px; height: 2px; margin: 12px auto 0;
+  background: var(--accent); transform: scaleX(0); transform-origin: left center;
+  transition: transform 0.4s ease 0.2s;
+}
+.on .tc::after { transform: scaleX(1); }
+h2 {
+  font-family: var(--song); font-weight: 600; letter-spacing: 0.08em;
+  font-size: clamp(28px, 6.4vw, 40px); margin-top: 20px;
+}
+.tags { font-size: 13px; color: var(--ink3); margin-top: 14px; letter-spacing: 0.14em; }
+.tmark { font-family: var(--mono); font-size: 11px; color: var(--ink3); margin-top: 16px; letter-spacing: 0.16em; }
+
+/* ————— 对白 ————— */
+.host { font-size: 16px; color: var(--ink2); line-height: 2; letter-spacing: 0.03em; margin: 0 auto 48px; max-width: 560px; }
+.qa { margin: 0 0 48px; }
+.q { font-size: 14px; color: var(--ink2); line-height: 1.8; letter-spacing: 0.06em; margin-bottom: 24px; }
+.qtag { font-family: var(--mono); font-size: 11px; color: var(--ink3); letter-spacing: 0.14em; margin-right: 12px; }
+.qtag::before {
+  content: ""; display: inline-block; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent); margin-right: 8px; vertical-align: 2px;
+}
+.a { border-left: 2px solid var(--accent); padding-left: 20px; }
+.a p { font-family: var(--song); font-size: clamp(17px, 4.2vw, 19px); line-height: 1.9; letter-spacing: 0.02em; }
+.a p + p { margin-top: 20px; }
+.a .who { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.22em; margin-bottom: 16px; }
+
+/* ————— 转写稿章（纯文字访谈者） ————— */
+.tsheet { border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding: 40px 0 8px; counter-reset: tline; }
+.tsheet .qa { position: relative; padding-left: 40px; }
+.tsheet .qa::before {
+  counter-increment: tline; content: counter(tline, decimal-leading-zero);
+  position: absolute; left: 0; top: 4px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink3); letter-spacing: 0.1em;
+}
+
+/* ————— 金句 ————— */
+.pq {
+  font-family: var(--song); font-weight: 600; font-size: clamp(23px, 5.6vw, 30px);
+  line-height: 1.7; letter-spacing: 0.06em; text-align: center;
+  max-width: 560px; margin: 68px auto; padding: 0 24px;
+}
+.pq::before {
+  content: "“"; display: block; font-family: Georgia, serif; font-size: 72px;
+  line-height: 0.6; color: var(--accent); margin-bottom: 20px;
+}
+
+/* ————— 图版 ————— */
+.zoom { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.frame {
+  display: block; position: relative; overflow: hidden;
+  border: 1px solid var(--hairline); border-radius: 2px; background: var(--card);
+}
+.frame img { display: block; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.92); transition: filter 0.5s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.zoom:hover .frame img, .zoom:focus-visible .frame img { filter: brightness(1); transform: scale(1.03); }
+figcaption { font-size: 13px; color: var(--ink2); line-height: 1.7; letter-spacing: 0.04em; margin-top: 16px; }
+.plate-v .zoom { max-width: 400px; margin: 0 auto; }
+.plate-v .vwrap { max-width: 400px; margin: 0 auto; }
+.plate-duo .duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.plate-trio .reel-tag { font-family: var(--mono); font-size: 11px; color: var(--ink3); letter-spacing: 0.18em; margin-bottom: 16px; }
+.plate-trio .reel { border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding: 16px 0; }
+.plate-trio .tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+
+/* ————— 视频卡 ————— */
+.vwrap { position: relative; }
+.frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.playbtn {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 1px solid var(--accent, #E8C87E); background: rgba(6, 8, 12, 0.38);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.3s ease, background 0.3s ease; z-index: 2;
+}
+.playbtn:hover { background: rgba(6, 8, 12, 0.6); }
+.pglyph {
+  width: 0; height: 0; margin-left: 3px;
+  border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+  border-left: 11px solid var(--ink);
+}
+.vwrap.playing .pglyph {
+  width: 10px; height: 12px; margin-left: 0;
+  border-top: 0; border-bottom: 0;
+  border-left: 3px solid var(--ink); border-right: 3px solid var(--ink);
+}
+.vwrap.playing .playbtn { opacity: 0; }
+.vwrap.playing:hover .playbtn, .vwrap .playbtn:focus-visible { opacity: 1; }
+.dur {
+  position: absolute; right: 8px; bottom: 8px; z-index: 2;
+  font-family: var(--mono); font-size: 11px; color: var(--ink);
+  background: rgba(6, 8, 12, 0.55); padding: 2px 7px; letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ————— 全屏影像（全页仅三处） ————— */
+.full { position: relative; margin: 0; height: 100vh; height: 100svh; overflow: hidden; }
+.full::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 120px; z-index: 1;
+  background: linear-gradient(to bottom, rgba(11, 14, 20, 0.5), rgba(11, 14, 20, 0));
+  pointer-events: none;
+}
+.full img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.full:not(.hero) img { transform: scale(1.12); will-change: transform; }
+.corner {
+  position: absolute; right: 16px; bottom: 14px; z-index: 2;
+  font-family: var(--mono); font-size: 10px; color: rgba(232, 228, 220, 0.55); letter-spacing: 0.08em;
+}
+.hero-shade {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom, rgba(11, 14, 20, 0.38) 0%, rgba(11, 14, 20, 0.08) 28%, rgba(11, 14, 20, 0.55) 58%, rgba(11, 14, 20, 0.9) 100%);
+}
+.hero-inner { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; z-index: 2; padding: 0 24px; text-shadow: 0 1px 14px rgba(6, 8, 12, 0.9), 0 0 3px rgba(6, 8, 12, 0.7); }
+.hero-inner::before {
+  content: ""; position: absolute; left: 50%; top: -30%; bottom: -8%; width: min(880px, 130%);
+  transform: translateX(-50%); z-index: -1;
+  background: radial-gradient(ellipse at center, rgba(6, 8, 12, 0.58) 0%, rgba(6, 8, 12, 0) 68%);
+}
+.hero-tc { font-family: var(--mono); font-size: 13px; letter-spacing: 0.18em; color: #7FA3C7; font-variant-numeric: tabular-nums; }
+h1 { font-family: var(--song); font-weight: 600; font-size: clamp(34px, 8vw, 56px); letter-spacing: 0.12em; margin-top: 18px; }
+.hero-en { font-family: Georgia, serif; font-style: italic; font-size: clamp(15px, 3.4vw, 18px); color: var(--ink2); margin-top: 14px; letter-spacing: 0.06em; }
+.hero-sub { font-size: 15px; color: var(--ink2); margin-top: 22px; letter-spacing: 0.04em; }
+.hero-hint { margin-top: 44px; font-size: 12px; color: var(--ink3); letter-spacing: 0.3em; }
+.hero-hint::after { content: ""; display: block; width: 1px; height: 24px; background: var(--ink3); margin: 10px auto 0; opacity: 0.6; }
+.hero-after { margin-top: 64px; }
+
+/* ————— Hero 入场：主图沉降 + 文字逐行浮现（一次性，html.js 门控） ————— */
+@keyframes heroSettle {
+  from { transform: scale(1.06) translateY(-1%); }
+  to { transform: scale(1) translateY(0); }
+}
+@keyframes heroRise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+html.js .full.hero img { animation: heroSettle 18s cubic-bezier(0.22, 1, 0.36, 1) both; }
+html.js .hero-inner > * { animation: heroRise 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+html.js .hero-inner > *:nth-child(1) { animation-delay: 0.35s; }
+html.js .hero-inner > *:nth-child(2) { animation-delay: 0.6s; }
+html.js .hero-inner > *:nth-child(3) { animation-delay: 0.85s; }
+html.js .hero-inner > *:nth-child(4) { animation-delay: 1.1s; }
+html.js .hero-inner > *:nth-child(5) { animation-delay: 1.5s; }
+
+/* ————— 旁听席 ————— */
+.ggrid {
+  max-width: 920px; margin: 72px auto 0; padding: 0 16px;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 16px;
+}
+.gcell figcaption { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.08em; margin-top: 10px; }
+
+/* ————— 终章 ————— */
+.finale { padding-top: 32vh; }
+.finale .host { text-align: center; margin-bottom: 72px; }
+.beam {
+  font-family: var(--song); font-weight: 600; font-size: clamp(24px, 6vw, 32px);
+  text-align: center; margin: 96px auto; letter-spacing: 0.1em;
+}
+.glow { color: #E8C87E; }
+.beam .glow { animation: glowPulse 4.5s ease-in-out 1.2s infinite; }
+@keyframes glowPulse {
+  0%, 100% { text-shadow: 0 0 0 rgba(232, 200, 126, 0); }
+  50% { text-shadow: 0 0 22px rgba(232, 200, 126, 0.45); }
+}
+.endmark { margin-top: 24vh; padding-bottom: 20vh; text-align: center; }
+.goldrule { display: block; width: 64px; height: 1px; background: rgba(232, 200, 126, 0.6); margin: 0 auto 28px; }
+.final { font-family: var(--song); font-size: 20px; letter-spacing: 0.12em; }
+.colo { font-family: var(--mono); font-size: 11px; color: var(--ink3); letter-spacing: 0.14em; margin-top: 80px; }
+.colo + .colo { margin-top: 14px; }
+
+/* ————— 终章需求提炼 ————— */
+.needs { margin-top: 80px; padding-top: 44px; border-top: 1px solid var(--hairline); }
+.needs-kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em; color: var(--accent); text-align: center; }
+.needs-list { list-style: none; margin: 40px 0 0; padding: 0; }
+.needs-list li { position: relative; padding: 0 0 26px 44px; }
+.needs-list .ni { position: absolute; left: 0; top: 7px; font-family: var(--mono); font-size: 11px; color: var(--ink3); letter-spacing: 0.1em; }
+.needs-list .nq { font-family: var(--song); font-size: clamp(16px, 4vw, 18px); line-height: 1.9; letter-spacing: 0.02em; }
+.needs-list .na { display: block; margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.22em; }
+.needs-so { margin: 48px auto 0; max-width: 560px; text-align: center; font-size: 16px; line-height: 2; color: var(--ink2); letter-spacing: 0.03em; }
+
+/* ————— 章节导航：桌面左竖轨 ————— */
+#rail { position: fixed; left: 28px; top: 50%; transform: translateY(-50%); z-index: 60; }
+#rail ul { list-style: none; padding: 0; border-left: 1px solid var(--hairline); }
+#rail li { position: relative; }
+#rail a {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 6px 12px 6px 16px; margin: 2px 0; border-radius: 9px;
+  background: rgba(6, 8, 12, 0.45);
+  text-decoration: none; text-shadow: 0 1px 8px rgba(6, 8, 12, 0.95), 0 0 2px rgba(6, 8, 12, 0.8);
+}
+#rail a::before {
+  content: ""; position: absolute; left: -3.5px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  border: 1px solid var(--ink3); background: rgba(6, 8, 12, 0.55);
+  box-shadow: 0 1px 6px rgba(6, 8, 12, 0.9);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+#rail .rt { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+#rail .rn { font-size: 11px; color: rgba(154, 148, 138, 0.55); letter-spacing: 0.06em; white-space: nowrap; }
+#rail a[aria-current="true"]::before { background: var(--accent, #E8C87E); border-color: var(--accent, #E8C87E); }
+#rail a[aria-current="true"] .rt { color: var(--accent, #E8C87E); }
+#rail a[aria-current="true"] .rn { color: var(--ink); }
+#rail a:hover .rn { color: var(--ink2); }
+
+/* ————— 章节导航：移动顶条 ————— */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 60;
+  display: none; align-items: center; justify-content: space-between; padding: 0 16px;
+  background: rgba(11, 14, 20, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+#top-current { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; color: #7FA3C7; font-variant-numeric: tabular-nums; }
+.ttrack { position: relative; width: 34%; height: 2px; background: rgba(255, 255, 255, 0.08); }
+#top-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #7FA3C7; transition: width 0.2s linear; }
+
+/* ————— 灯箱 ————— */
+#lightbox {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(6, 8, 12, 0.92);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.18s ease;
+}
+#lightbox[hidden] { display: none; }
+#lightbox.open { opacity: 1; }
+.lb-stage { margin: 0; max-width: 92vw; text-align: center; transform: scale(0.97); transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+#lightbox.open .lb-stage { transform: scale(1); }
+#lb-img {
+  max-width: 92vw; max-height: 80vh; max-height: 80svh;
+  border: 1px solid var(--hairline); border-radius: 2px; display: block; margin: 0 auto;
+}
+.lb-stage figcaption { margin-top: 18px; font-size: 13px; color: var(--ink2); letter-spacing: 0.04em; }
+#lb-count { display: block; margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--ink3); letter-spacing: 0.14em; }
+#lb-close, #lb-prev, #lb-next {
+  position: absolute; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--hairline); background: rgba(20, 26, 38, 0.6);
+  color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; z-index: 3;
+}
+#lb-close { top: 20px; right: 20px; }
+#lb-prev { left: 20px; top: 50%; transform: translateY(-50%); }
+#lb-next { right: 20px; top: 50%; transform: translateY(-50%); }
+#lb-close:hover, #lb-prev:hover, #lb-next:hover { background: rgba(20, 26, 38, 0.9); }
+
+/* ————— 揭示动效（唯一一套入场语言） ————— */
+html.js .rv { opacity: 0; transform: translateY(24px); transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+html.js .rvp { opacity: 0; transform: translateY(16px) scale(1.02); transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+html.js .rvf { opacity: 0; transition: opacity 1.2s linear; }
+html.js .rv.on, html.js .rvp.on, html.js .rvf.on { opacity: 1; transform: none; }
+html.reduced .rv, html.reduced .rvp, html.reduced .rvf { opacity: 1 !important; transform: none !important; transition: none !important; }
+
+/* ————— 组内 stagger：父级揭示后子项依次浮起（delay 由全局 RM 规则归零） ————— */
+html.js .duo > .zoom,
+html.js .tri > .vwrap,
+html.js .ggrid > .gcell,
+html.js .qa > .q,
+html.js .qa > .a,
+html.js .needs-list > li {
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.js .rvp.on .duo > .zoom,
+html.js .rvp.on .tri > .vwrap,
+html.js .ggrid.on > .gcell,
+html.js .qa.on > .q,
+html.js .qa.on > .a,
+html.js .tsheet.on .qa > .q,
+html.js .tsheet.on .qa > .a,
+html.js .needs.on .needs-list > li { opacity: 1; transform: none; }
+html.js .rvp.on .duo > .zoom:nth-child(2) { transition-delay: 90ms; }
+html.js .rvp.on .tri > .vwrap:nth-child(2) { transition-delay: 90ms; }
+html.js .rvp.on .tri > .vwrap:nth-child(3) { transition-delay: 180ms; }
+html.js .ggrid.on > .gcell:nth-child(2) { transition-delay: 90ms; }
+html.js .ggrid.on > .gcell:nth-child(3) { transition-delay: 180ms; }
+html.js .ggrid.on > .gcell:nth-child(4) { transition-delay: 270ms; }
+html.js .ggrid.on > .gcell:nth-child(5) { transition-delay: 360ms; }
+html.js .ggrid.on > .gcell:nth-child(6) { transition-delay: 450ms; }
+html.js .ggrid.on > .gcell:nth-child(7) { transition-delay: 540ms; }
+html.js .qa.on > .a { transition-delay: 120ms; }
+html.js .tsheet.on .qa > .a { transition-delay: 120ms; }
+html.js .tsheet.on .qa:nth-child(2) > .q { transition-delay: 150ms; }
+html.js .tsheet.on .qa:nth-child(2) > .a { transition-delay: 270ms; }
+html.js .needs.on .needs-list > li:nth-child(2) { transition-delay: 80ms; }
+html.js .needs.on .needs-list > li:nth-child(3) { transition-delay: 160ms; }
+html.js .needs.on .needs-list > li:nth-child(4) { transition-delay: 240ms; }
+html.js .needs.on .needs-list > li:nth-child(5) { transition-delay: 320ms; }
+html.js .needs.on .needs-list > li:nth-child(6) { transition-delay: 400ms; }
+html.reduced .duo > .zoom,
+html.reduced .tri > .vwrap,
+html.reduced .ggrid > .gcell,
+html.reduced .qa > .q,
+html.reduced .qa > .a,
+html.reduced .needs-list > li { opacity: 1 !important; transform: none !important; transition: none !important; }
+html.reduced .full.hero img, html.reduced .hero-inner > * { animation: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
+html.reduced .beam .glow { animation: none !important; }
+
+@media (max-width: 1199px) {
+  #rail { display: none; }
+  #topbar { display: flex; }
+}
+@media (max-width: 760px) {
+  .chapter { padding-top: 108px; }
+  .plate { margin: 64px auto; }
+  .plate-duo .duo { gap: 12px; }
+  .plate-trio .tri { gap: 10px; }
+  .ggrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+  .pq { margin: 64px auto; }
+  .host { margin-bottom: 36px; }
+  .qa { margin-bottom: 36px; }
+  .finale .host { margin-bottom: 56px; }
+  .beam { margin: 72px auto; }
+  .needs { margin-top: 64px; padding-top: 36px; }
+  .needs-list li { padding: 0 0 22px 36px; }
+  .hero-inner { bottom: 11%; }
+  #lb-prev { left: 8px; }
+  #lb-next { right: 8px; }
+  #lb-close { top: 12px; right: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+  html.js .rv, html.js .rvp, html.js .rvf { opacity: 1; transform: none; }
+  html.js .full.hero img { animation: none; }
+  html.js .hero-inner > * { animation: none; opacity: 1; transform: none; filter: none; }
+  html.js .duo > .zoom, html.js .tri > .vwrap, html.js .ggrid > .gcell,
+  html.js .qa > .q, html.js .qa > .a, html.js .needs-list > li { opacity: 1; transform: none; }
+  .beam .glow { animation: none; }
+}
+</style>
+</head>
+<body>
+<nav id="rail" aria-label="章节导航">
+  <ul>
+    <li><a href="#chap-prologue"><span class="rt">05:38</span><span class="rn">序</span></a></li>
+    <li><a href="#chap-calm-breeze"><span class="rt">05:42</span><span class="rn">Calm Breeze</span></a></li>
+    <li><a href="#chap-tmj"><span class="rt">06:10</span><span class="rn">Tmj</span></a></li>
+    <li><a href="#chap-shenzhen-xiaotan"><span class="rt">10:20</span><span class="rn">小谭</span></a></li>
+    <li><a href="#chap-travis"><span class="rt">14:30</span><span class="rn">崔维斯</span></a></li>
+    <li><a href="#chap-xuan-long-vacation"><span class="rt">17:48</span><span class="rn">Xuan</span></a></li>
+    <li><a href="#chap-kellys-image"><span class="rt">18:05</span><span class="rn">凯利斯映像</span></a></li>
+    <li><a href="#chap-zhao-lives"><span class="rt">18:23</span><span class="rn">zhao-lives</span></a></li>
+    <li><a href="#chap-peng"><span class="rt">18:41</span><span class="rn">Peng</span></a></li>
+    <li><a href="#chap-gallery"><span class="rt">18:55</span><span class="rn">旁听席</span></a></li>
+    <li><a href="#chap-epilogue"><span class="rt">19:05</span><span class="rn">尾声</span></a></li>
+  </ul>
+</nav>
+<div id="topbar"><span id="top-current">05:38 · 序</span><span class="ttrack"><span id="top-fill"></span></span></div>
+
+<main id="main">
+
+  <!-- 序章 · 05:38 日出前二十二分钟 -->
+  <section class="chapter s-prologue" id="chap-prologue" data-time="05:38" data-name="序" data-accent="#7FA3C7" style="--accent:#7FA3C7">
+    <figure class="full hero">
+      <img src="assets/interviews/napoleon-dayanhu/01.jpeg" alt="蓝调时刻从山间树叶的缝隙间俯瞰城市，万家灯火在深圳湾畔次第亮起，远处海面与山峦沉入灰蓝" fetchpriority="high" decoding="async">
+      <div class="hero-shade"></div>
+      <figcaption class="corner">© 拿破仑大眼糊</figcaption>
+      <div class="hero-inner">
+        <p class="hero-tc">05:38 · 日出前二十二分钟</p>
+        <h1>追·光对谈</h1>
+        <p class="hero-en">Conversations on Waiting for Light</p>
+        <p class="hero-sub">八位摄影者，关于一道光的不同等法。</p>
+        <p class="hero-hint">向下</p>
+      </div>
+    </figure>
+    <div class="col hero-after">
+      <p class="host rv">过去几周，我们找到八位拍光的人，问他们同一类问题：一道光，你等不等，又等多久？</p>
+      <p class="host rv">得到的答案，从「两个小时」到「完全不等」都有。</p>
+    </div>
+  </section>
+
+  <!-- 第一章 · 05:42 Calm Breeze -->
+  <section class="chapter s-calm" id="chap-calm-breeze" data-author="calm-breeze" data-time="05:42" data-name="Calm Breeze" data-accent="#7FA3C7" style="--accent:#7FA3C7">
+    <header class="chap-head col rv">
+      <p class="tc">05:42</p>
+      <h2>Calm Breeze</h2>
+      <p class="tags">日出 · 蓝调 · 提前二十分钟</p>
+    </header>
+    <div class="col">
+      <p class="host rv">八位里，规划最精确的一位。提前二十分钟，不多，也不少。</p>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>拍日落时会看天气、等待时机吗？</p>
+        <div class="a">
+          <p class="who">CALM BREEZE</p>
+          <p>我拍的是日出。每天先查日出时间，去晚了太阳出来就不好看了。</p>
+          <p>日出前的蓝调最好看。先找好地点、定好时间，提前大约二十分钟到就行，日出的过程其实不长。</p>
+        </div>
+      </div>
+    </div>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="01 — 清晨的深圳湾日出剧场，人群在草坪上等霞光 · © Calm Breeze" aria-label="放大查看：深圳湾日出剧场的清晨群像">
+        <span class="frame" style="aspect-ratio:1919/1080">
+          <img data-src="assets/interviews/calm-breeze/10.webp" alt="清晨的深圳湾日出剧场，大草坪上数十人铺着野餐垫围坐等候，三脚架立在人群旁，橙粉色霞光铺满天空与远处的山峦" decoding="async">
+        </span>
+      </button>
+      <figcaption>01 — 清晨的深圳湾日出剧场，人群在草坪上等霞光 · © Calm Breeze</figcaption>
+    </figure>
+    <figure class="plate plate-duo rvp">
+      <div class="duo">
+        <button class="zoom" data-cap="02 — 野餐垫上的背影，粉紫渐变的天空 · © Calm Breeze" aria-label="放大查看：野餐垫上看霞的背影">
+          <span class="frame" style="aspect-ratio:1440/2560">
+            <img data-src="assets/interviews/calm-breeze/04.webp" alt="一群年轻人坐在格纹野餐垫上背对镜头望向海湾，粉紫渐变的天空下，白色帐篷和倒地的自行车散在草坪上" decoding="async">
+          </span>
+        </button>
+        <button class="zoom" data-cap="03 — 草坡上看霞的人群纷纷举起手机 · © Calm Breeze" aria-label="放大查看：草坡上举起手机的人群">
+          <span class="frame" style="aspect-ratio:1440/2560">
+            <img data-src="assets/interviews/calm-breeze/07.webp" alt="草坡上挤满了看霞的人，纷纷举起手机拍摄，一根自拍杆伸在画面上方，橙粉霞光染透海面与远山" decoding="async">
+          </span>
+        </button>
+      </div>
+      <figcaption>02 · 03 — 野餐垫上的背影与粉紫天空；草坡上举起手机的人群 · © Calm Breeze</figcaption>
+    </figure>
+    <p class="pq rv">日出前的蓝调最好看。</p>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="04 — 日出时分，天空烧成浓烈的橙红 · © Calm Breeze" aria-label="放大查看：烧成橙红色的日出天空">
+        <span class="frame" style="aspect-ratio:1920/1080">
+          <img data-src="assets/interviews/calm-breeze/12.webp" alt="日出时分天空烧成浓烈的橙红色，连绵山影如墨色叠在海平面上，观景平台挤满看霞的人，路灯与棕榈树剪出黑影" decoding="async">
+        </span>
+      </button>
+      <figcaption>04 — 日出时分，天空烧成浓烈的橙红 · © Calm Breeze</figcaption>
+    </figure>
+  </section>
+
+  <!-- 第二章 · 06:10 Tmj（录音转写，无影像授权） -->
+  <section class="chapter s-tmj" id="chap-tmj" data-author="tmj" data-time="06:10" data-name="Tmj" data-accent="#C9A86A" style="--accent:#C9A86A">
+    <header class="chap-head col rv">
+      <p class="tc">06:10</p>
+      <h2>Tmj</h2>
+      <p class="tags">专业练习 · 自主判断</p>
+      <p class="tmark">AUDIO TRANSCRIPT · 录音转写 · 无影像授权</p>
+    </header>
+    <div class="col">
+      <p class="host rv">也有人，连推荐都不想要。</p>
+      <div class="tsheet rv">
+        <div class="qa">
+          <p class="q"><span class="qtag">问</span>我们想帮助用户寻找附近出片地点、推荐时机和机位。你最需要什么？</p>
+          <div class="a">
+            <p class="who">TMJ</p>
+            <p>我可能和大多数人不一样。我做专业练习，不太依赖推荐。通常到了一个空间以后，先观察和感受，再决定怎么拍。</p>
+          </div>
+        </div>
+        <div class="qa">
+          <p class="q"><span class="qtag">问</span>如果一定有一款产品辅助专业摄影者呢？</p>
+          <div class="a">
+            <p>如果能看到那个地方当下的真实状况会很有帮助，像 Google Maps 实景，但最好更实时。</p>
+            <p>产品把天气、光线、云量、现场画面提供给我，最后怎么拍还是让我判断。连续变化的数据，比一句“推荐拍摄”更有价值。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="pq rv">连续变化的数据，比一句“推荐拍摄”更有价值。</p>
+  </section>
+
+  <!-- 第三章 · 10:20 深圳豪宅小谭（录音转写，无影像授权） -->
+  <section class="chapter s-xiaotan" id="chap-shenzhen-xiaotan" data-author="shenzhen-xiaotan" data-time="10:20" data-name="深圳豪宅小谭" data-accent="#A8B0BC" style="--accent:#A8B0BC">
+    <header class="chap-head col rv">
+      <p class="tc">10:20</p>
+      <h2>深圳豪宅小谭</h2>
+      <p class="tags">作品 · 话题 · 打卡点</p>
+      <p class="tmark">AUDIO TRANSCRIPT · 录音转写 · 无影像授权</p>
+    </header>
+    <div class="col">
+      <p class="host rv">前面都在说「我怎么看光」。也有人，想到的是「大家」。</p>
+      <div class="tsheet rv">
+        <div class="qa">
+          <p class="q"><span class="qtag">问</span>如果有一款帮助摄影的小程序，你希望它有什么？</p>
+          <div class="a">
+            <p class="who">深圳豪宅小谭</p>
+            <p>可以同步上传照片、参与话题、提供打卡点。大家把地点贡献出来，平台可以慢慢收集起来。</p>
+          </div>
+        </div>
+      </div>
+      <p class="host rv">「大家把地点贡献出来」——这句话，我们记住了。</p>
+    </div>
+  </section>
+
+  <!-- 第四章 · 14:30 崔维斯 -->
+  <section class="chapter s-travis" id="chap-travis" data-author="travis" data-time="14:30" data-name="崔维斯" data-accent="#A8B0BC" style="--accent:#A8B0BC">
+    <header class="chap-head col rv">
+      <p class="tc">14:30</p>
+      <h2>崔维斯</h2>
+      <p class="tags">机位 · 遮挡 · 时间轴</p>
+    </header>
+    <div class="col">
+      <p class="host rv">聊完「到了再看」的人，崔维斯想得更远——还没到，就想看见。</p>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>帮助摄影师寻找阳光机位的产品，你希望它有什么？</p>
+        <div class="a">
+          <p class="who">崔维斯</p>
+          <p>希望可以模拟机位的实时取景，最好有 VR。还没到现场，就能看看建筑、太阳方向和遮挡。</p>
+          <p>如果能调日期和时间，看不同时间的光落在哪里，会更有用。普通地图只告诉我地点，VR 或全景能让我判断现场是否开阔、怎么移动、某个角度能不能拍。</p>
+        </div>
+      </div>
+    </div>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="01 — 金橙色晚霞压向后海天际线，一架飞机掠过云层 · © 崔维斯" aria-label="放大查看：金橙色晚霞下的后海天际线">
+        <span class="frame" style="aspect-ratio:3840/2678">
+          <img data-src="assets/interviews/travis/02.jpeg" alt="金橙色的晚霞翻卷着压向深圳后海天际线，春笋大厦剪成黑色尖峰，海面铺满碎金，一架飞机正掠过云层边缘" decoding="async">
+        </span>
+      </button>
+      <figcaption>01 — 金橙色晚霞压向后海天际线，一架飞机掠过云层 · © 崔维斯</figcaption>
+    </figure>
+    <p class="pq rv">如果能调日期和时间，看不同时间的光落在哪里，会更有用。</p>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="02 — 长曝光下的粉紫暮光，水面倒映城市灯火 · © 崔维斯" aria-label="放大查看：粉紫暮光里的长曝光海面">
+        <span class="frame" style="aspect-ratio:5390/3759">
+          <img data-src="assets/interviews/travis/03.jpeg" alt="长曝光下的深圳湾，粉紫与橙红渐变的晚霞铺满天空，水面如绸缎般丝滑，倒映着初上的城市灯火" decoding="async">
+        </span>
+      </button>
+      <figcaption>02 — 长曝光下的粉紫暮光，水面倒映城市灯火 · © 崔维斯</figcaption>
+    </figure>
+    <figure class="plate plate-v rvp">
+      <button class="zoom" data-cap="03 — 同一机位的金橙与粉紫两个时刻 · © 崔维斯" aria-label="放大查看：同一机位两个时刻的对比">
+        <span class="frame" style="aspect-ratio:3442/4590">
+          <img data-src="assets/interviews/travis/01.jpeg" alt="同一机位的两个时刻拼接：上半是金橙色晚霞中的后海天际线，下半是粉紫色暮光里丝滑的海面倒影" decoding="async">
+        </span>
+      </button>
+      <figcaption>03 — 同一机位的金橙与粉紫两个时刻 · © 崔维斯</figcaption>
+    </figure>
+  </section>
+
+  <!-- 第五章 · 17:48 龍兒悠長假期 Xuan long vacation -->
+  <section class="chapter s-xuan" id="chap-xuan-long-vacation" data-author="xuan-long-vacation" data-time="17:48" data-name="Xuan long vacation" data-accent="#E0B45C" style="--accent:#E0B45C">
+    <figure class="full rvf" aria-label="金色时刻，纯影像静默一拍">
+      <img data-src="assets/interviews/xuan-long-vacation/01.jpg" alt="高层窗前俯瞰深圳湾，厚重的云层被晚霞染成金橙色，远处的城市天际线已经亮起星星点点的灯火" decoding="async">
+      <figcaption class="corner">© Xuan long vacation</figcaption>
+    </figure>
+    <header class="chap-head col rv" style="margin-top:96px">
+      <p class="tc">17:48</p>
+      <h2>龍兒悠長假期 Xuan long vacation</h2>
+      <p class="tags">偶遇 · 提醒 · 低门槛</p>
+    </header>
+    <div class="col">
+      <p class="host rv">有人提前规划，有人到场再看。也有人，完全不等。</p>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>拍日落会提前规划吗？</p>
+        <div class="a">
+          <p class="who">龍兒悠長假期</p>
+          <p>比较随意，主要凭运气。旅行或散步时刚好遇到好看的，就顺手拍。</p>
+        </div>
+      </div>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>如果产品提醒你，附近半小时后可能有晚霞呢？</p>
+        <div class="a">
+          <p>地点就在附近、不用做太多准备的话可能会去。最好打开就知道附近哪里好看、现在过去还来不来得及。信息太复杂反而不会看。</p>
+        </div>
+      </div>
+    </div>
+    <figure class="plate plate-v rvp">
+      <button class="zoom" data-cap="01 — 窗边的猫，与窗外螺旋状的金色晚霞 · © Xuan long vacation" aria-label="放大查看：窗边的猫与金色晚霞">
+        <span class="frame" style="aspect-ratio:1080/1920">
+          <img data-src="assets/interviews/xuan-long-vacation/02.jpg" alt="一只银虎斑猫慵懒地趴在高层窗边的吊床上，窗外河套壹号大楼上空，螺旋状的金色晚霞翻卷着铺满天空" decoding="async">
+        </span>
+      </button>
+      <figcaption>01 — 窗边的猫，与窗外螺旋状的金色晚霞 · © Xuan long vacation</figcaption>
+    </figure>
+    <p class="pq rv">信息太复杂，反而不会看。</p>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="02 — 双楼之上，羽毛状云霞铺满蓝天 · © Xuan long vacation" aria-label="放大查看：双楼之上的羽毛状云霞">
+        <span class="frame" style="aspect-ratio:1080/608">
+          <img data-src="assets/interviews/xuan-long-vacation/03.jpg" alt="长富金茂大厦与河套壹号两座高楼矗立在画面中，金色的羽毛状云霞在蓝天上铺展开来，远处是深圳湾的海平线" decoding="async">
+        </span>
+      </button>
+      <figcaption>02 — 双楼之上，羽毛状云霞铺满蓝天 · © Xuan long vacation</figcaption>
+    </figure>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="03 — 满天粉紫色鱼鳞状高积云 · © Xuan long vacation" aria-label="放大查看：粉紫色鱼鳞状高积云晚霞">
+        <span class="frame" style="aspect-ratio:1080/608">
+          <img data-src="assets/interviews/xuan-long-vacation/04.jpg" alt="满天粉紫色的鱼鳞状高积云被晚霞点燃，云隙间透出深蓝的天色" decoding="async">
+        </span>
+      </button>
+      <figcaption>03 — 满天粉紫色鱼鳞状高积云 · © Xuan long vacation</figcaption>
+    </figure>
+  </section>
+
+  <!-- 第六章 · 18:05 凯利斯映像 -->
+  <section class="chapter s-kellys" id="chap-kellys-image" data-author="kellys-image" data-time="18:05" data-name="凯利斯映像" data-accent="#E0A04E" style="--accent:#E0A04E">
+    <header class="chap-head col rv">
+      <p class="tc">18:05</p>
+      <h2>凯利斯映像</h2>
+      <p class="tags">云量 · 层次 · 值不值得</p>
+    </header>
+    <div class="col">
+      <p class="host rv">太阳往下走。等一个小时的人，看的不是钟，是云。</p>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>什么天气适合拍日落？</p>
+        <div class="a">
+          <p class="who">凯利斯映像</p>
+          <p>会提前看天气，通常等一个小时，也会观察太阳颜色。多云不一定是坏天气，完全没云反而单调。有些云，夕阳颜色才有层次。</p>
+          <p>最好能看到云量、云层位置、太阳附近是否被厚云挡住。用户最终想知道的是今天值不值得去拍。</p>
+        </div>
+      </div>
+    </div>
+    <figure class="plate plate-v rvp">
+      <div class="vwrap">
+        <span class="frame" style="aspect-ratio:3/4">
+          <video data-src="assets/interviews/kellys-image/04.mp4" muted playsinline loop preload="none" aria-label="视频：夕阳在楼群后方沉落，滨海步道的木栈道被染成暖金色，栏杆边靠着一根钓鱼竿，红色花丛在逆光里发亮，海面反射着碎金"></video>
+        </span>
+        <button class="playbtn" aria-label="播放或暂停：滨海步道日落逆光视频"><span class="pglyph"></span></button>
+        <span class="dur" aria-hidden="true">00:03</span>
+      </div>
+      <figcaption>01 — 滨海步道的日落逆光，钓鱼竿与金色海面 · © 凯利斯映像</figcaption>
+    </figure>
+    <p class="pq rv">多云不一定是坏天气，完全没云反而单调。</p>
+    <figure class="plate plate-trio rvp">
+      <p class="reel-tag">REEL 01</p>
+      <div class="reel">
+        <div class="tri">
+          <div class="vwrap">
+            <span class="frame" style="aspect-ratio:3/4">
+              <video data-src="assets/interviews/kellys-image/03.mp4" muted playsinline loop preload="none" aria-label="视频：日落后的蓝调时刻，深圳湾大桥横卧海面，桥塔亮起灯光，粉蓝色暮云下一只小渔船静静漂在海上"></video>
+            </span>
+            <button class="playbtn" aria-label="播放或暂停：蓝调时刻深圳湾大桥视频"><span class="pglyph"></span></button>
+            <span class="dur" aria-hidden="true">00:02</span>
+          </div>
+          <div class="vwrap">
+            <span class="frame" style="aspect-ratio:3/4">
+              <video data-src="assets/interviews/kellys-image/02.mp4" muted playsinline loop preload="none" aria-label="视频：透过茂密的树荫望向海港，逆光把绿叶照得透亮，远处蛇口港的吊机立在金色的海平线上"></video>
+            </span>
+            <button class="playbtn" aria-label="播放或暂停：树荫框景海港逆光视频"><span class="pglyph"></span></button>
+            <span class="dur" aria-hidden="true">00:02</span>
+          </div>
+          <div class="vwrap">
+            <span class="frame" style="aspect-ratio:3/4">
+              <video data-src="assets/interviews/kellys-image/05.mp4" muted playsinline loop preload="none" aria-label="视频：暮色中的游艇码头，白色游艇泊在平静无波的海面，远山之上天空由粉橙渐变为灰蓝"></video>
+            </span>
+            <button class="playbtn" aria-label="播放或暂停：暮色游艇码头视频"><span class="pglyph"></span></button>
+            <span class="dur" aria-hidden="true">00:02</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>02 – 04 — 蓝调里的深圳湾大桥、树荫框景的海港、暮色游艇码头 · © 凯利斯映像</figcaption>
+    </figure>
+  </section>
+
+  <!-- 第七章 · 18:23 zhao-lives -->
+  <section class="chapter s-zhao" id="chap-zhao-lives" data-author="zhao-lives" data-time="18:23" data-name="zhao-lives" data-accent="#DE8A4E" style="--accent:#DE8A4E">
+    <header class="chap-head col rv">
+      <p class="tc">18:23</p>
+      <h2>zhao-lives</h2>
+      <p class="tags">蹲守 · 一到两个小时</p>
+    </header>
+    <div class="col">
+      <p class="host rv">天色越晚，等的人越耐心。zhao-lives 会提前一两个小时，蹲在草坪上。</p>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>拍日落会提前看天气吗？</p>
+        <div class="a">
+          <p class="who">ZHAO-LIVES</p>
+          <p>会。有夕阳的时候提前去草坪蹲机位。为了最佳晚霞一般等一到两个小时，因为天空一直变，不知道最好看的颜色在哪一分钟。要隔几分钟拍一次，覆盖不同时间段。</p>
+          <p>太阳落下去也不能马上走，真正好看的晚霞有时会晚一点出现。</p>
+        </div>
+      </div>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>如果产品提醒你「进入金色时刻」「十分钟后可能有晚霞高峰」呢？</p>
+        <div class="a">
+          <p>会有帮助，但要结合当天变化，不只是固定日落时间。</p>
+        </div>
+      </div>
+    </div>
+    <figure class="plate plate-v rvp">
+      <div class="vwrap">
+        <span class="frame" style="aspect-ratio:3/4">
+          <video data-src="assets/interviews/zhao-lives/01.mp4" muted playsinline loop preload="none" aria-label="视频：傍晚的人才公园，金色夕照落在华润春笋大厦玻璃幕墙上，湖面泛着金光，草坪上有人闲坐，一排黄花风铃木开得正盛"></video>
+        </span>
+        <button class="playbtn" aria-label="播放或暂停：傍晚人才公园草坪视频"><span class="pglyph"></span></button>
+        <span class="dur" aria-hidden="true">00:03</span>
+      </div>
+      <figcaption>01 — 傍晚的人才公园，夕照落在春笋大厦上 · © zhao-lives</figcaption>
+    </figure>
+    <p class="pq rv">真正好看的晚霞，有时会晚一点出现。</p>
+    <figure class="plate plate-trio rvp">
+      <p class="reel-tag">REEL 01</p>
+      <div class="reel">
+        <div class="tri">
+          <div class="vwrap">
+            <span class="frame" style="aspect-ratio:3/4">
+              <video data-src="assets/interviews/zhao-lives/02.mp4" muted playsinline loop preload="none" aria-label="视频：夕阳把对岸的高层住宅楼群染成金色，湖边草坪上孩子玩耍、有人坐着看手机、有人站着合影"></video>
+            </span>
+            <button class="playbtn" aria-label="播放或暂停：傍晚草坪群像视频"><span class="pglyph"></span></button>
+            <span class="dur" aria-hidden="true">00:03</span>
+          </div>
+          <div class="vwrap">
+            <span class="frame" style="aspect-ratio:3/4">
+              <video data-src="assets/interviews/zhao-lives/07.mp4" muted playsinline loop preload="none" aria-label="视频：蓝天下两棵黄花风铃木开得满树金黄，花瓣落满草地，一位粉衣女子举着手机仰拍花树"></video>
+            </span>
+            <button class="playbtn" aria-label="播放或暂停：黄花风铃木下拍花视频"><span class="pglyph"></span></button>
+            <span class="dur" aria-hidden="true">00:03</span>
+          </div>
+          <div class="vwrap">
+            <span class="frame" style="aspect-ratio:3/4">
+              <video data-src="assets/interviews/zhao-lives/04.mp4" muted playsinline loop preload="none" aria-label="视频：两棵高大的黄花风铃木立在草坪中央，金黄落英铺了一地，远处可见高楼与海面，人们三三两两坐在草地上野餐"></video>
+            </span>
+            <button class="playbtn" aria-label="播放或暂停：黄花树下野餐视频"><span class="pglyph"></span></button>
+            <span class="dur" aria-hidden="true">00:03</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>02 – 04 — 草坪上的傍晚群像，与盛放的黄花风铃木 · © zhao-lives</figcaption>
+    </figure>
+  </section>
+
+  <!-- 第八章 · 18:41 Peng -->
+  <section class="chapter s-peng" id="chap-peng" data-author="peng" data-time="18:41" data-name="Peng" data-accent="#D96C4F" style="--accent:#D96C4F">
+    <header class="chap-head col rv">
+      <p class="tc">18:41</p>
+      <h2>Peng</h2>
+      <p class="tags">通透 · 台风后 · 晚霞概率</p>
+    </header>
+    <div class="col">
+      <p class="host rv">最后一位，等的不是日落，是一场雨的结束。</p>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>你会选择什么天气拍晚霞？</p>
+        <div class="a">
+          <p class="who">PENG</p>
+          <p>晴天，也会关注台风或雨天前后。那时空气更通透，拍到晚霞的概率更高。一般提前三十分钟去蹲守。等自己看到天空漂亮再出发，有时已经来不及。</p>
+          <p>天气预报告诉我下不下雨，摄影的人更想知道雨停后天空会不会通透、晚霞概率高不高。</p>
+        </div>
+      </div>
+      <div class="qa rv">
+        <p class="q"><span class="qtag">问</span>所以你期待的，是一个摄影视角的天气预报？</p>
+        <div class="a">
+          <p>对，不只告诉我天气，而是告诉我这种天气对拍摄意味着什么。</p>
+        </div>
+      </div>
+    </div>
+    <figure class="plate plate-v rvp">
+      <button class="zoom" data-cap="01 — 落日沉入跨海大桥桥洞，车流剪成黑影 · © Peng" aria-label="放大查看：落日沉入跨海大桥桥洞">
+        <span class="frame" style="aspect-ratio:2/3">
+          <img data-src="assets/interviews/peng/06.jpeg" alt="巨大的落日正从跨海大桥的桥洞之间沉向海面，桥面上的水泥罐车和大巴剪成黑色剪影，整片天空烧作橙红" decoding="async">
+        </span>
+      </button>
+      <figcaption>01 — 落日沉入跨海大桥桥洞，车流剪成黑影 · © Peng</figcaption>
+    </figure>
+    <p class="pq rv">等自己看到天空漂亮再出发，有时已经来不及。</p>
+    <figure class="plate plate-duo rvp">
+      <div class="duo">
+        <button class="zoom" data-cap="02 — 海平面上方的浑圆落日 · © Peng" aria-label="放大查看：海平面上方的浑圆落日">
+          <span class="frame" style="aspect-ratio:2/3">
+            <img data-src="assets/interviews/peng/09.jpeg" alt="浑圆的橙红色落日悬在海平面上方，底部被薄云轻轻遮住一角，暗沉的海面上漂着两艘小船" decoding="async">
+          </span>
+        </button>
+        <button class="zoom" data-cap="03 — 桥底桥墩的纵深与金边 · © Peng" aria-label="放大查看：桥底桥墩的纵深">
+          <span class="frame" style="aspect-ratio:2/3">
+            <img data-src="assets/interviews/peng/10.jpeg" alt="跨海大桥桥底，一排桥墩向远方无限纵深如同时空隧道，低角度的夕阳给每根桥墩边缘勾上金线" decoding="async">
+          </span>
+        </button>
+      </div>
+      <figcaption>02 · 03 — 海平面上方的浑圆落日；桥底桥墩的纵深与金边 · © Peng</figcaption>
+    </figure>
+    <figure class="plate rvp">
+      <button class="zoom" data-cap="04 — 夕照下海面波纹的金橙色光纹 · © Peng" aria-label="放大查看：夕照下的海面波纹">
+        <span class="frame" style="aspect-ratio:4416/2944">
+          <img data-src="assets/interviews/peng/01.jpeg" alt="特写海面波纹，夕阳把每一道波峰染成金橙色，暗色的波谷间光纹如丝绸般流动" decoding="async">
+        </span>
+      </button>
+      <figcaption>04 — 夕照下海面波纹的金橙色光纹 · © Peng</figcaption>
+    </figure>
+  </section>
+
+  <!-- 旁听席 · 18:55 -->
+  <section class="chapter s-gallery" id="chap-gallery" data-gallery data-time="18:55" data-name="旁听席" data-accent="#C45B52" style="--accent:#C45B52">
+    <header class="chap-head col rv">
+      <p class="tc">18:55</p>
+      <h2>旁听席</h2>
+      <p class="tags">更多人的光</p>
+    </header>
+    <div class="col">
+      <p class="host rv">访谈之外，还有更多人把拍到的光发给我们。他们没有坐下来接受采访，但这些照片和视频，也是答案的一部分。</p>
+    </div>
+    <div class="ggrid rvp">
+      <figure class="gcell" data-gallery-author="douyin-xiaobai">
+        <div class="vwrap">
+          <span class="frame" style="aspect-ratio:1/1">
+            <video data-src="assets/interviews/douyin-xiaobai/01.mp4" muted playsinline loop preload="none" aria-label="视频：蓝调时分的海滩，一位白裙长发女子沿着沙滩奔跑、转圈、朝大海张开双臂，远处海平线上渔火点点"></video>
+          </span>
+          <button class="playbtn" aria-label="播放或暂停：蓝调海滩奔跑视频"><span class="pglyph"></span></button>
+          <span class="dur" aria-hidden="true">00:22</span>
+        </div>
+        <figcaption>抖音创作者：xiaobai📷</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="douyin-xiaoye">
+        <div class="vwrap">
+          <span class="frame" style="aspect-ratio:1/1">
+            <video data-src="assets/interviews/douyin-xiaoye/01.mp4" muted playsinline loop preload="none" aria-label="视频：深圳机位快剪合集，西涌天文台海边栈道、深圳湾日出剧场、西湾红树林夕阳、莲花山夜景、岗厦北地铁站与欢乐港湾摩天轮"></video>
+          </span>
+          <button class="playbtn" aria-label="播放或暂停：深圳机位快剪合集视频"><span class="pglyph"></span></button>
+          <span class="dur" aria-hidden="true">00:14</span>
+        </div>
+        <figcaption>抖音创作者：小叶同学</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="napoleon-dayanhu">
+        <button class="zoom" data-cap="橙红落日悬在城市楼群上方 · © 拿破仑大眼糊" aria-label="放大查看：城市楼群上方的橙红落日">
+          <span class="frame" style="aspect-ratio:1/1">
+            <img data-src="assets/interviews/napoleon-dayanhu/02.jpeg" alt="橙红落日悬在城市楼群上方，紫色云层镶着亮边，前景树枝剪成黑影" decoding="async">
+          </span>
+        </button>
+        <figcaption>拿破仑大眼糊</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="napoleon-dayanhu">
+        <button class="zoom" data-cap="巨大的橙红落日沉向海面 · © 拿破仑大眼糊" aria-label="放大查看：沉向海面的巨大落日">
+          <span class="frame" style="aspect-ratio:1/1">
+            <img data-src="assets/interviews/napoleon-dayanhu/07.jpeg" alt="巨大的橙红落日正沉向海面，城市楼群与山丘剪成黑影，金色云带横贯天空" decoding="async">
+          </span>
+        </button>
+        <figcaption>拿破仑大眼糊</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="manyou-kaka">
+        <button class="zoom" data-cap="跨海大桥与滩涂金光 · © 漫游kaka" aria-label="放大查看：跨海大桥与滩涂金光">
+          <span class="frame" style="aspect-ratio:1/1">
+            <img data-src="assets/interviews/manyou-kaka/03.jpeg" alt="粉紫渐变为橙红的天空下，沿江高速跨海大桥横贯画面，退潮的滩涂上水洼倒映着金光" decoding="async">
+          </span>
+        </button>
+        <figcaption>漫游kaka</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="manyou-kaka">
+        <button class="zoom" data-cap="深红色积雨云如立柱悬在城市上方 · © 漫游kaka" aria-label="放大查看：立柱般的深红色积雨云">
+          <span class="frame" style="aspect-ratio:1/1">
+            <img data-src="assets/interviews/manyou-kaka/09.jpeg" alt="一朵巨大的深红色积雨云如立柱般悬在城市剪影上方，橙红天带下是暗色波光的海面" decoding="async">
+          </span>
+        </button>
+        <figcaption>漫游kaka</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="manyou-kaka">
+        <button class="zoom" data-cap="礁石上的情侣与红色光路 · © 漫游kaka" aria-label="放大查看：礁石上看落日的情侣">
+          <span class="frame" style="aspect-ratio:1/1">
+            <img data-src="assets/interviews/manyou-kaka/11.jpeg" alt="粉紫色晨昏中红日悬在春笋楼群之间，水面拖出一道红色光路，一对情侣依偎坐在礁石上看向远方" decoding="async">
+          </span>
+        </button>
+        <figcaption>漫游kaka</figcaption>
+      </figure>
+      <figure class="gcell" data-gallery-author="photographer-tim">
+        <div class="vwrap">
+          <span class="frame" style="aspect-ratio:1/1">
+            <video data-src="assets/interviews/photographer-tim/01.mp4" muted playsinline loop preload="none" aria-label="视频：美术馆内一整面高墙挂满数百幅小尺寸肖像画，观众驻足仰头观看、举手机拍照"></video>
+          </span>
+          <button class="playbtn" aria-label="播放或暂停：美术馆肖像画墙视频"><span class="pglyph"></span></button>
+          <span class="dur" aria-hidden="true">00:03</span>
+        </div>
+        <figcaption>摄影师：Tim</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 终章 · 19:05 -->
+  <section class="chapter s-epi" id="chap-epilogue" data-time="19:05" data-name="尾声" data-accent="#E8C87E" style="--accent:#E8C87E">
+    <figure class="full rvf">
+      <img data-src="assets/interviews/peng/05.jpeg" alt="橙金色薄雾弥漫海面，建设中的跨海悬索桥显出淡黑色剪影，桥塔顶端立着几台塔吊" decoding="async">
+      <figcaption class="corner">© Peng</figcaption>
+    </figure>
+    <div class="col finale">
+      <p class="host rv">聊完这八位摄影者，我们发现：每个人等待一道光的方式，都不一样。</p>
+      <p class="host rv">有人提前二十分钟等蓝调，有人蹲一两个小时等晚霞；也有人不打算等，只想在天变好的那一刻，被提醒一次。</p>
+      <p class="host rv">天气预报只说晴或雨。拍光的人关心的，是云、通透度、光的方向，和那个可能只有几分钟的窗口。</p>
+      <div class="needs rv">
+        <p class="needs-kicker">他们提的要求，其实都不多</p>
+        <ul class="needs-list">
+          <li><span class="ni">01</span><p class="nq">云量、云层的位置、太阳附近有没有被厚云挡住——说到底，是想知道今天值不值得去拍。</p><span class="na">凯利斯映像</span></li>
+          <li><span class="ni">02</span><p class="nq">还没到现场，就先看见建筑、太阳的方向和遮挡。</p><span class="na">崔维斯</span></li>
+          <li><span class="ni">03</span><p class="nq">金色时刻、晚霞高峰来临之前，被提醒一次。</p><span class="na">zhao-lives</span></li>
+          <li><span class="ni">04</span><p class="nq">打开就知道附近哪里好看，现在过去还来不来得及。</p><span class="na">龍兒悠長假期</span></li>
+          <li><span class="ni">05</span><p class="nq">真实现场和连续变化的数据给我，判断留给我自己。</p><span class="na">Tmj</span></li>
+          <li><span class="ni">06</span><p class="nq">不只告诉我天气，告诉我这种天气对拍摄意味着什么。</p><span class="na">Peng</span></li>
+        </ul>
+        <p class="needs-so">六句话，指向同一个缺口：出门前那几分钟，没有人替你看天。追光，就是从这个缺口里长出来的。</p>
+      </div>
+      <p class="host rv">所以，追光不替任何人按快门。它只做一件事——在恰当的时候，告诉你：</p>
+      <p class="beam rv"><span class="glow">光</span>快到了。现在出发，还来得及。</p>
+      <div class="endmark rv">
+        <span class="goldrule"></span>
+        <p class="final">访谈到这里结束，追光才刚刚开始。</p>
+        <p class="colo">追光 · 对谈 · 2026</p>
+        <p class="colo">本页全部影像均已获作者授权 · 署名见各图注</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="图片查看器" hidden>
+  <button id="lb-close" aria-label="关闭灯箱">×</button>
+  <button id="lb-prev" aria-label="上一张">‹</button>
+  <figure class="lb-stage">
+    <img id="lb-img" alt="">
+    <figcaption><span id="lb-cap"></span><span id="lb-count"></span></figcaption>
+  </figure>
+  <button id="lb-next" aria-label="下一张">›</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var docEl = document.documentElement;
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  function applyMotionPref() {
+    docEl.classList.toggle("reduced", reduced.matches);
+    if (reduced.matches) {
+      document.querySelectorAll(".rv, .rvp, .rvf").forEach(function (el) { el.classList.add("on"); });
+      pauseAllVideos();
+    }
+  }
+
+  /* ————— 滚动揭示 ————— */
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll(".rv, .rvp, .rvf"));
+  if (!("IntersectionObserver" in window)) {
+    revealEls.forEach(function (el) { el.classList.add("on"); });
+  } else {
+    var ro = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          en.target.classList.add("on");
+          ro.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
+    revealEls.forEach(function (el) { ro.observe(el); });
+  }
+
+  /* ————— 章节导航与位置指示 ————— */
+  var sections = Array.prototype.slice.call(document.querySelectorAll("main > section[id]"));
+  var rail = document.getElementById("rail");
+  var railLinks = Array.prototype.slice.call(rail.querySelectorAll("a[href^='#chap-']"));
+  var topCurrent = document.getElementById("top-current");
+  var topFill = document.getElementById("top-fill");
+
+  function setCurrent(id) {
+    var sec = document.getElementById(id);
+    if (!sec) return;
+    var accent = sec.getAttribute("data-accent") || "#E8C87E";
+    railLinks.forEach(function (a) {
+      if (a.getAttribute("href") === "#" + id) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    });
+    rail.style.setProperty("--accent", accent);
+    if (topCurrent) {
+      topCurrent.textContent = (sec.getAttribute("data-time") || "") + " · " + (sec.getAttribute("data-name") || "");
+      topCurrent.style.color = accent;
+    }
+    if (topFill) topFill.style.background = accent;
+  }
+  if ("IntersectionObserver" in window) {
+    var no = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) setCurrent(en.target.id);
+      });
+    }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
+    sections.forEach(function (s) { no.observe(s); });
+  }
+  function onScroll() {
+    var h = docEl.scrollHeight - window.innerHeight;
+    var p = h > 0 ? Math.min(1, Math.max(0, window.scrollY / h)) : 0;
+    if (topFill) topFill.style.width = (p * 100).toFixed(2) + "%";
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  setCurrent("chap-prologue");
+
+  /* ————— 图片：近视口才载入（首屏只载 hero） ————— */
+  var lazyImgs = Array.prototype.slice.call(document.querySelectorAll("img[data-src]"));
+  function loadImg(img) {
+    img.src = img.getAttribute("data-src");
+    img.removeAttribute("data-src");
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          loadImg(en.target);
+          io.unobserve(en.target);
+        }
+      });
+    }, { rootMargin: "1400px 0px 1400px 0px", threshold: 0 });
+    lazyImgs.forEach(function (img) { io.observe(img); });
+  } else {
+    lazyImgs.forEach(loadImg);
+  }
+
+  /* ————— 视频：近视口加载、自动播放互斥、离视口暂停 ————— */
+  var videos = Array.prototype.slice.call(document.querySelectorAll("video[data-src]"));
+  function pauseOthers(active) {
+    videos.forEach(function (v) { if (v !== active && !v.paused) v.pause(); });
+  }
+  function pauseAllVideos() {
+    videos.forEach(function (v) { if (!v.paused) v.pause(); });
+  }
+  videos.forEach(function (v) {
+    v.addEventListener("play", function () {
+      pauseOthers(v);
+      var wrap = v.closest(".vwrap");
+      if (wrap) wrap.classList.add("playing");
+    });
+    v.addEventListener("pause", function () {
+      var wrap = v.closest(".vwrap");
+      if (wrap) wrap.classList.remove("playing");
+    });
+  });
+  function ensureLoaded(v) {
+    if (!v.getAttribute("src")) {
+      v.src = v.getAttribute("data-src");
+      v.load();
+    }
+  }
+  function tryPlay(v) {
+    ensureLoaded(v);
+    pauseOthers(v);
+    var pr = v.play();
+    if (pr && pr.catch) pr.catch(function () {});
+  }
+  if ("IntersectionObserver" in window) {
+    var lo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          ensureLoaded(en.target);
+          lo.unobserve(en.target);
+        }
+      });
+    }, { rootMargin: "400px 0px 400px 0px", threshold: 0 });
+    videos.forEach(function (v) { lo.observe(v); });
+
+    var po = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        var v = en.target;
+        if (reduced.matches) return;
+        if (en.intersectionRatio >= 0.6 && !v.dataset.manual) {
+          // 已有视频在播时不抢播，避免三联格轮番闪烁
+          if (!videos.some(function (x) { return !x.paused; })) tryPlay(v);
+        } else if (en.intersectionRatio < 0.15 && !v.paused) {
+          v.pause();
+        }
+      });
+    }, { threshold: [0, 0.15, 0.6] });
+    videos.forEach(function (v) { po.observe(v); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".playbtn"), function (btn) {
+    btn.addEventListener("click", function () {
+      var wrap = btn.closest(".vwrap");
+      var v = wrap ? wrap.querySelector("video") : null;
+      if (!v) return;
+      if (v.paused) {
+        delete v.dataset.manual;
+        tryPlay(v);
+      } else {
+        v.dataset.manual = "1";
+        v.pause();
+      }
+    });
+  });
+
+  /* ————— 全屏图视差（仅两张非 hero 全屏图；reduced-motion 关闭） ————— */
+  var plxFigs = Array.prototype.slice.call(document.querySelectorAll(".full:not(.hero)"));
+  var plxTicking = false;
+  function plxUpdate() {
+    plxTicking = false;
+    if (reduced.matches) {
+      plxFigs.forEach(function (f) {
+        var img = f.querySelector("img");
+        if (img) img.style.transform = "";
+      });
+      return;
+    }
+    var vh = window.innerHeight;
+    var vc = vh / 2;
+    plxFigs.forEach(function (f) {
+      var r = f.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > vh) return;
+      var img = f.querySelector("img");
+      if (!img) return;
+      var p = (vc - (r.top + r.height / 2)) / vh;
+      if (p < -1) p = -1; else if (p > 1) p = 1;
+      img.style.transform = "translate3d(0, " + (p * 36).toFixed(1) + "px, 0) scale(1.12)";
+    });
+  }
+  function plxRequest() {
+    if (plxTicking) return;
+    plxTicking = true;
+    requestAnimationFrame(plxUpdate);
+  }
+  window.addEventListener("scroll", plxRequest, { passive: true });
+  window.addEventListener("resize", plxRequest);
+  if (reduced.addEventListener) reduced.addEventListener("change", plxUpdate);
+  plxUpdate();
+
+  /* ————— 灯箱 ————— */
+  var zoomBtns = Array.prototype.slice.call(document.querySelectorAll(".zoom"));
+  var lb = document.getElementById("lightbox");
+  var lbImg = document.getElementById("lb-img");
+  var lbCap = document.getElementById("lb-cap");
+  var lbCount = document.getElementById("lb-count");
+  var lbClose = document.getElementById("lb-close");
+  var lbPrev = document.getElementById("lb-prev");
+  var lbNext = document.getElementById("lb-next");
+  var mainEl = document.getElementById("main");
+  var topbar = document.getElementById("topbar");
+  var lbIndex = -1;
+  var lbTrigger = null;
+  var lbHideTimer = null;
+
+  function lbRender() {
+    var btn = zoomBtns[lbIndex];
+    var img = btn.querySelector("img");
+    var src = img.currentSrc || img.src;
+    if (!src) { lbHide(); return; }
+    lbImg.src = src;
+    lbImg.alt = img.alt;
+    lbCap.textContent = btn.getAttribute("data-cap") || img.alt;
+    lbCount.textContent = (lbIndex + 1) + " / " + zoomBtns.length;
+  }
+  function lbOpen(index, trigger) {
+    if (lbHideTimer) { clearTimeout(lbHideTimer); lbHideTimer = null; }
+    lbIndex = index;
+    lbTrigger = trigger || zoomBtns[index];
+    lbRender();
+    lb.hidden = false;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { lb.classList.add("open"); });
+    });
+    document.body.style.overflow = "hidden";
+    docEl.style.overflow = "hidden";
+    pauseAllVideos();
+    [mainEl, rail, topbar].forEach(function (el) {
+      if (!el) return;
+      el.setAttribute("aria-hidden", "true");
+      if ("inert" in el) el.inert = true;
+    });
+    lbClose.focus();
+  }
+  function lbHide() {
+    lb.classList.remove("open");
+    if (lbHideTimer) clearTimeout(lbHideTimer);
+    lbHideTimer = setTimeout(function () {
+      lbHideTimer = null;
+      lb.hidden = true;
+      document.body.style.overflow = "";
+      docEl.style.overflow = "";
+      [mainEl, rail, topbar].forEach(function (el) {
+        if (!el) return;
+        el.removeAttribute("aria-hidden");
+        if ("inert" in el) el.inert = false;
+      });
+      lbImg.removeAttribute("src");
+      if (lbTrigger) lbTrigger.focus();
+      lbIndex = -1;
+    }, 180);
+  }
+  function lbStep(d) {
+    lbIndex = (lbIndex + d + zoomBtns.length) % zoomBtns.length;
+    lbRender();
+  }
+  zoomBtns.forEach(function (btn, i) {
+    btn.addEventListener("click", function () { lbOpen(i, btn); });
+  });
+  lbClose.addEventListener("click", lbHide);
+  lbPrev.addEventListener("click", function () { lbStep(-1); });
+  lbNext.addEventListener("click", function () { lbStep(1); });
+  lb.addEventListener("click", function (e) {
+    if (e.target === lb) lbHide();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (lb.hidden) return;
+    if (e.key === "Escape") { e.preventDefault(); lbHide(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); lbStep(-1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); lbStep(1); }
+    else if (e.key === "Tab") {
+      var focusables = [lbClose, lbPrev, lbNext];
+      var idx = focusables.indexOf(document.activeElement);
+      if (e.shiftKey && (idx <= 0)) { e.preventDefault(); focusables[focusables.length - 1].focus(); }
+      else if (!e.shiftKey && idx === focusables.length - 1) { e.preventDefault(); focusables[0].focus(); }
+    }
+  });
+
+  applyMotionPref();
+  if (reduced.addEventListener) reduced.addEventListener("change", applyMotionPref);
+})();
+</script>
+</body>
+</html>
