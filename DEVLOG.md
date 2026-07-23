@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-07-23 晚 · HERMES-10 p2 收尾：实时冒泡+种子接线+日夜双主题
+
+- 新增 `lib/photos-service.js` + `api/photos.js`：GET 按 `taken_at` 降序返回种子 20 条（spot_name 联表非空），POST 追加 live 照片（深圳坐标围栏，异地 400 `photos_api_invalid_coords`），`scripts/dev-preview.js` 挂载路由。
+- `public/photo-map.jsx` 3s 轮询 `/api/photos`，新照片 `is_live` 冒泡上图；`scripts/post-demo-photo.mjs` 供演示/录屏手动触发投稿。
+- 日/夜双主题落地：负责人拍板"暗+橘主视觉、日间白、蓝改橘"。
+- 验证结论：validate_photos 0 error（基准 2026-07-23，今天 3/本周 18）；端点 GET/POST/围栏/UTF-8 全 PASS（POST 后 count 20→21 且首条即 live 记录）；Babel JSX 门 OK；CJS require OK；`npm run test:api` 8 组全绿 EXIT=0。证据全文见 `agents_output/10/checks/check_report_10.md`「p2 收尾（2026-07-23 晚）」。
+- 剩余：聚合簇后置；动效三段录屏待人工触发；cartocdn 真机可达性 7.24 验证。
+
+---
+
 ## 2026-07-14 深夜 · first_prompt v1.2（开局序列）+ 人工池残留归位
 
 ### C1 朗读裁定（负责人）
