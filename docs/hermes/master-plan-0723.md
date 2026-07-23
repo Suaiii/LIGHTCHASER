@@ -118,7 +118,7 @@
 **结构级改动（需负责人知情确认）**：Row1 从 4 子页并为 **3 子页（封面→追·光地图→拍摄）**——ScenePhotoMap 同时取代了原「路线/GL 3D 光影地图」列与「社区」列，**GL 3D 地图已整体摘出 feed**（代码仍在库、ripcord 可回装）。这正是负责人 7.20"压缩到地图+气泡"口径的落地，与 7.19"2D 唯一招牌、GL 降上探"一致；确认后 **HERMES-09 B 包截图/Figma 捕获须按三页新结构重拍**。
 
 **剩余 gap（10-p2 收尾清单；7.23 晚处置更新）**：
-1. **★实时冒泡自动化**——**已派发子代理工作流（7.23 晚）**：`lib/photos-service.js`+`api/photos.js`（GET 种子+enrich spot_name / POST 演示发布）+ dev-preview 接线 + 前端 3s 轮询、新条目 pop 动效 + `scripts/post-demo-photo.mjs` 录屏触发器；产出走 feat/hermes-10-p2-live 分支 PR，人工 merge；
+1. **★实时冒泡自动化**——✅ **已交付为 [PR #36](https://github.com/Suaiii/LIGHTCHASER/pull/36)（7.23 晚，待负责人 merge）**：`lib/photos-service.js`+`api/photos.js`（GET 20 种子+spot_name 联表 / POST 深圳框校验）+ dev-preview 接线 + 前端 3s 轮询（模块级已见集合防重挂误报、集合签名防动画重放）+ `scripts/post-demo-photo.mjs` 录屏触发器；验证一轮全绿（validate 0 error、端点 GET/POST/400 实测、test:api 绿、Babel 语法门过）；check_report_10 p2 节已附证据。**残留**：仓库无 playwright，浏览器运行时未自动化覆盖——merge 前人工起 dev:preview 目验一次（顺手就是录屏 session）；
 2. **接 photos.v1.json 种子**——同上工作流内完成（20 条深圳垫图种子替代相对定位占位数组，image_only 不进气泡层规则预埋）；
 3. 聚合簇（bubble_spec §2）——后置维持；
 4. **配色——✅ 负责人拍板（7.23 晚）：日/夜双主题**。主视觉=追光暗色+橘 `#ff8a3d`（夜间），日间=白底；蓝 `#1d58d8` accent 全部改橘；瓦片 day=light_all/night=dark_all；默认按时段自动+手动切换。同工作流内实现；
