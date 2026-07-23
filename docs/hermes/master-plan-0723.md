@@ -117,12 +117,13 @@
 
 **结构级改动（需负责人知情确认）**：Row1 从 4 子页并为 **3 子页（封面→追·光地图→拍摄）**——ScenePhotoMap 同时取代了原「路线/GL 3D 光影地图」列与「社区」列，**GL 3D 地图已整体摘出 feed**（代码仍在库、ripcord 可回装）。这正是负责人 7.20"压缩到地图+气泡"口径的落地，与 7.19"2D 唯一招牌、GL 降上探"一致；确认后 **HERMES-09 B 包截图/Figma 捕获须按三页新结构重拍**。
 
-**剩余 gap（10-p2 收尾清单）**：
-1. **★实时冒泡自动化**（DoD 招牌项）：现在只有"自己点发布"；还差"**附近别人**刚发的 ≤3s 自动浮现"——dev-preview 加 `/api/photos` mock 端点（GET+POST）+ 前端 3s 轮询即可，录屏入 `agents_output/10/checks/`；
-2. **接 photos.v1.json 种子**：现用相对定位的占位数组，20 条深圳真实种子（含 consent 字段链）未接；
-3. 聚合簇（bubble_spec §2）未做——可后置，演示密度下非必需；
-4. **配色偏离 tokens**：亮色底+蓝 #1d58d8（Campus 同款），与追光暗色+橘 #ff8a3d 体系冲突——7.24 真机上由负责人裁"地图页独立亮色主题"还是"回归暗色 token"；
-5. 瓦片源 cartocdn.com 境内可达性待真机验证（其余页用 OpenFreeMap）。
+**剩余 gap（10-p2 收尾清单；7.23 晚处置更新）**：
+1. **★实时冒泡自动化**——**已派发子代理工作流（7.23 晚）**：`lib/photos-service.js`+`api/photos.js`（GET 种子+enrich spot_name / POST 演示发布）+ dev-preview 接线 + 前端 3s 轮询、新条目 pop 动效 + `scripts/post-demo-photo.mjs` 录屏触发器；产出走 feat/hermes-10-p2-live 分支 PR，人工 merge；
+2. **接 photos.v1.json 种子**——同上工作流内完成（20 条深圳垫图种子替代相对定位占位数组，image_only 不进气泡层规则预埋）；
+3. 聚合簇（bubble_spec §2）——后置维持；
+4. **配色——✅ 负责人拍板（7.23 晚）：日/夜双主题**。主视觉=追光暗色+橘 `#ff8a3d`（夜间），日间=白底；蓝 `#1d58d8` accent 全部改橘；瓦片 day=light_all/night=dark_all；默认按时段自动+手动切换。同工作流内实现；
+5. 瓦片源 cartocdn 境内可达性——7.24 真机验证不变；
+6. 动效三段录屏（气泡浮现/胶囊切换/半屏卡）——**人工**，PR 合入后用 `post-demo-photo.mjs` 触发实拍。
 
 ### 5a. 两个名词（负责人问的，一句话版）
 
