@@ -1,0 +1,28 @@
+[
+  {
+    "date": "2026-07-24",
+    "city": "深圳",
+    "cloud_low": 22,
+    "cloud_mid": 18,
+    "cloud_high": 10,
+    "humidity": 58,
+    "visibility_km": 22.5,
+    "weather_code": 1,
+    "has_rain": false,
+    "updated_at": "2026-07-24T11:22:35.541Z",
+    "_demo_note": "演示用假数据——非实测值，正式版走 weather_ops.md 预案A(Open-Meteo)/预案B(人工刷新)"
+  },
+  {
+    "date": "2026-07-25",
+    "city": "深圳",
+    "cloud_low": 45,
+    "cloud_mid": 30,
+    "cloud_high": 15,
+    "humidity": 66,
+    "visibility_km": 14,
+    "weather_code": 2,
+    "has_rain": false,
+    "updated_at": "2026-07-24T11:22:35.541Z",
+    "_demo_note": "演示用假数据——非实测值，正式版走 weather_ops.md 预案A(Open-Meteo)/预案B(人工刷新)"
+  }
+]
