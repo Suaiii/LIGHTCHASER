@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-07-24 · HERMES-11 提前落地：气泡层移植 GL 3D 地图，合流入 main
+
+- 照片气泡层从 2D `photo-map.jsx` 移植进 `SceneLightMapGL`：GL 组件内建 3s 轮询 `/api/photos`，气泡直接落 3D 光影楼群上（冒泡/退出动效、is-live 高亮圈、点击 easeTo 聚焦），`app.jsx` Row1 第二子页切换为 GL 版（GL 不可用兜底 SceneRoute）。板块二"GL 光影地图 × 照片社区"至此在一页内成形，HERMES-11（原相位二 committed）视为提前交付。
+- 开场 zoom 钳到 LOD 起点上方，修掉长路线全览只剩剪影楼的开场；新增 e2e 冒烟 `scripts/e2e/light-map-route-page.mjs`。
+- 决策者指示直接合入 main（726da2d，含 HERMES-10 p2 全量）；`npm run test:api` EXIT=0。
+- 剩余：聚合簇后置；GL 版三段动效录屏（生长+冒泡+光照切换，供 HERMES-09 C 包）；cartocdn/openfreemap 真机可达性今天顺 HERMES-04 验证。
+
+---
+
 ## 2026-07-23 晚 · HERMES-10 p2 收尾：实时冒泡+种子接线+日夜双主题
 
 - 新增 `lib/photos-service.js` + `api/photos.js`：GET 按 `taken_at` 降序返回种子 20 条（spot_name 联表非空），POST 追加 live 照片（深圳坐标围栏，异地 400 `photos_api_invalid_coords`），`scripts/dev-preview.js` 挂载路由。
