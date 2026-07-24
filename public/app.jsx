@@ -468,7 +468,7 @@ function useRouteData(sunsetPayload, destination) {
 function App() {
   const [t, setTweak] = useTweaks(DEFAULTS);
   const [index, setIndex] = useState({ row: 0, col: 0 }); // 默认从第一条视频进入
-  const [publishedVideoMode, setPublishedVideoMode] = useState(false);
+  const [publishedVideoMode, setPublishedVideoMode] = useState(false); // 拍摄页出局（R-0724-B）后暂留：仅 SceneQuickShoot 消费，现恒为 false
   const [, force] = useState(0);
   const {
     payload: sunsetPayload,
@@ -534,7 +534,7 @@ function App() {
   const feed = [
     // Row 0: 普通视频
     [() => <SceneVlog score={score} sunsetPayload={displayPayload} />],
-    // Row 1: 追·光卡片（3 子页）— 封面 → 实时地图社区 → 拍摄
+    // Row 1: 追·光卡片（2 子页）— 封面 → 实时地图社区（拍摄页出局：R-0724-B 两页定稿）
     [
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
       () => typeof SceneLightMapGL === "function"
@@ -547,7 +547,6 @@ function App() {
             lightTime={t.lightTime}
           />
         : <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedSpotName} onSelectSpot={setSelectedSpotName} />,
-      () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
     // Row 2: 蓝调时刻视频
     [() => <SceneNextVideo />],
@@ -556,7 +555,7 @@ function App() {
   ];
 
   const rowLabels = ["视频 · 街景", "追·光卡片", "视频 · 蓝调外滩", "视频 · 苏州河"];
-  const colLabels = ["封面", "追·光地图", "拍摄"];
+  const colLabels = ["封面", "追·光地图"];
 
   // 外部钩子：上下滑视频
   useEffect(() => {
@@ -576,6 +575,7 @@ function App() {
     return () => window.removeEventListener("guangbao:publishedVideo", h);
   }, []);
 
+  // 拍摄页出局（R-0724-B）后暂留：col === 2 已不存在，此效果恒重置 false，无副作用
   useEffect(() => {
     if (index.row !== 1 || index.col !== 2) {
       setPublishedVideoMode(false);

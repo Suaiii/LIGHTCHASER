@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-07-24 · R-0724-B 落地：feed 两页化
+
+- `public/app.jsx` Row1 摘除 SceneQuickShoot 挂载、colLabels 收为「封面 / 追·光地图」，feed 定稿两页（封面钩子卡 + 追·光地图，拍摄页出局；组件定义留 subpanels.jsx 不删，`publishedVideoMode` 成死变量仅注释暂留）。
+- 口径连锁：HERMES-09 任务书 B 包全部改两页口径（feed/p1/p2，D-b 开关落定 R-0724-B，四页/三页作废）；看板 06 行清相机（R-0724-A，PR #29 已关）。
+- 本分支基于 `feat/hermes-11-f6-badge-tails` 叠放，合并顺序：先合 #39。
+
+---
+
 ## 2026-07-24 · HERMES-11 补票：F6 示例角标+hidden 守卫+死键修复+种子刷新
 
 - **F6 红线修复**：GL 气泡角标改为与 2D 同规——live=「刚发布 · 演示」、垫图种子=「示例 · X小时前」，"示例"始终可见不再只靠 title hover（bubble_spec §7；`light-map-gl.jsx` zgPhotoBubbleHtml，角标 max-width 64→96px 防时间截断，无新增配色）。

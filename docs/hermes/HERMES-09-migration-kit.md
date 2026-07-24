@@ -18,7 +18,7 @@
 | 文案弹药 | `agents_output/03/`（8 硬规则提示词 + few-shot 10 组 + 27 格兜底语料） | ✅ ARK 盲测过 |
 | 设计 tokens/规范 | `agents_output/04/tokens.md`、`first5s_spec.md`、`page_specs.md` | ✅ |
 | 设计判断规则 | `.claude/skills/zhuiguang-design/SKILL.md`（StyleSeed+UICraft 评分+动效选择规则+前5秒红线） | ✅ 本地 skill，可重封装 |
-| 原型本体 | `public/追·光.html`（feed 卡+四页）＋`public/light-map-gl.jsx`（P2 3D 光影地图） | ✅ `npm run dev:preview` 可跑 |
+| 原型本体 | `public/追·光.html`（feed 卡+两页（封面/追·光地图））＋`public/light-map-gl.jsx`（P2 3D 光影地图） | ✅ `npm run dev:preview` 可跑 |
 | e2e 截图/序列帧管线 | `scripts/e2e/*.mjs`（支持 `ZG_PROXY`/`ZG_E2E_OUT` 参数化） | ✅ 已能产 step-XX.png 与拼图 |
 | 初赛素材（上海） | `assets/`（静安寺照片/视频） | 仅垫图参考，非深圳，不入正式包 |
 
@@ -27,7 +27,7 @@
 ## 2. 目标——五个子包，7.23 前齐
 
 - **A 数据包**（AI）→ `agents_output/09/data/`：五表 JSON 定稿导出（spots／sun_events／weather_daily 样例+双预案说明／copy_corpus／user_prefs 空表 schema）+ **每表一段建表话术**（官方格式：表名+包含什么数据+获取和存储逻辑，≤3 句）。
-- **B 设计包**（人+AI）→ `agents_output/09/design/`：①AI：每页"像素级保真元素清单"（从 tokens.md/page_specs.md 提炼，含具体色值/字号/间距）②AI：高清截图集（feed 卡+四页，e2e 管线产，输出用 `ZG_E2E_OUT` 指到本目录）③人：Figma 稿——**已拍板：工具转换+人工整理**。做法：`npm run dev:preview` 起原型 → 用 html.to.design 类 Figma 插件逐页导入（feed 卡+四页）→ 人工整理图层命名/删冗余（约半天，需一个 Figma 账号）；以①的保真清单为整理对照，完成后把**可访问链接**写进 `agents_output/09/design/figma_link.md`。
+- **B 设计包**（人+AI）→ `agents_output/09/design/`：①AI：每页"像素级保真元素清单"（从 tokens.md/page_specs.md 提炼，含具体色值/字号/间距）②AI：高清截图集（feed 卡+两页：p1 封面钩子卡 / p2 追·光地图，e2e 管线产，输出用 `ZG_E2E_OUT` 指到本目录）③人：Figma 稿——**已拍板：工具转换+人工整理**。做法：`npm run dev:preview` 起原型 → 用 html.to.design 类 Figma 插件逐页导入（feed 卡+两页）→ 人工整理图层命名/删冗余（约半天，需一个 Figma 账号）；以①的保真清单为整理对照，完成后把**可访问链接**写进 `agents_output/09/design/figma_link.md`。
 - **C 动效包**（AI）→ `agents_output/09/motion/`：①动效规格清单——每条五要素（名称/位置/时长/缓动/触发）+ 优先级（招牌｜重要｜锦上添花），P2 生长动画=已知招牌；②原型动效录屏（P2 生长动画/光照时刻切换/金线绘制）mp4 或分段 GIF，总时长 ≤60s——官方通道"上传文件支持视频"，这是动效意图最高保真的传达方式。
 - **D 提示词包**（AI）→ `agents_output/09/prompts/`：AGENT_03 全套重排为平台可贴格式，按三场景分块（行动文案/拍摄建议/评分解释），每块=硬规则+few-shot+兜底策略；**硬规则原文不删改**。
 - **E Skill 草案**（AI）→ `agents_output/09/skill/`：把 zhuiguang-design 规则重封装为「追光设计系统」平台自建 Skill 内容稿（何时触发/规则正文[tokens+前5秒红线+动效规则+文案硬约束]/校验清单三节）；附平台资源库检索清单（先找现成 `frontend-design` 类 skill，找到则草案降为补充规则）。
@@ -37,7 +37,7 @@
 ### 2b. 附件硬规格（7.14 深夜质检环回填——开局序列 v1.2.1 的话术以这些规格为前提，逐条必须落实）
 
 - **A 包**：①导出文件**剥离 meta 节点**，交付纯数组 JSON（文件首个非空白字符=`[`）②包内 README 声明：联接键 `spots.id ↔ sun_events.spot_id`；`azimuth_10min` 为嵌套数组、期望整列按 JSON 文本保存 ③weather_daily 演示数据**日期参数化**：交付一键再生成脚本（以运行日为 D0，覆盖 D0/D+1 两行以上），7.24 晨重跑一次；含**"是否有雨"字段**；文件内标"演示用假数据" ④copy_corpus 每行含**显式取格键字段**，README 写明取格规则（27 格的维度定义） ⑤附 sun_events **切片脚本**（若平台导入上限 <450 行时启用，对应序列 R0-3 备用块）。
-- **B 包**：截图文件名**强制 `feed / p1 / p2 / p3 / p4`**（序列 R0-8 回声要平台复述映射）。
+- **B 包**：截图文件名**强制 `feed / p1 / p2`**——两页口径：feed（feed 卡）/ p1（封面钩子卡）/ p2（追·光地图）（序列 R0-8 回声要平台复述映射）。
 - **C 包**：录屏中**首个动效的起止清晰可辨**（R0-8 回声问"第一个动效持续几秒"，剪辑别拼太碎）。
 - **E 包**：文件名固定为**《追光设计系统》**（话术按此称呼引用）；文档顶部显式框出**"必守三条"**：主色色值／文案字数上限／动效第一规则——与序列 R0-7 回声一字对齐。
 
@@ -51,14 +51,14 @@
   - **超时兜底**：7.19 仍未收到 photos → 按五表交付并 README 标注"photos 表随 v1.3 补传"。
   - **拍板结果落点（双通道）**：decisions.md 顶部 + issue #25 评论；工作者领取时先看本节与 #25 最新状态。
   - **表数变化联动 first_prompt 话术由 Hermes 改，工作者不动 first_prompt。**
-- **【开关 D-b·B 包截图命名】**待拍板"原型重排"：feed/p1/p2/p3/p4 命名可能变为三板块命名。**7.17 前一律以现状四页截图照做**（截图管线参数化，重排后由 HERMES-10 p2 触发重跑，成本≈0）；Figma 转换子项同理不等拍板。**7.17 后仍无拍板：继续按现状四页交付，不停手**（过渡产物属留痕，见开发规范 §10 过渡豁免）。
+- **【开关 D-b·B 包截图命名】**✅ 已拍板（R-0724-B，0724）：**两页定稿，四页/三页口径作废**。截图命名=feed（feed 卡）/ p1（封面钩子卡）/ p2（追·光地图）；拍摄页出局（相机挂死 R-0724-A），截图管线按两页重跑即可（参数化，成本≈0）；Figma 转换子项同按两页做。
 - **C 包新增条目（立即生效）**：动效清单加"照片气泡浮现/时间胶囊切换重聚合/半屏卡升起"三条（实现前无录屏，用文字规格五要素顶格写，标注"待 HERMES-10 phase 2 录屏补"）。**D-c 裁定**：光域/见光点动效已随 HERMES-03 取消，从清单删除；P2 生长动画（GL 3D 招牌）保留为 backlog 目标（HERMES-11），录屏视 GL 工作解锁而定。
 - **E 包更新（D-c 裁定）**：《追光设计系统》图层亮度纪律改为——**默认地图视图气泡为主体，无常驻金线/见光点；按需路线出现时压过气泡**（原"金线>见光点>气泡"三层排序作废）。
 
 ## 3. DoD（验收标准，二元）
 
 - [ ] A：**5 个 JSON（若 D-a=加且 7.19 前收到 photos：6 个）齐**；`node agents_output/01/validate_spots.mjs` 对 spots 副本跑绿；sun_events 行数=450（若 alt 字段 7.20 未到位，出 az-only 版并在包内 README 标注）；**建表话术段数与表数一致，各 ≤3 句**。
-- [ ] B：保真元素清单每页 ≥8 条且引用 tokens 具体值；截图集覆盖 feed 卡+四页（≥5 张，1x/2x 各一套）；命名/覆盖按 §2c D-b 状态（未拍板前四页）。
+- [ ] B：保真元素清单每页 ≥8 条且引用 tokens 具体值；截图集覆盖 feed 卡+两页（≥3 张，1x/2x 各一套）；命名/覆盖按 §2c D-b 状态（已拍板：两页定稿）。
 - [ ] B-Figma（人，可后置至 7.23、不阻塞本 PR）：转换+整理后的 Figma 链接可访问、页面命名规范，链接落 `agents_output/09/design/figma_link.md`，补进 check_report。
 - [ ] C：动效清单 ≥8 条且五要素+优先级齐；录屏文件本机可播放，内容含 P2 生长动画与光照时刻切换两段。
 - [ ] D：三场景块齐；硬规则与 `agents_output/03/` 原文 diff=仅排版差异。
