@@ -111,7 +111,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | [HERMES-08 历史爆发日回测](HERMES-08-history-backtest.md) | 混合（H2 日期 + AI 回测） | P1（叙事硬证据） | A 7.15–7.18 / B 7.18–7.20 | 待领 | [#23](https://github.com/Suaiii/LIGHTCHASER/issues/23) | agents_output/02/burst_days.v1.json, checks/backtest_history.* （新增，引擎零改动） |
 | [HERMES-09 迁移资产包（五包，开箱即传）](HERMES-09-migration-kit.md) | 混合 | **P0**（7.23 Gate 0 硬截止） | 7.15–7.22 | 待领（§2c 有 7.15 条件增补） | [#25](https://github.com/Suaiii/LIGHTCHASER/issues/25) | agents_output/09/*（全新增） |
 | [HERMES-10 板块二融合：地图照片气泡社区层（提案制）](HERMES-10-photo-map-community.md) | AI | **P0**（三板块整合主载体） | p1: 7.15–7.18 / p2: 7.18–7.21 | 待领（p2 有闸门） | [#31](https://github.com/Suaiii/LIGHTCHASER/issues/31) | p1: agents_output/10/*；p2: public/subpanels.jsx(SceneCommunity/地图区段), app.jsx（#29 合入→06a→本任务 rebase） |
-| HERMES-11 板块二 GL 招牌：3D 光影地图上移植气泡层（相位二·committed D-e） | AI | P1（招牌，相位二） | 待相位一 2D 稳 + HERMES-07 结案后成书 | committed（待启动） | 待开 | public/light-map-gl.jsx |
+| [HERMES-11 板块二 GL 招牌：3D 光影地图上移植气泡层（补票任务书）](HERMES-11-gl-bubble-community.md) | AI | P1（招牌，相位二） | 7.24 直入 main + 同日补票审计 | **已交付（补票，check_report_11）** | 待开 | public/light-map-gl.jsx, public/app.jsx（Row1 接线） |
 
 > 状态由 Hermes 维护；工作者只改任务书内自己的"状态"行 + issue 评论。
 

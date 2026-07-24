@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-07-24 · HERMES-11 补票：F6 示例角标+hidden 守卫+死键修复+种子刷新
+
+- **F6 红线修复**：GL 气泡角标改为与 2D 同规——live=「刚发布 · 演示」、垫图种子=「示例 · X小时前」，"示例"始终可见不再只靠 title hover（bubble_spec §7；`light-map-gl.jsx` zgPhotoBubbleHtml，角标 max-width 64→96px 防时间截断，无新增配色）。
+- **hidden 守卫**：GL 版 pullPhotos 头部加 `document.hidden` 早退且续排 3s setTimeout 链（后台省请求，回前台下一 tick 自动恢复，对齐 2D 版）。
+- **死键修复**：`app.jsx` 不再给 SceneLightMapGL 传空 `onSwitchClassic`；GL HUD"快导航"按钮改条件渲染（无 handler 即不出现）。
+- **种子刷新**：`refresh_photo_times.mjs` 改写 photos.v1.json 至今日窗口（placeholders=20 today=3），validate 0 error。
+- **补票文档**：`docs/hermes/HERMES-11-gl-bubble-community.md`（retroactive 任务书，12 条二元 DoD+后置项如实列）+ `agents_output/11/checks/check_report_11.md`（12/12 ✅，e2e 因 Playwright 依赖缺失如实标跳过）。自验：JSX 门/test:api/validate 全 EXIT=0。
+
+---
+
 ## 2026-07-24 · HERMES-11 提前落地：气泡层移植 GL 3D 地图，合流入 main
 
 - 照片气泡层从 2D `photo-map.jsx` 移植进 `SceneLightMapGL`：GL 组件内建 3s 轮询 `/api/photos`，气泡直接落 3D 光影楼群上（冒泡/退出动效、is-live 高亮圈、点击 easeTo 聚焦），`app.jsx` Row1 第二子页切换为 GL 版（GL 不可用兜底 SceneRoute）。板块二"GL 光影地图 × 照片社区"至此在一页内成形，HERMES-11（原相位二 committed）视为提前交付。

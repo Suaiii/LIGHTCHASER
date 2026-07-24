@@ -544,7 +544,6 @@ function App() {
             routeLoading={routeLoading}
             selectedSpotName={selectedSpotName}
             onSelectSpot={setSelectedSpotName}
-            onSwitchClassic={() => {}}
             lightTime={t.lightTime}
           />
         : <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedSpotName} onSelectSpot={setSelectedSpotName} />,
