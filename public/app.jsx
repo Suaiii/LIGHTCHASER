@@ -477,6 +477,7 @@ function App() {
     mode: sunsetMode,
   } = useSunsetData(t.scenario, t.demoLocation);
   const [selectedSpotName, setSelectedSpotName] = useState(null);
+  const [selectedCommunityDestination, setSelectedCommunityDestination] = useState(null);
   const destinationOptions = sunsetPayload
     ? [
         {
@@ -494,6 +495,7 @@ function App() {
       )
     : [];
   const selectedDestination =
+    selectedCommunityDestination ||
     destinationOptions.find((spot) => spot.name === selectedSpotName) ||
     destinationOptions[0] ||
     null;
@@ -501,6 +503,7 @@ function App() {
 
   useEffect(() => {
     setSelectedSpotName(null);
+    setSelectedCommunityDestination(null);
   }, [
     sunsetPayload?.meta?.coordinates?.lat,
     sunsetPayload?.meta?.coordinates?.lng,
@@ -531,15 +534,20 @@ function App() {
   const feed = [
     // Row 0: 普通视频
     [() => <SceneVlog score={score} sunsetPayload={displayPayload} />],
-    // Row 1: 追·光卡片（4 子页）— 封面 → 路线(v1.1: 3D光影地图, 经典版可切) → 社区 → 拍摄
+    // Row 1: 追·光卡片（3 子页）— 封面 → 实时地图社区 → 拍摄
     [
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
-      () => t.routeStyle === "classic"
-        ? <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} />
-        : t.routeStyle === "three"
-          ? <Scene3DLightMap sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} />
-          : <SceneLightMapGL sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedDestination?.name} onSelectSpot={setSelectedSpotName} onSwitchClassic={() => setTweak("routeStyle", "classic")} lightTime={t.lightTime} />,
-      () => <SceneCommunity sunsetPayload={displayPayload} />,
+      () => typeof SceneLightMapGL === "function"
+        ? <SceneLightMapGL
+            sunsetPayload={displayPayload}
+            routeData={routeData}
+            routeLoading={routeLoading}
+            selectedSpotName={selectedSpotName}
+            onSelectSpot={setSelectedSpotName}
+            onSwitchClassic={() => {}}
+            lightTime={t.lightTime}
+          />
+        : <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedSpotName} onSelectSpot={setSelectedSpotName} />,
       () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
     // Row 2: 蓝调时刻视频
@@ -549,7 +557,7 @@ function App() {
   ];
 
   const rowLabels = ["视频 · 街景", "追·光卡片", "视频 · 蓝调外滩", "视频 · 苏州河"];
-  const colLabels = ["封面", "路线·光区", "社区", "拍摄"];
+  const colLabels = ["封面", "追·光地图", "拍摄"];
 
   // 外部钩子：上下滑视频
   useEffect(() => {
@@ -570,13 +578,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (index.row !== 1 || index.col !== 3) {
+    if (index.row !== 1 || index.col !== 2) {
       setPublishedVideoMode(false);
     }
   }, [index.row, index.col]);
 
   const cur = feed[index.row];
   const inSunset = index.row === 1;
+  const isPhotoMap = inSunset && index.col === 1;
   const screenLabel = inSunset
     ? `0${index.row+1}.${index.col+1} ${rowLabels[index.row]} · ${colLabels[index.col]}`
     : `0${index.row+1} ${rowLabels[index.row]}`;
@@ -595,7 +604,7 @@ function App() {
             <SwipeFeed feed={feed} index={index} setIndex={setIndex} />
 
             {/* Top tabs */}
-            {t.showChrome && (
+            {t.showChrome && !isPhotoMap && (
               <div style={{ position: "absolute", top: 50, left: 0, right: 0, zIndex: 10 }}>
                 <TopTabs active={inSunset ? "追·光" : "推荐"} />
               </div>
@@ -613,10 +622,10 @@ function App() {
             )}
 
             {/* 底部导航 */}
-            {t.showChrome && !publishedVideoMode && <BottomNav />}
+            {t.showChrome && !publishedVideoMode && !isPhotoMap && <BottomNav />}
 
             {/* 行 / 列指示器 */}
-            {!publishedVideoMode && <FeedIndicators feed={feed} index={index} />}
+            {!publishedVideoMode && !isPhotoMap && <FeedIndicators feed={feed} index={index} />}
 
             {/* 上下滑动 hint — 仅在 sunset 卡片封面显示，且仅前 6 秒 */}
             {inSunset && index.col === 0 && <ScrollHint />}

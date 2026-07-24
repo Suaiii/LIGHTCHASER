@@ -15,6 +15,74 @@ const zgLodProgress = (zoom) => {
   return t * t * (3 - 2 * t);
 };
 
+const ZG_PHOTO_TONES = [
+  "linear-gradient(145deg, #f2bd88 0%, #d67557 44%, #564864 100%)",
+  "linear-gradient(145deg, #f8dfae 0%, #d6a46e 48%, #657580 100%)",
+  "linear-gradient(145deg, #c5e2ee 0%, #82a9c1 48%, #5c6680 100%)",
+  "linear-gradient(145deg, #f3c9c3 0%, #df9994 45%, #87728b 100%)",
+  "linear-gradient(145deg, #ffe0a0 0%, #e48b69 48%, #5d5878 100%)",
+  "linear-gradient(145deg, #f1dc9d 0%, #d9ae5b 46%, #758292 100%)",
+  "linear-gradient(145deg, #dacbe7 0%, #9f8dbe 46%, #6f7899 100%)",
+];
+
+function zgEscapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function zgPhotoToneForId(id) {
+  let sum = 0;
+  for (let i = 0; i < String(id || "").length; i += 1) sum += String(id).charCodeAt(i);
+  return ZG_PHOTO_TONES[sum % ZG_PHOTO_TONES.length];
+}
+
+function zgPhotoSizeForAge(ageHours) {
+  if (ageHours < 1) return 80;
+  if (ageHours < 24) return 64;
+  return 48;
+}
+
+function zgPhotoTime(ageHours) {
+  if (ageHours < 1) return "刚刚";
+  if (ageHours < 24) return `${Math.round(ageHours)} 小时前`;
+  return `${Math.round(ageHours / 24)} 天前`;
+}
+
+function zgMapPhotoRecord(record, nowMs, isLive) {
+  const caption = record.caption || "";
+  const takenMs = Date.parse(record.taken_at);
+  const ageHours = Number.isFinite(takenMs) ? Math.max(0, (nowMs - takenMs) / 3600000) : 0;
+  return {
+    id: record.id || `photo-${record.lat}-${record.lng}`,
+    lat: Number(record.lat),
+    lng: Number(record.lng),
+    place: record.spot_name || caption.split("｜")[0].slice(0, 8) || "附近的光",
+    author: record.author_name || "追光用户",
+    caption,
+    age_hours: ageHours,
+    tone: zgPhotoToneForId(record.id || ""),
+    size: zgPhotoSizeForAge(ageHours),
+    is_live: isLive,
+  };
+}
+
+function zgPhotoSignature(posts) {
+  return posts.map((post) => `${post.id}${post.is_live ? "*" : ""}`).join("|");
+}
+
+function zgPhotoBubbleHtml(post) {
+  const label = zgEscapeHtml(post.place);
+  const caption = zgEscapeHtml(post.caption || post.place);
+  return `<button type="button" class="zg-photo-bubble ${post.is_live ? "is-live" : ""}" aria-label="打开 ${label}" title="${caption}" style="--tone:${post.tone};--size:${post.size}px">
+    <span class="zg-photo-thumb"></span>
+    <span class="zg-photo-badge">${post.is_live ? "刚发布" : zgEscapeHtml(zgPhotoTime(post.age_hours))}</span>
+    <span class="zg-photo-label">${label}</span>
+  </button>`;
+}
+
 // 逐层暗化 liberty 样式 → 追光夜幕调。核心原则：**确定性调色板**——每类图层给死颜色，
 // 不做任何原色换算（通用混色公式曾把绿地混成深青/品红混成紫，已废除）。
 function zgDarkenStyle(style) {
@@ -389,11 +457,94 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
     let map = null;
     let raf = 0, idleTimer = 0, rotating = true;
     const markers = [];
+    const photoMarkers = new Map();
+    const seenPhotoIds = new Set();
+    let photosPrimed = false;
+    let photoSignature = "";
+    let photoPollTimer = 0;
 
     const routeLL = (routeData?.geometry?.length >= 2
       ? routeData.geometry
       : [{ lat: origin.lat, lng: origin.lng }, { lat: destLL.lat, lng: destLL.lng }]
     ).map((p) => [p.lng, p.lat]);
+
+    const clearPhotoMarkers = () => {
+      photoMarkers.forEach(({ marker }) => marker.remove());
+      photoMarkers.clear();
+    };
+
+    const renderPhotoMarkers = (posts) => {
+      if (!map || disposed) return;
+      const nextIds = new Set();
+      posts
+        .filter((post) => Number.isFinite(post.lat) && Number.isFinite(post.lng))
+        .slice(0, 20)
+        .forEach((post, index) => {
+          nextIds.add(post.id);
+          const existing = photoMarkers.get(post.id);
+          if (existing) {
+            existing.marker.setLngLat([post.lng, post.lat]);
+            existing.el.classList.toggle("is-live", post.is_live);
+            existing.el.style.setProperty("--tone", post.tone);
+            existing.el.style.setProperty("--size", `${post.size}px`);
+            return;
+          }
+
+          const wrap = document.createElement("div");
+          wrap.innerHTML = zgPhotoBubbleHtml(post);
+          const el = wrap.firstElementChild;
+          el.style.setProperty("--pop-delay", `${Math.min(index * 24, 180)}ms`);
+          el.addEventListener("click", (event) => {
+            event.stopPropagation();
+            rotating = false;
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => { rotating = true; }, 4000);
+            map.easeTo({
+              center: [post.lng, post.lat],
+              zoom: Math.max(map.getZoom(), 15.2),
+              pitch: 62,
+              duration: 420,
+            });
+          });
+          const marker = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat([post.lng, post.lat]).addTo(map);
+          photoMarkers.set(post.id, { marker, el });
+        });
+
+      photoMarkers.forEach(({ marker, el }, id) => {
+        if (nextIds.has(id)) return;
+        photoMarkers.delete(id);
+        el.classList.add("is-exiting");
+        setTimeout(() => marker.remove(), 260);
+      });
+    };
+
+    const pullPhotos = async () => {
+      if (disposed) return;
+      try {
+        const response = await fetch("/api/photos", { cache: "no-store" });
+        if (!response.ok) throw new Error(`photos_api_${response.status}`);
+        const data = await response.json();
+        const nowMs = Date.now();
+        const mapped = (data.photos || [])
+          .filter((record) => record.consent_scope !== "image_only")
+          .map((record) => {
+            const id = record.id || `photo-${record.lat}-${record.lng}`;
+            const isLive = photosPrimed && !seenPhotoIds.has(id);
+            return zgMapPhotoRecord(record, nowMs, isLive);
+          });
+        mapped.forEach((post) => seenPhotoIds.add(post.id));
+        photosPrimed = true;
+        const nextSignature = zgPhotoSignature(mapped);
+        if (nextSignature !== photoSignature) {
+          photoSignature = nextSignature;
+          renderPhotoMarkers(mapped);
+        }
+      } catch (error) {
+        console.warn("[LIGHTCHASER] GL photo bubbles unavailable:", error);
+      } finally {
+        if (!disposed) photoPollTimer = setTimeout(pullPhotos, 3000);
+      }
+    };
 
     // 9s 内样式未就绪 → 判离线，降级 Three
     const failTimer = setTimeout(() => { if (!disposed && !map?.loaded()) { setTilesOk(false); setMode("three"); } }, 9000);
@@ -408,7 +559,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
           container: boxRef.current,
           style,
           center: routeLL[Math.floor(routeLL.length / 2)],
-          zoom: 14.2,
+          zoom: ZG_LOD_START + 0.05,
           pitch: 62,
           bearing: sun.azimuthDeg - 60, // 偏太阳60°：受光面(主题色)入画
           attributionControl: { compact: true }, // OSM/ODbL 署名保留（红线）
@@ -627,12 +778,14 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             mk([base[0] + (seedRand() - 0.5) * 0.004, base[1] + (seedRand() - 0.5) * 0.004],
               '<div class="zg-chaser" style="width:10px;height:10px;border-radius:99px;background:#ff8a3d;box-shadow:0 0 12px rgba(255,138,61,0.9)"></div>');
           }
+          pullPhotos();
 
           // 视野适配路线——zoom 下限钳在光影楼 LOD 之上：长路线(4km+)全览会落到 z≈12.8，
           // 开场就只剩剪影楼，与"第一眼=光影楼群"的演示叙事相悖；路线出画交给缩略图兜全貌
           const b = routeLL.reduce((bb, c) => bb.extend(c), new maplibregl.LngLatBounds(routeLL[0], routeLL[0]));
           const cam = map.cameraForBounds(b, { padding: { top: 190, bottom: 230, left: 70, right: 70 }, bearing: sun.azimuthDeg - 60 });
-          map.easeTo({ center: cam ? cam.center : routeLL[0], zoom: Math.max(cam ? cam.zoom : 14.6, 14.05), pitch: 62, bearing: sun.azimuthDeg - 60, duration: 900 });
+          const camZoom = Number.isFinite(cam?.zoom) ? cam.zoom : 14.6;
+          map.easeTo({ center: cam?.center || routeLL[0], zoom: Math.max(camZoom, ZG_LOD_START + 0.05), pitch: 62, bearing: sun.azimuthDeg - 60, duration: 900 });
 
           // 路线脉冲动画 + 闲置慢旋转
           const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -684,8 +837,9 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
     return () => {
       disposed = true;
-      clearTimeout(failTimer); clearTimeout(idleTimer);
+      clearTimeout(failTimer); clearTimeout(idleTimer); clearTimeout(photoPollTimer);
       cancelAnimationFrame(raf);
+      clearPhotoMarkers();
       markers.forEach((m) => m.remove());
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
@@ -701,7 +855,20 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
       <div ref={boxRef} data-swipe-lock="true" style={{ position: "absolute", inset: 0 }} />
       {/* 天际光晕（俯仰时的日落氛围层） */}
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "30%", pointerEvents: "none", background: `linear-gradient(180deg, ${zgSunPalette(sun.altitudeDeg)}52 0%, transparent 100%)` }} />
-      <style>{`@keyframes zgChaserPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}} .zg-chaser{animation:zgChaserPulse 2.2s ease-in-out infinite}`}</style>
+      <style>{`
+        @keyframes zgChaserPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}}
+        @keyframes zgPhotoIn{0%{transform:translateY(10px) scale(.78);opacity:0;filter:blur(2px) saturate(.75)}72%{transform:translateY(-3px) scale(1.04);opacity:1;filter:blur(0) saturate(1.08)}100%{transform:translateY(0) scale(1);opacity:1;filter:blur(0) saturate(1)}}
+        @keyframes zgPhotoPop{0%{transform:translateY(16px) scale(.2);opacity:0;filter:blur(3px) saturate(.72)}64%{transform:translateY(-7px) scale(1.16);opacity:1;filter:blur(0) saturate(1.15)}100%{transform:translateY(0) scale(1);opacity:1;filter:blur(0) saturate(1)}}
+        @keyframes zgPhotoOut{0%{transform:translateY(0) scale(1);opacity:1;filter:blur(0)}100%{transform:translateY(8px) scale(.72);opacity:0;filter:blur(2px)}}
+        .zg-chaser{animation:zgChaserPulse 2.2s ease-in-out infinite}
+        .zg-photo-bubble{position:relative;display:block;width:var(--size);height:var(--size);padding:4px;border:3px solid rgba(255,255,255,.96);border-radius:10px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.42),0 0 0 1px rgba(255,138,61,.18);cursor:pointer;transform-origin:50% 100%;overflow:visible;animation:zgPhotoIn .4s cubic-bezier(.16,.85,.25,1.12) both;animation-delay:var(--pop-delay,0ms)}
+        .zg-photo-bubble.is-live{animation:zgPhotoPop .68s cubic-bezier(.16,.85,.25,1.25) both;box-shadow:0 0 0 8px rgba(255,138,61,.22),0 10px 28px rgba(0,0,0,.44)}
+        .zg-photo-bubble.is-exiting{pointer-events:none;animation:zgPhotoOut .24s ease-in forwards}
+        .zg-photo-thumb{display:block;width:100%;height:100%;border-radius:5px;background:var(--tone)}
+        .zg-photo-thumb:after{content:"";display:block;width:54%;height:21%;margin:48% auto 0;border-radius:99px;background:rgba(255,255,255,.34);filter:blur(3px)}
+        .zg-photo-badge{position:absolute;right:-5px;top:-10px;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(255,255,255,.82);border-radius:99px;background:#303848;color:#fff;padding:2px 6px;font:800 8px/1.1 var(--font-cn),sans-serif}
+        .zg-photo-label{position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:999px;background:rgba(14,17,26,.86);border:1px solid rgba(255,255,255,.14);color:#f2f3f5;padding:4px 8px;font:800 9px/1 var(--font-cn),sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+      `}</style>
 
       {/* 顶部 HUD */}
       <div style={{ position: "absolute", top: 96, left: 14, right: 14, display: "flex", justifyContent: "space-between", pointerEvents: "none" }}>

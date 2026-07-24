@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-07-24 · HERMES-11 提前落地：气泡层移植 GL 3D 地图，合流入 main
+
+- 照片气泡层从 2D `photo-map.jsx` 移植进 `SceneLightMapGL`：GL 组件内建 3s 轮询 `/api/photos`，气泡直接落 3D 光影楼群上（冒泡/退出动效、is-live 高亮圈、点击 easeTo 聚焦），`app.jsx` Row1 第二子页切换为 GL 版（GL 不可用兜底 SceneRoute）。板块二"GL 光影地图 × 照片社区"至此在一页内成形，HERMES-11（原相位二 committed）视为提前交付。
+- 开场 zoom 钳到 LOD 起点上方，修掉长路线全览只剩剪影楼的开场；新增 e2e 冒烟 `scripts/e2e/light-map-route-page.mjs`。
+- 决策者指示直接合入 main（726da2d，含 HERMES-10 p2 全量）；`npm run test:api` EXIT=0。
+- 剩余：聚合簇后置；GL 版三段动效录屏（生长+冒泡+光照切换，供 HERMES-09 C 包）；cartocdn/openfreemap 真机可达性今天顺 HERMES-04 验证。
+
+---
+
+## 2026-07-23 晚 · HERMES-10 p2 收尾：实时冒泡+种子接线+日夜双主题
+
+- 新增 `lib/photos-service.js` + `api/photos.js`：GET 按 `taken_at` 降序返回种子 20 条（spot_name 联表非空），POST 追加 live 照片（深圳坐标围栏，异地 400 `photos_api_invalid_coords`），`scripts/dev-preview.js` 挂载路由。
+- `public/photo-map.jsx` 3s 轮询 `/api/photos`，新照片 `is_live` 冒泡上图；`scripts/post-demo-photo.mjs` 供演示/录屏手动触发投稿。
+- 日/夜双主题落地：负责人拍板"暗+橘主视觉、日间白、蓝改橘"。
+- 验证结论：validate_photos 0 error（基准 2026-07-23，今天 3/本周 18）；端点 GET/POST/围栏/UTF-8 全 PASS（POST 后 count 20→21 且首条即 live 记录）；Babel JSX 门 OK；CJS require OK；`npm run test:api` 8 组全绿 EXIT=0。证据全文见 `agents_output/10/checks/check_report_10.md`「p2 收尾（2026-07-23 晚）」。
+- 剩余：聚合簇后置；动效三段录屏待人工触发；cartocdn 真机可达性 7.24 验证。
+
+---
+
 ## 2026-07-23 · 官方兴趣卡方法论对表 + 竞猜卡升级提案 + 重排（master-plan-0723）
 
 ### 输入

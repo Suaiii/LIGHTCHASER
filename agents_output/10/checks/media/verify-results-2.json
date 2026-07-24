@@ -1,0 +1,26 @@
+{
+  "at": "2026-07-20T15:58:22.590Z",
+  "results": [
+    {
+      "id": "C7",
+      "name": "外层横滑回归：封面↔地图↔拍摄 label 逐步正确",
+      "pass": true,
+      "evidence": "media/10-swipe-camera.png, media/11-swipe-back-map.png, media/11b-swipe-back-cover.png",
+      "notes": "地图→拍摄=true 拍摄→地图=true 地图→封面=true 封面→地图=true 回地图后气泡=5"
+    },
+    {
+      "id": "C8b",
+      "name": "定位失败路径：文案「定位不可用，显示演示区域」",
+      "pass": true,
+      "evidence": "media/13-geo-fallback-map.png, media/13b-geo-fallback-header.png",
+      "notes": "文案=定位不可用，显示演示区域 自进入页面起 4179ms 出现（授权拒绝即刻回调，未等满 8s 超时）"
+    },
+    {
+      "id": "C9",
+      "name": "三段录屏：气泡浮现/筛选切换/半屏卡升起",
+      "pass": true,
+      "evidence": "media/video-01-bubble-pop.webm, media/video-02-filter-toggle.webm, media/video-03-detail-sheet.webm",
+      "notes": "v1=true v2=true v3=true"
+    }
+  ]
+}
