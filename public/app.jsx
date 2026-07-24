@@ -537,15 +537,17 @@ function App() {
     // Row 1: 追·光卡片（3 子页）— 封面 → 实时地图社区 → 拍摄
     [
       () => <SceneSunsetCard score={score} peak={peak} sunsetPayload={displayPayload} routeData={routeData} loading={sunsetLoading || routeLoading} mode={sunsetMode} />,
-      () => <ScenePhotoMap
-        sunsetPayload={displayPayload}
-        routeData={routeData}
-        routeLoading={routeLoading}
-        onSelectDestination={(destination) => {
-          setSelectedCommunityDestination(destination);
-          setSelectedSpotName(destination.name);
-        }}
-      />,
+      () => typeof SceneLightMapGL === "function"
+        ? <SceneLightMapGL
+            sunsetPayload={displayPayload}
+            routeData={routeData}
+            routeLoading={routeLoading}
+            selectedSpotName={selectedSpotName}
+            onSelectSpot={setSelectedSpotName}
+            onSwitchClassic={() => {}}
+            lightTime={t.lightTime}
+          />
+        : <SceneRoute sunsetPayload={displayPayload} routeData={routeData} routeLoading={routeLoading} selectedSpotName={selectedSpotName} onSelectSpot={setSelectedSpotName} />,
       () => <SceneQuickShoot sunsetPayload={displayPayload} publishedVideoMode={publishedVideoMode} />,
     ],
     // Row 2: 蓝调时刻视频

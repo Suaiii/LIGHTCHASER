@@ -4,6 +4,7 @@ const path = require("path");
 const { URL } = require("url");
 const { buildSunsetPayload } = require("../lib/sunset-service");
 const { buildRoutePayload } = require("../lib/route-service");
+const { loadPhotosPayload, addLivePhoto } = require("../lib/photos-service");
 
 const PORT = Number(process.env.PORT || 5174);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -91,6 +92,29 @@ async function handleRequest(req, res) {
         message: error.message,
       });
     }
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/photos") {
+    // AGENT_10/HERMES-10：photos 演示端点；live 记录存 photos-service 进程内存，重启即失（演示态设计）
+    if (req.method === "POST") {
+      const chunks = [];
+      req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          sendJson(res, 201, addLivePhoto(body || {}));
+        } catch (error) {
+          sendJson(res, 400, {
+            error: error.message === "photos_api_invalid_coords"
+              ? "photos_api_invalid_coords"
+              : "photos_api_invalid_body",
+          });
+        }
+      });
+      return;
+    }
+    sendJson(res, 200, loadPhotosPayload());
     return;
   }
 

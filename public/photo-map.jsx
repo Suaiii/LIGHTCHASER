@@ -1,4 +1,4 @@
-// photo-map.jsx — HERMES-10 追·光地图：实时定位、照片气泡、附近时间流与按需路线。
+// photo-map.jsx — AGENT_10/HERMES-10 追·光地图（p2）：/api/photos 真种子接线 + 3s 轮询实时冒泡 + 日/夜双主题；经 Babel 浏览器内转译加载，组件挂 window.ScenePhotoMap。
 
 const { useEffect: usePhotoMapEffect, useMemo: usePhotoMapMemo, useRef: usePhotoMapRef, useState: usePhotoMapState } = React;
 
@@ -22,6 +22,62 @@ const PHOTO_MAP_TONES = {
   gold: "linear-gradient(145deg, #f1dc9d 0%, #d9ae5b 46%, #758292 100%)",
   violet: "linear-gradient(145deg, #dacbe7 0%, #9f8dbe 46%, #6f7899 100%)",
 };
+
+const PHOTO_MAP_TILES = {
+  day: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  night: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+};
+
+// 为什么 18:00–06:00 默认夜间：追光主场景就是傍晚出门追光，晚间打开直接进入暗色主视觉。
+function photoMapInitialTheme() {
+  const hour = new Date().getHours();
+  return hour >= 18 || hour < 6 ? "night" : "day";
+}
+
+// 为什么取模而非随机：同 id 永远同色，3s 轮询重拉时气泡颜色不闪变。
+function photoMapToneForId(id) {
+  const keys = Object.keys(PHOTO_MAP_TONES);
+  let sum = 0;
+  for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i);
+  return keys[sum % keys.length];
+}
+
+// 为什么按新鲜度定大小：越新越大，扫一眼即分清"刚发生"与"早些时候"。
+function photoMapSizeForAge(ageHours) {
+  if (ageHours < 1) return 80;
+  if (ageHours < 24) return 64;
+  return 48;
+}
+
+// /api/photos 记录 → 气泡 post：绝对坐标；place 取机位名，缺失时用 caption"｜"前段截 ≤8 字。
+function mapServerPhoto(record, nowMs) {
+  const caption = record.caption || "";
+  const takenMs = Date.parse(record.taken_at);
+  const ageHours = Number.isFinite(takenMs) ? Math.max(0, (nowMs - takenMs) / 3600000) : 0;
+  return {
+    id: record.id,
+    lat: record.lat,
+    lng: record.lng,
+    place: record.spot_name || caption.split("｜")[0].slice(0, 8) || "附近的光",
+    author: record.author_name || "追光用户",
+    caption,
+    age_hours: ageHours,
+    likes: 0,
+    comments: 0,
+    kind: record.image === "" ? "note" : undefined,
+    tone: photoMapToneForId(record.id || ""),
+    size: photoMapSizeForAge(ageHours),
+    is_live: Boolean(record.is_live),
+  };
+}
+
+// 为什么要签名：轮询每 3s 重拉，若集合没变仍 setState 会整层重建 marker，live pop 动画反复重放。
+function photoMapSignature(posts) {
+  return posts.map((post) => `${post.id}${post.is_live ? "*" : ""}`).join("|");
+}
+
+// 为什么模块级而非组件内 useRef：app.jsx 重挂会清空 ref，已见 id 丢失将使全部种子在重挂后误标"刚发布"。
+const PHOTO_MAP_SEEN = { primed: false, ids: new Set() };
 
 function photoMapTime(ageHours) {
   if (ageHours < 1) return "刚刚";
@@ -62,10 +118,12 @@ function panPhotoMapToPost(map, post) {
   map.panTo(target, { animate: true });
 }
 
-function PhotoMapLeaflet({ origin, posts, selectedPost, routeVisible, routeData, onSelectPost, onLocate, onMapReady }) {
+function PhotoMapLeaflet({ origin, posts, selectedPost, routeVisible, routeData, theme, seedCenter, onSelectPost, onLocate, onMapReady }) {
   const containerRef = usePhotoMapRef(null);
   const mapRef = usePhotoMapRef(null);
   const layersRef = usePhotoMapRef([]);
+  const tileRef = usePhotoMapRef(null);
+  const seedAppliedRef = usePhotoMapRef(false);
 
   usePhotoMapEffect(() => {
     if (!containerRef.current || typeof L === "undefined") return undefined;
@@ -76,17 +134,32 @@ function PhotoMapLeaflet({ origin, posts, selectedPost, routeVisible, routeData,
       minZoom: 12,
       maxZoom: 18,
     }).setView([origin.lat, origin.lng], 15);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd", maxZoom: 19,
-    }).addTo(map);
     mapRef.current = map;
     onMapReady?.(map);
-    return () => { onMapReady?.(null); map.remove(); mapRef.current = null; };
+    return () => { onMapReady?.(null); map.remove(); mapRef.current = null; tileRef.current = null; };
   }, []);
+
+  // 主题切换只换 tileLayer 不重建 map：保住当前视野、marker 图层与手势状态。
+  usePhotoMapEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (tileRef.current) tileRef.current.remove();
+    tileRef.current = L.tileLayer(PHOTO_MAP_TILES[theme] || PHOTO_MAP_TILES.day, { subdomains: "abcd", maxZoom: 19 }).addTo(map);
+  }, [theme]);
+
+  // 服务器种子首次到达后一次性落到质心：种子横跨深圳全境，zoom 12 才框得住 20 条（任务书定 12–13）。
+  usePhotoMapEffect(() => {
+    const map = mapRef.current;
+    if (!map || !seedCenter || seedAppliedRef.current) return;
+    seedAppliedRef.current = true;
+    map.setView([seedCenter.lat, seedCenter.lng], 12, { animate: true });
+  }, [Boolean(seedCenter)]);
 
   usePhotoMapEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    // 为什么跳过：服务器种子固定在深圳，定位没拿到真实 live 坐标就跟随 origin，会把种子甩出视野。
+    if (seedCenter && origin.source !== "live") return;
     map.setView([origin.lat, origin.lng], Math.max(map.getZoom(), 15), { animate: true });
   }, [origin.lat, origin.lng]);
 
@@ -135,16 +208,18 @@ function PhotoMapLeaflet({ origin, posts, selectedPost, routeVisible, routeData,
       const points = routeData?.geometry?.length >= 2
         ? routeData.geometry.map((point) => [point.lat, point.lng])
         : [[origin.lat, origin.lng], [selectedPost.lat, selectedPost.lng]];
-      layers.push(L.polyline(points, { color: "#1d58d8", weight: 7, opacity: 0.95, lineCap: "round", className: "photo-map-route-line" }).addTo(map));
-      layers.push(L.circleMarker([selectedPost.lat, selectedPost.lng], { radius: 10, color: "#fff", weight: 3, fillColor: "#1d58d8", fillOpacity: 1 }).addTo(map));
+      // 夜间用更亮橘芯（#ff9d5c）：亮度必须压过气泡白框（bubble_spec §6 亮度纪律）。
+      const routeCore = theme === "night" ? "#ff9d5c" : "#ff8a3d";
+      layers.push(L.polyline(points, { color: routeCore, weight: 7, opacity: 0.95, lineCap: "round", className: "photo-map-route-line" }).addTo(map));
+      layers.push(L.circleMarker([selectedPost.lat, selectedPost.lng], { radius: 10, color: "#fff", weight: 3, fillColor: routeCore, fillOpacity: 1 }).addTo(map));
       panPhotoMapToPost(map, selectedPost);
     }
     layersRef.current = layers;
-  }, [origin.lat, origin.lng, posts, selectedPost?.id, routeVisible, routeData?.geometry?.length]);
+  }, [origin.lat, origin.lng, posts, selectedPost?.id, routeVisible, routeData?.geometry?.length, theme]);
 
   return (
     <>
-      <div ref={containerRef} data-swipe-lock="true" style={{ position: "absolute", inset: 0, zIndex: 0, background: "#edf0f0" }} />
+      <div ref={containerRef} data-swipe-lock="true" style={{ position: "absolute", inset: 0, zIndex: 0, background: "var(--pm-bg)" }} />
       {typeof L === "undefined" && <div className="photo-map-fallback-grid" />}
       <button type="button" data-swipe-lock="true" onClick={onLocate} className="photo-map-locate" aria-label="我在这里" title="我在这里">⌁</button>
     </>
@@ -207,8 +282,9 @@ function PhotoMapPublishSheet({ open, onClose, onPublish }) {
 
 // app.jsx 每次重渲染都会新建 feed 页组件（匿名箭头函数），App 状态变化（如 /api/route、/api/sunset
 // 数据到达，或 onSelectDestination 回写）会把本场景卸载重挂，本地 useState 全部丢失。
-// 用模块级缓存保存 UI 状态，保证重挂后详情卡、按需路线与已发布演示气泡不丢失。
-const PHOTO_MAP_UI_CACHE = { filter: "today", selectedPost: null, livePosts: [], timelineOpen: false, publishOpen: false, routeVisible: false };
+// 用模块级缓存保存 UI 状态，保证重挂后详情卡、按需路线、服务器种子与主题选择不丢失。
+// p2 新增键：serverPosts（/api/photos 拉到的种子）、offline（接口失败标记）、theme（日/夜）。
+const PHOTO_MAP_UI_CACHE = { filter: "today", selectedPost: null, livePosts: [], timelineOpen: false, publishOpen: false, routeVisible: false, serverPosts: null, offline: false, theme: photoMapInitialTheme() };
 function usePhotoMapPersistedState(key) {
   const [value, setValue] = usePhotoMapState(PHOTO_MAP_UI_CACHE[key]);
   const set = (next) => {
@@ -228,9 +304,65 @@ function ScenePhotoMap({ sunsetPayload, routeData, routeLoading, onSelectDestina
   const [timelineOpen, setTimelineOpen] = usePhotoMapPersistedState("timelineOpen");
   const [publishOpen, setPublishOpen] = usePhotoMapPersistedState("publishOpen");
   const [routeVisible, setRouteVisible] = usePhotoMapPersistedState("routeVisible");
+  const [serverPosts, setServerPosts] = usePhotoMapPersistedState("serverPosts");
+  const [offline, setOffline] = usePhotoMapPersistedState("offline");
+  const [theme, setTheme] = usePhotoMapPersistedState("theme");
   const mapRef = usePhotoMapRef(null);
-  const posts = usePhotoMapMemo(() => makePhotoMapPosts(location, livePosts), [location.lat, location.lng, livePosts]);
+  const seenRef = usePhotoMapRef(PHOTO_MAP_SEEN);
+  const signatureRef = usePhotoMapRef(null);
+
+  // 3s 轮询 /api/photos：新出现的 id 标 is_live 冒泡（DoD：新条目 ≤3s 自动浮现、带 pop 动效、无整页重载）。
+  usePhotoMapEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      if (document.hidden) return; // 为什么：后台标签页没人看，省请求；且切回时才补拉可避免瞬间批量 pop
+      try {
+        const response = await fetch("/api/photos");
+        if (!response.ok) throw new Error(`photos_api_${response.status}`);
+        const data = await response.json();
+        if (cancelled) return;
+        const now = Date.now();
+        const seen = seenRef.current;
+        const mapped = (data.photos || [])
+          .filter((record) => record.consent_scope !== "image_only") // bubble_spec §5：image_only 不进气泡层（规则预埋）
+          .map((record) => mapServerPhoto(record, now));
+        if (!seen.primed) {
+          mapped.forEach((post) => seen.ids.add(post.id)); // 首拉全部记已见：种子不该集体上演"刚发布"
+          seen.primed = true;
+        } else {
+          mapped.forEach((post) => {
+            if (!seen.ids.has(post.id)) { post.is_live = true; seen.ids.add(post.id); }
+          });
+        }
+        const signature = photoMapSignature(mapped);
+        if (signature !== signatureRef.current) {
+          signatureRef.current = signature;
+          setServerPosts(mapped);
+        }
+        setOffline(false);
+      } catch (error) {
+        if (!cancelled) setOffline(true); // 演示永不崩：接口失败保留演示气泡并在提示条标"离线示例"
+      }
+    };
+    pull();
+    const timer = setInterval(pull, 3000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
+
+  // 服务器可用 → 真种子（live 记录由服务器透传）；不可用 → 原相对定位演示气泡。
+  const posts = usePhotoMapMemo(
+    () => (serverPosts && serverPosts.length ? serverPosts : makePhotoMapPosts(location, livePosts)),
+    [serverPosts, location.lat, location.lng, livePosts]
+  );
   const filteredPosts = usePhotoMapMemo(() => posts.filter((post) => filter === "week" || post.age_hours <= 24), [posts, filter]);
+  // 种子质心作为初始视野目标；取全量种子而非筛选后，保证"今天/本周"切换不影响落点。
+  const seedCenter = usePhotoMapMemo(() => {
+    if (!serverPosts || !serverPosts.length) return null;
+    return {
+      lat: serverPosts.reduce((sum, post) => sum + post.lat, 0) / serverPosts.length,
+      lng: serverPosts.reduce((sum, post) => sum + post.lng, 0) / serverPosts.length,
+    };
+  }, [serverPosts]);
 
   const selectPost = (post) => { setSelectedPost(post); setRouteVisible(false); setTimelineOpen(false); };
   const navigateToPost = () => {
@@ -238,13 +370,37 @@ function ScenePhotoMap({ sunsetPayload, routeData, routeLoading, onSelectDestina
     setRouteVisible(true);
     onSelectDestination?.({ name: selectedPost.place, coordinates: { lat: selectedPost.lat, lng: selectedPost.lng }, distance: "步行约 8 分钟" });
   };
-  const publishDemo = () => {
-    // 发布落点取当前地图视口中心附近（地图可能已被平移，不再使用定位坐标）。
+  const publishDemo = async () => {
+    // 发布落点取当前地图视口中心（地图可能已被平移，不再使用定位坐标）。
     const center = mapRef.current?.getCenter?.() || { lat: location.lat, lng: location.lng };
-    const live = { id: `live-${Date.now()}`, lat: center.lat + 0.0007, lng: center.lng - 0.0008, place: "我在这里", author: "我", caption: "刚刚发布的一张演示照片", age_hours: 0, likes: 0, comments: 0, tone: "sunset", size: 80, is_live: true };
-    setLivePosts((current) => [...current, live]);
-    setSelectedPost(live);
     setPublishOpen(false);
+    try {
+      const response = await fetch("/api/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: center.lat, lng: center.lng, caption: "刚刚发布的一张演示照片" }),
+      });
+      if (!response.ok) throw new Error(`photos_api_${response.status}`);
+      const record = await response.json();
+      const post = mapServerPhoto(record, Date.now());
+      post.is_live = true;
+      seenRef.current.ids.add(post.id); // 先记已见：下一轮轮询靠 id 去重，不会二次标新
+      if (PHOTO_MAP_UI_CACHE.serverPosts && PHOTO_MAP_UI_CACHE.serverPosts.length) {
+        setServerPosts((current) => {
+          const nextPosts = [post, ...(current || [])];
+          signatureRef.current = photoMapSignature(nextPosts); // 同步签名：下一轮同集合时不再重建 marker
+          return nextPosts;
+        });
+      } else {
+        setLivePosts((current) => [...current, post]); // 离线态下 POST 意外成功也能显示（绝对坐标可直接渲染）
+      }
+      setSelectedPost(post);
+    } catch (error) {
+      // POST 失败回退原本地追加：演示永不崩。
+      const live = { id: `live-${Date.now()}`, lat: center.lat + 0.0007, lng: center.lng - 0.0008, place: "我在这里", author: "我", caption: "刚刚发布的一张演示照片", age_hours: 0, likes: 0, comments: 0, tone: "sunset", size: 80, is_live: true };
+      setLivePosts((current) => [...current, live]);
+      setSelectedPost(live);
+    }
   };
   // 右边缘手势区：仅在该窄条内检测左滑 ≥48px 打开附近时间流，地图其余区域交给 Leaflet 拖拽。
   const edgeSwipeStart = usePhotoMapRef(null);
@@ -254,11 +410,13 @@ function ScenePhotoMap({ sunsetPayload, routeData, routeLoading, onSelectDestina
     if (edgeSwipeStart.current !== null && edgeSwipeStart.current - end >= 48) setTimelineOpen(true);
     edgeSwipeStart.current = null;
   };
+  const hasServerPosts = Boolean(serverPosts && serverPosts.length);
 
-  return <div className="photo-map-scene">
-    <PhotoMapLeaflet origin={location} posts={filteredPosts} selectedPost={selectedPost} routeVisible={routeVisible} routeData={routeData} onSelectPost={selectPost} onLocate={locate} onMapReady={(map) => { mapRef.current = map; }} />
+  return <div className="photo-map-scene" data-theme={theme}>
+    <PhotoMapLeaflet origin={location} posts={filteredPosts} selectedPost={selectedPost} routeVisible={routeVisible} routeData={routeData} theme={theme} seedCenter={seedCenter} onSelectPost={selectPost} onLocate={locate} onMapReady={(map) => { mapRef.current = map; }} />
     <header className="photo-map-header"><div><h1>追·光地图</h1><p>{location.source === "live" ? "已定位到你附近" : location.source === "waiting" ? "正在获取实时位置" : "定位不可用，显示演示区域"}</p></div></header>
-    <div className="photo-map-demo-notice"><span>附近真实帖子暂时为空</span><small>以下为功能占位示例</small></div>
+    <div className="photo-map-demo-notice"><span>附近真实帖子暂时为空</span><small>{offline && !hasServerPosts ? "接口不可用 · 离线示例" : hasServerPosts ? "演示种子数据 · 非真实 UGC" : "以下为功能占位示例"}</small></div>
+    <button type="button" data-swipe-lock="true" className="photo-map-theme-toggle" aria-label={theme === "night" ? "切换到日间模式" : "切换到夜间模式"} title="日/夜切换" onClick={() => setTheme(theme === "night" ? "day" : "night")}>{theme === "night" ? "☀" : "☾"}</button>
     <div className="photo-map-filter-row photo-map-map-filter" data-swipe-lock="true">
       {[['today', '今天'], ['week', '本周']].map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={filter === value ? "is-active" : ""}>{label}</button>)}
     </div>
@@ -273,17 +431,28 @@ function ScenePhotoMap({ sunsetPayload, routeData, routeLoading, onSelectDestina
   </div>;
 }
 
+/* 配色走 CSS 变量：--pm-bg/--pm-surface/--pm-text/--pm-muted/--pm-accent（+ 供 rgba 组合的 -rgb 变体）。
+   日/夜由 .photo-map-scene[data-theme] 切换变量值；accent 两主题都是追光橘 #ff8a3d（负责人拍板，唯一强调色）。 */
 const PHOTO_MAP_CSS = `
-.photo-map-scene{position:absolute;inset:0;overflow:hidden;background:#edf0f0;color:#17191d;font-family:var(--font-cn),-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;touch-action:pan-y}
-.photo-map-header{position:absolute;top:0;left:0;right:0;z-index:500;padding:88px 22px 38px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.86) 67%,rgba(255,255,255,0));pointer-events:auto}.photo-map-header h1{margin:0;font-size:29px;letter-spacing:-1.5px;line-height:1;font-weight:800}.photo-map-header p{margin:10px 0 0;font-size:13px;color:#676c72;font-weight:600}
-.photo-map-demo-notice{position:absolute;z-index:510;left:22px;top:171px;display:grid;gap:2px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.88);box-shadow:0 6px 18px rgba(45,50,58,.12);font-size:10px;color:#4b535e}.photo-map-demo-notice span{font-weight:800}.photo-map-demo-notice small{font-size:9px;color:#8c949c}
-.photo-map-filter-row{display:flex;gap:6px}.photo-map-filter-row button{border:0;border-radius:999px;padding:7px 13px;background:#fff;color:#707780;font:700 12px inherit;box-shadow:0 4px 12px rgba(45,50,58,.10);cursor:pointer}.photo-map-filter-row button.is-active{background:#1d58d8;color:#fff}.photo-map-map-filter{position:absolute;top:169px;right:20px;z-index:510}
-.photo-map-locate{position:absolute;right:20px;bottom:112px;z-index:510;width:48px;height:48px;border:0;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(42,48,55,.2);font-size:28px;line-height:1;color:#172033;cursor:pointer}.photo-map-timeline-hint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:505;border:0;border-radius:999px;padding:9px 15px;background:rgba(255,255,255,.92);box-shadow:0 6px 18px rgba(42,48,55,.15);font:700 11px inherit;color:#3e4652;white-space:nowrap;cursor:pointer}.photo-map-publish-button{position:absolute;z-index:540;right:20px;bottom:38px;width:65px;height:65px;border:0;border-radius:50%;background:#090b0e;color:#fff;font:400 48px/1 Arial,sans-serif;box-shadow:0 14px 28px rgba(0,0,0,.26);cursor:pointer}.photo-map-route-notice{position:absolute;left:20px;bottom:36px;z-index:510;border-radius:99px;background:#1d58d8;color:#fff;padding:9px 13px;font-size:11px;font-weight:700}.photo-map-route-notice button{margin-left:8px;border:0;background:transparent;color:#fff;font:inherit;text-decoration:underline;cursor:pointer}.photo-map-edge-zone{position:absolute;right:0;top:210px;bottom:190px;width:28px;z-index:520;touch-action:none}.photo-map-edge-handle{position:absolute;right:5px;top:50%;width:4px;height:56px;border-radius:99px;background:rgba(23,25,29,.16);transform:translateY(-50%)}
+.photo-map-scene{--pm-bg:#edf0f0;--pm-surface:#fff;--pm-surface-rgb:255,255,255;--pm-text:#17191d;--pm-muted:#676c72;--pm-accent:#ff8a3d;--pm-accent-rgb:255,138,61;position:absolute;inset:0;overflow:hidden;background:var(--pm-bg);color:var(--pm-text);font-family:var(--font-cn),-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;touch-action:pan-y}
+.photo-map-scene[data-theme="night"]{--pm-bg:#0a0a0d;--pm-surface:rgba(24,26,32,.94);--pm-surface-rgb:24,26,32;--pm-text:#f2f3f5;--pm-muted:#9aa1ab}
+.photo-map-header{position:absolute;top:0;left:0;right:0;z-index:500;padding:88px 22px 38px;background:linear-gradient(180deg,rgba(var(--pm-surface-rgb),.98),rgba(var(--pm-surface-rgb),.86) 67%,rgba(var(--pm-surface-rgb),0));pointer-events:auto}.photo-map-header h1{margin:0;font-size:29px;letter-spacing:-1.5px;line-height:1;font-weight:800}.photo-map-header p{margin:10px 0 0;font-size:13px;color:var(--pm-muted);font-weight:600}
+.photo-map-demo-notice{position:absolute;z-index:510;left:22px;top:171px;display:grid;gap:2px;padding:8px 10px;border-radius:10px;background:rgba(var(--pm-surface-rgb),.88);box-shadow:0 6px 18px rgba(45,50,58,.12);font-size:10px;color:var(--pm-muted)}.photo-map-demo-notice span{font-weight:800;color:var(--pm-text)}.photo-map-demo-notice small{font-size:9px}
+.photo-map-filter-row{display:flex;gap:6px}.photo-map-filter-row button{border:0;border-radius:999px;padding:7px 13px;background:var(--pm-surface);color:var(--pm-muted);font:700 12px inherit;box-shadow:0 4px 12px rgba(45,50,58,.10);cursor:pointer}.photo-map-filter-row button.is-active{background:var(--pm-accent);color:#fff}.photo-map-map-filter{position:absolute;top:169px;right:20px;z-index:510}
+.photo-map-locate{position:absolute;right:20px;bottom:112px;z-index:510;width:48px;height:48px;border:0;border-radius:50%;background:var(--pm-surface);box-shadow:0 8px 22px rgba(42,48,55,.2);font-size:28px;line-height:1;color:var(--pm-text);cursor:pointer}.photo-map-theme-toggle{position:absolute;right:20px;top:118px;z-index:512;width:44px;height:44px;border:0;border-radius:50%;background:var(--pm-surface);box-shadow:0 8px 22px rgba(42,48,55,.2);font-size:19px;line-height:1;color:var(--pm-text);cursor:pointer}.photo-map-timeline-hint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:505;border:0;border-radius:999px;padding:9px 15px;background:rgba(var(--pm-surface-rgb),.92);box-shadow:0 6px 18px rgba(42,48,55,.15);font:700 11px inherit;color:var(--pm-muted);white-space:nowrap;cursor:pointer}.photo-map-publish-button{position:absolute;z-index:540;right:20px;bottom:38px;width:65px;height:65px;border:0;border-radius:50%;background:var(--pm-text);color:var(--pm-bg);font:400 48px/1 Arial,sans-serif;box-shadow:0 14px 28px rgba(0,0,0,.26);cursor:pointer}.photo-map-route-notice{position:absolute;left:20px;bottom:36px;z-index:510;border-radius:99px;background:var(--pm-accent);color:#fff;padding:9px 13px;font-size:11px;font-weight:700}.photo-map-route-notice button{margin-left:8px;border:0;background:transparent;color:#fff;font:inherit;text-decoration:underline;cursor:pointer}.photo-map-edge-zone{position:absolute;right:0;top:210px;bottom:190px;width:28px;z-index:520;touch-action:none}.photo-map-edge-handle{position:absolute;right:5px;top:50%;width:4px;height:56px;border-radius:99px;background:rgba(23,25,29,.16);transform:translateY(-50%)}
+/* 定位蓝点/光锥保持蓝色不随主题改橘：iOS 定位符号惯例，用户对"蓝点=我"有肌肉记忆。 */
 .photo-map-location-icon{background:transparent!important;border:0!important}.photo-map-location-dot{position:absolute;left:19px;top:19px;width:16px;height:16px;border-radius:50%;background:#2474e8;border:3px solid #fff;box-shadow:0 2px 7px rgba(20,66,133,.35)}.photo-map-location-cone{position:absolute;left:15px;top:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:29px solid rgba(36,116,232,.18);transform:rotate(-26deg);transform-origin:50% 34px}
-.photo-map-marker-icon{background:transparent!important;border:0!important}.photo-map-marker-stack{display:flex;flex-direction:column;align-items:center;gap:5px;transform:rotate(var(--tilt))}.photo-map-marker-label{display:inline-flex;align-items:center;gap:3px;max-width:88px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.95);box-shadow:0 2px 7px rgba(30,39,47,.28);color:#11151b;font:800 9px/1.3 inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.photo-map-marker-label:before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:#1d58d8}.photo-map-bubble-marker{position:relative;display:block;width:var(--size);height:var(--size);padding:4px;border:3px solid #fff;border-radius:9px;background:#fff;box-shadow:0 5px 16px rgba(30,39,47,.3);cursor:pointer;overflow:visible}.photo-map-marker-image{display:block;width:100%;height:100%;border-radius:4px;background:var(--tone)}.photo-map-marker-image:after{content:"";display:block;width:54%;height:21%;margin:48% auto 0;border-radius:99px;background:rgba(255,255,255,.34);filter:blur(3px)}.photo-map-marker-demo{position:absolute;right:-4px;top:-9px;border:1px solid rgba(255,255,255,.8);border-radius:99px;background:#333c49;color:#fff;padding:2px 5px;font:700 8px/1 inherit;white-space:nowrap;transform:rotate(calc(var(--tilt) * -1))}.photo-map-bubble-marker.is-live{animation:photo-map-pop .65s cubic-bezier(.16,.85,.25,1.25) both;box-shadow:0 0 0 7px rgba(29,88,216,.18),0 7px 18px rgba(30,39,47,.35)}.photo-map-note-marker{width:80px;min-height:55px;padding:9px;border:0;border-radius:8px;background:#f7d77b;color:#564823;box-shadow:0 5px 13px rgba(53,42,16,.2);font:700 10px/1.25 inherit;text-align:left;transform:rotate(var(--tilt));cursor:pointer}.photo-map-route-line{filter:drop-shadow(0 1px 2px rgba(255,255,255,.9))}@keyframes photo-map-pop{from{transform:scale(.2);opacity:0}70%{transform:scale(1.12)}to{transform:scale(1);opacity:1}}
-.photo-map-detail-sheet,.photo-map-timeline,.photo-map-publish-sheet{position:absolute;left:0;right:0;bottom:0;z-index:700;border-radius:24px 24px 0 0;background:rgba(255,255,255,.98);box-shadow:0 -15px 44px rgba(25,32,40,.23);animation:photo-map-sheet-in .28s ease-out both}.photo-map-detail-sheet{min-height:430px;padding:12px 18px 25px}.photo-map-sheet-handle{width:34px;height:4px;margin:0 auto 14px;border-radius:99px;background:#d3d8dd}.photo-map-sheet-close{position:absolute;right:17px;top:14px;width:27px;height:27px;border:0;border-radius:50%;background:#eef1f3;color:#5c6570;font-size:20px;line-height:24px;cursor:pointer}.photo-map-detail-media{height:150px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.92);font-size:12px;font-weight:800;position:relative;overflow:hidden}.photo-map-detail-media:before{content:"";position:absolute;width:130%;height:48px;top:-8px;left:-15px;background:rgba(255,255,255,.18);transform:rotate(-12deg)}.photo-map-detail-media span,.photo-map-detail-media em{position:relative}.photo-map-detail-media em{position:absolute;top:8px;right:9px;padding:3px 6px;border-radius:5px;background:rgba(0,0,0,.35);font-style:normal;font-size:9px}.photo-map-detail-copy{padding:11px 2px 0}.photo-map-detail-meta{display:flex;gap:5px;align-items:center;font-size:11px;color:#747c85}.photo-map-detail-meta strong{color:#1b222d}.photo-map-detail-copy p{margin:7px 0 11px;font-size:14px;line-height:1.4;color:#252c36;font-weight:600}.photo-map-detail-actions{display:flex;gap:7px;align-items:center}.photo-map-detail-actions button{border:0;border-radius:9px;background:#eef1f4;padding:8px 10px;color:#47515e;font:700 11px inherit;cursor:pointer}.photo-map-detail-actions small{font-size:8px;color:#9299a2}.photo-map-detail-actions .photo-map-route-button{margin-left:auto;background:#1d58d8;color:#fff;padding-inline:13px}
-.photo-map-timeline{min-height:306px;padding:12px 18px 24px}.photo-map-timeline-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.photo-map-timeline-title div{display:grid;gap:2px}.photo-map-timeline-title strong{font-size:18px}.photo-map-timeline-title span{font-size:10px;color:#8a929a}.photo-map-timeline-title button{border:0;background:#eef1f3;width:28px;height:28px;border-radius:50%;font-size:20px;color:#5c6570;cursor:pointer}.photo-map-timeline-list{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.photo-map-timeline-card{min-width:0;padding:0;border:0;background:transparent;text-align:left;cursor:pointer}.photo-map-timeline-card>span{display:grid;place-items:center;height:78px;border-radius:9px;color:rgba(255,255,255,.9);font-size:9px;font-weight:800}.photo-map-timeline-card i{display:grid;gap:3px;margin-top:5px;font-style:normal}.photo-map-timeline-card b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#27303b;font-size:10px}.photo-map-timeline-card small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7d858e;font-size:8px}.photo-map-timeline-card em{font-style:normal;color:#9aa1a9;font-size:8px}
-.photo-map-publish-sheet{padding:13px 21px 27px;text-align:center}.photo-map-publish-sheet strong{display:block;font-size:18px}.photo-map-publish-sheet p{margin:8px auto 13px;max-width:290px;color:#727b85;font-size:11px;line-height:1.45}.photo-map-publish-preview{height:72px;border-radius:12px;display:grid;place-items:center;background:${PHOTO_MAP_TONES.sunset};color:#fff;font-size:11px;font-weight:800}.photo-map-publish-confirm{width:100%;margin-top:12px;border:0;border-radius:12px;background:#11151b;color:#fff;padding:13px;font:800 14px inherit;cursor:pointer}@keyframes photo-map-sheet-in{from{transform:translateY(105%)}to{transform:translateY(0)}}.photo-map-fallback-grid{position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(143,155,163,.12) 1px,transparent 1px),linear-gradient(rgba(143,155,163,.12) 1px,transparent 1px);background-size:30px 30px}
+/* 拍立得白框是照片本体的一部分，两主题都保持白色；live 光圈用追光橘（由蓝改橘，负责人拍板）。 */
+.photo-map-marker-icon{background:transparent!important;border:0!important}.photo-map-marker-stack{display:flex;flex-direction:column;align-items:center;gap:5px;transform:rotate(var(--tilt))}.photo-map-marker-label{display:inline-flex;align-items:center;gap:3px;max-width:88px;padding:2px 7px;border-radius:6px;background:rgba(var(--pm-surface-rgb),.95);box-shadow:0 2px 7px rgba(30,39,47,.28);color:var(--pm-text);font:800 9px/1.3 inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.photo-map-marker-label:before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:var(--pm-accent)}.photo-map-bubble-marker{position:relative;display:block;width:var(--size);height:var(--size);padding:4px;border:3px solid #fff;border-radius:9px;background:#fff;box-shadow:0 5px 16px rgba(30,39,47,.3);cursor:pointer;overflow:visible}.photo-map-marker-image{display:block;width:100%;height:100%;border-radius:4px;background:var(--tone)}.photo-map-marker-image:after{content:"";display:block;width:54%;height:21%;margin:48% auto 0;border-radius:99px;background:rgba(255,255,255,.34);filter:blur(3px)}.photo-map-marker-demo{position:absolute;right:-4px;top:-9px;border:1px solid rgba(255,255,255,.8);border-radius:99px;background:#333c49;color:#fff;padding:2px 5px;font:700 8px/1 inherit;white-space:nowrap;transform:rotate(calc(var(--tilt) * -1))}.photo-map-bubble-marker.is-live{animation:photo-map-pop .65s cubic-bezier(.16,.85,.25,1.25) both;box-shadow:0 0 0 7px rgba(var(--pm-accent-rgb),.2),0 7px 18px rgba(30,39,47,.35)}.photo-map-note-marker{width:80px;min-height:55px;padding:9px;border:0;border-radius:8px;background:#f7d77b;color:#564823;box-shadow:0 5px 13px rgba(53,42,16,.2);font:700 10px/1.25 inherit;text-align:left;transform:rotate(var(--tilt));cursor:pointer}.photo-map-route-line{filter:drop-shadow(0 1px 2px rgba(255,255,255,.9))}@keyframes photo-map-pop{from{transform:scale(.2);opacity:0}70%{transform:scale(1.12)}to{transform:scale(1);opacity:1}}
+.photo-map-detail-sheet,.photo-map-timeline,.photo-map-publish-sheet{position:absolute;left:0;right:0;bottom:0;z-index:700;border-radius:24px 24px 0 0;background:rgba(var(--pm-surface-rgb),.98);box-shadow:0 -15px 44px rgba(25,32,40,.23);animation:photo-map-sheet-in .28s ease-out both}.photo-map-detail-sheet{min-height:430px;padding:12px 18px 25px}.photo-map-sheet-handle{width:34px;height:4px;margin:0 auto 14px;border-radius:99px;background:#d3d8dd}.photo-map-sheet-close{position:absolute;right:17px;top:14px;width:27px;height:27px;border:0;border-radius:50%;background:#eef1f3;color:#5c6570;font-size:20px;line-height:24px;cursor:pointer}.photo-map-detail-media{height:150px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.92);font-size:12px;font-weight:800;position:relative;overflow:hidden}.photo-map-detail-media:before{content:"";position:absolute;width:130%;height:48px;top:-8px;left:-15px;background:rgba(255,255,255,.18);transform:rotate(-12deg)}.photo-map-detail-media span,.photo-map-detail-media em{position:relative}.photo-map-detail-media em{position:absolute;top:8px;right:9px;padding:3px 6px;border-radius:5px;background:rgba(0,0,0,.35);font-style:normal;font-size:9px}.photo-map-detail-copy{padding:11px 2px 0}.photo-map-detail-meta{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--pm-muted)}.photo-map-detail-meta strong{color:var(--pm-text)}.photo-map-detail-copy p{margin:7px 0 11px;font-size:14px;line-height:1.4;color:var(--pm-text);font-weight:600}.photo-map-detail-actions{display:flex;gap:7px;align-items:center}.photo-map-detail-actions button{border:0;border-radius:9px;background:#eef1f4;padding:8px 10px;color:#47515e;font:700 11px inherit;cursor:pointer}.photo-map-detail-actions small{font-size:8px;color:var(--pm-muted)}.photo-map-detail-actions .photo-map-route-button{margin-left:auto;background:var(--pm-accent);color:#fff;padding-inline:13px}
+.photo-map-timeline{min-height:306px;padding:12px 18px 24px}.photo-map-timeline-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.photo-map-timeline-title div{display:grid;gap:2px}.photo-map-timeline-title strong{font-size:18px}.photo-map-timeline-title span{font-size:10px;color:var(--pm-muted)}.photo-map-timeline-title button{border:0;background:#eef1f3;width:28px;height:28px;border-radius:50%;font-size:20px;color:#5c6570;cursor:pointer}.photo-map-timeline-list{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.photo-map-timeline-card{min-width:0;padding:0;border:0;background:transparent;text-align:left;cursor:pointer}.photo-map-timeline-card>span{display:grid;place-items:center;height:78px;border-radius:9px;color:rgba(255,255,255,.9);font-size:9px;font-weight:800}.photo-map-timeline-card i{display:grid;gap:3px;margin-top:5px;font-style:normal}.photo-map-timeline-card b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pm-text);font-size:10px}.photo-map-timeline-card small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pm-muted);font-size:8px}.photo-map-timeline-card em{font-style:normal;color:var(--pm-muted);font-size:8px}
+.photo-map-publish-sheet{padding:13px 21px 27px;text-align:center}.photo-map-publish-sheet strong{display:block;font-size:18px}.photo-map-publish-sheet p{margin:8px auto 13px;max-width:290px;color:var(--pm-muted);font-size:11px;line-height:1.45}.photo-map-publish-preview{height:72px;border-radius:12px;display:grid;place-items:center;background:${PHOTO_MAP_TONES.sunset};color:#fff;font-size:11px;font-weight:800}.photo-map-publish-confirm{width:100%;margin-top:12px;border:0;border-radius:12px;background:var(--pm-text);color:var(--pm-bg);padding:13px;font:800 14px inherit;cursor:pointer}@keyframes photo-map-sheet-in{from{transform:translateY(105%)}to{transform:translateY(0)}}.photo-map-fallback-grid{position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(143,155,163,.12) 1px,transparent 1px),linear-gradient(rgba(143,155,163,.12) 1px,transparent 1px);background-size:30px 30px}
+/* 夜间零散覆盖：变量覆盖不到的中性灰小件（把手/关闭钮/次级按钮/边缘手柄），以及路线阴影由白改暗（bubble_spec §6）。 */
+.photo-map-scene[data-theme="night"] .photo-map-sheet-handle{background:#3a4048}
+.photo-map-scene[data-theme="night"] .photo-map-sheet-close,.photo-map-scene[data-theme="night"] .photo-map-timeline-title button{background:#262b33;color:#c9ced6}
+.photo-map-scene[data-theme="night"] .photo-map-detail-actions button:not(.photo-map-route-button){background:#262b33;color:#c9ced6}
+.photo-map-scene[data-theme="night"] .photo-map-edge-handle{background:rgba(242,243,245,.22)}
+.photo-map-scene[data-theme="night"] .photo-map-route-line{filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
 `;
 
 Object.assign(window, { ScenePhotoMap });

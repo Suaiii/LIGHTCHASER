@@ -132,3 +132,34 @@ $ git diff --cached --name-only
 ## Phase 2 明确未完成
 
 本报告仅验收 Phase 1。以下 HERMES-10 总 DoD 属于 Phase 2，当前均未执行：气泡真实渲染与五张截图、两位未参与者 3 秒测试、`selectedSpot` 路线重算、路线亮度取色、右滑方案实测、四列改三列、动效录屏。它们不能从本次 schema、数据或规格通过推导为完成。
+
+## p2 收尾（2026-07-23 晚）
+
+本次交付三件事：
+
+1. **/api/photos 端点 + 种子接线**：新增 `lib/photos-service.js`（CJS，读 `agents_output/10/photos.v1.json` 种子 + 内存 live 追加）与 `api/photos.js`（GET 列表按 `taken_at` 降序、POST 追加 live 照片、深圳坐标围栏校验），`scripts/dev-preview.js` 挂载路由。
+2. **3s 轮询实时冒泡**：`public/photo-map.jsx` 每 3s 轮询 `/api/photos`，新照片以 `is_live` 冒泡动画上图；配套 `scripts/post-demo-photo.mjs` 供演示/录屏时手动触发投稿。
+3. **日/夜双主题 · 蓝改橘**：负责人拍板"暗+橘主视觉、日间白、蓝改橘"，photo-map 双主题落地。
+
+### DoD ★实时冒泡 验证证据（2026-07-23 实测）
+
+| # | 结论 | 证据 |
+|---|---|---|
+| 1 | PASS | `validate_photos`：记录数 20，引用 spot 20，时间基准 2026-07-23（今天 3 / 本周 18），Errors: 0 Warnings: 0 === PASS ===（无需 refresh_photo_times，无 diff） |
+| 2 | PASS | `Babel.transform(public/photo-map.jsx)` → "JSX OK"（vendored babel.min.js require 成功，无 UMD 兼容问题） |
+| 3 | PASS | `require lib/photos-service.js + api/photos.js` → "CJS OK" |
+| 4-ready | PASS | 后台起 `scripts/dev-preview.js`，第 1 次探测即 HTTP 200 |
+| 4a | PASS | GET /api/photos：count=20，`taken_at` 严格降序（首条 2026-07-23T15:55:17+08:00 → 末条 2026-07-16T15:45:00+08:00），20/20 含 `spot_id` 记录 `spot_name` 非空，字段含 id,spot_id,lat,lng,taken_at,image,author_name,caption,score_at_taken,credit,consent_ref,consent_scope,status,spot_name |
+| 4b | PASS | POST {22.48,113.94,caption} → HTTP 201，`is_live:true`，id=live-1784798204192；补测 UTF-8 文件体亦 201 且 caption==='验证轮测试' 原样存回 |
+| 4c | PASS | 再 GET：count=21（+1），首条即 live-1784798204192（`is_live:true`），全列表仍降序 |
+| 4d | PASS | POST {31.2,121.4}（上海）→ HTTP 400，body `{"error":"photos_api_invalid_coords"}` |
+| 4e | PASS | GET `/%E8%BF%BD%C2%B7%E5%85%89.html`（追·光.html 的 UTF-8 percent 编码，即浏览器实际发法）→ 200；shell 直发 GBK 原始字节得 500，属本验证环境编码问题 |
+| 5 | PASS | `npm run test:api` → 8 组用例（default/demo-high/mid/low/live-shanghai/live-la/route-jinshan 等）全输出，EXIT=0 |
+| 6 | SKIP | node_modules 无 playwright/@playwright/playwright-core（Glob 0 命中），按任务说明跳过 |
+| 7 | DONE | Stop-Process 杀掉监听 5174 的 PID 12976；复探 /api/photos 仅剩沙箱代理 502（上游已死），服务器已停 |
+
+### 剩余项
+
+- 聚合簇（bubble_spec 聚合阈值实装）后置。
+- 动效三段录屏待人工用 `scripts/post-demo-photo.mjs` 触发录制。
+- cartocdn 瓦片真机可达性待 7.24 平台开放后验证。
