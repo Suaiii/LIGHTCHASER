@@ -1,5 +1,14 @@
 # B 设计包 · 截图集说明（HERMES-09 §2/Gate 0 裁定）
 
+## ⚠️ 0725 纠偏：真封面三件套（优先用这套）
+
+此前 `feed.png`/`p1.png` 取的是 Row0 抖音壳首屏——**真封面 = 往下刷一条的打分+背景图卡（SceneSunsetCard）**。新三件套：
+
+- `screenshots/p1-cover.png`：真封面干净截图（2x）
+- `screenshots/p1-cover-annotated.png`：**按钮/元素自动圈注版**（给平台 AI 照着搭）+ `p1-cover-annotations.json` 坐标
+- `p1-cover-annotation.md`：逐元素对照清单（数据绑定/重建要点/已知瑕疵）
+- `assets/jingansi-card-bg.jpeg`：封面背景图素材（1.4MB，**平台上没有，需单独上传**）
+
 ## 内容
 
 - `fidelity_checklist.md`：feed/p1/p2 三视角像素级保真元素清单（①）

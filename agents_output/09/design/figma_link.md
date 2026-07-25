@@ -14,6 +14,7 @@
 2. **p2 追·光地图退出 Figma 路线**（决策者裁定）：GL 3D 场景平台横竖要自己渲染（或 ripcord 2D），Figma 中转一张截图没有意义。p2 的平台侧参照物 = `screenshots/p2.png` + `../motion/media/` 录屏，不再产 Figma 稿。
 3. 文件内残留首版手搓两帧（页面「feed 两页定稿 (R-0724-B)」node 2:2 / 4:9）：**弃用待删**——Figma MCP Starter 额度恰在捕获完成后用尽，AI 删不了，请决策者在 Figma UI 里手动删除该页（或留作对照）。
 4. 同因（额度用尽），捕获结果未出 AI 侧验收截图——请决策者打开上方链接肉眼验收：应与本地原型 `http://127.0.0.1:5174/`（Tweaks：高分87+南科大）所见一致。
+5. **0725 二次纠偏（决策者）**：node 9-2 捕获的是 Row0 抖音壳首屏，**不是真封面**——真封面=下刷一条的打分+背景图卡。真封面重捕获待 MCP 额度恢复（方法：同脚本加 `guangbao:swipeVideo next` 下滑再提交新 captureId）；当前平台侧主参照改用 `p1-cover-annotated.png` 标注图 + `p1-cover-annotation.md` 清单（见 README「真封面三件套」）。
 
 ## 用途（平台测绘 #19）
 

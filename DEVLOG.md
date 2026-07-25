@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-07-25 · 真封面纠偏：p1-cover 三件套 + 背景图素材入包
+
+- 决策者二次纠偏：Figma 捕获的仍是 Row0 抖音壳首屏，**真封面=下刷一条的打分+背景图卡（SceneSunsetCard，静安寺底图+87徽章+大标语）**。
+- 交付（`agents_output/09/design/`）：`p1-cover.png` 干净版 / `p1-cover-annotated.png` **元素自动圈注版**（9 标注：评分徽章/等级标签/AI标语/峰值行/机位名/距离/左滑引导/导航按钮/背景图区）/ `p1-cover-annotations.json` 坐标 / `p1-cover-annotation.md` 逐元素数据绑定清单 / `assets/jingansi-card-bg.jpeg` 背景图素材（平台缺此素材，需单独上传）。
+- 定位：平台 Figma 导入路线之外的主参照——标注图+清单直接发平台 AI 照着搭；Figma 真封面重捕获待 MCP 额度恢复（figma_link.md 现版本仍为 Row0 壳，已知偏差）。
+
+---
+
 ## 2026-07-25 · B-Figma 子项交付（重做版）：真原型像素捕获进 Figma
 
 - 背景：#19 测绘发现平台吃 zip 只能简单组装、完成度差 → 补 Figma 稿走导入路线。**首版 AI 手搓矢量重建被决策者否决**（观感不达标；原型有现成渲染没理由不用）——路线更正为真原型像素捕获。
