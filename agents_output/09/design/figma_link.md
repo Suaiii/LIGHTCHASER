@@ -2,27 +2,22 @@
 
 > DoD：转换+整理后的 Figma 链接可访问、页面命名规范；可后置至 7.23（本次 Gate 0 窗口已过，实际后置到 Figma MCP 可用的下一个 session）、不阻塞本 PR。
 
-**状态：✅ 已交付（0725，AI 经 Figma MCP 生成，路线 A）**
+**状态：✅ 已交付（0725，路线 B=真原型像素捕获；决策者否掉手搓矢量版后重做）**
 
-- **链接**：https://www.figma.com/design/LlblsSeYUHAPfiXdUBH0C7
+- **链接（正式版）**：https://www.figma.com/design/LlblsSeYUHAPfiXdUBH0C7?node-id=9-2
+  = 跑起来的原型封面（高分87 · 南方科技大学 · 深圳态，402×874）经 html-to-design 捕获，**像素级还原原型本尊**，图层为真实 DOM 转换（非手绘近似）。
   ⚠️ 文件在决策者 Figma 草稿箱内，对外访问需人工在 Figma UI 里 Share → "Anyone with the link · can view"（MCP 无法设置分享权限）。
-- 页面：`feed 两页定稿 (R-0724-B)`，两帧各 402×874：
-  - `p1/封面卡 feed-card`（node 2:2）：**矢量重建**——天空渐变（tokens 8 锚点取晚霞段 4 锚点）、太阳盘+光晕、城市剪影、评分大数字 96px Fraunces（"87"）、等级标签暖红橘 pill、峰值行 JetBrains Mono、机位名/AI 行动句、两页页点 pill + 左滑微光箭头；图层按 `fidelity_checklist.md` 条目编号命名（`p1/09-payload-static` 等）。
-  - `p2/追·光地图 map`（node 4:9）：GL 3D 场景不可矢量化 → `screenshots/p2.png` 截图作底图（image fill），HUD 为真实可编辑图层覆盖：倒计时 pill、太阳读数 mono、**"演示数据 · 非真实用户"可见标注（F6）**、机位 chips、底部三态结论句（已过峰值态）。
-- 字体核验：Fraunces / JetBrains Mono / Noto Sans SC 三款 Figma 全部可用，**零字体降级**。
 
-## 已知失真（如实记录，非隐藏）
+## 路线更正记录（0725，如实记录）
 
-1. p2 底图为位图截图，底图内烙有原 HUD 像素——覆盖层与其同位遮盖，但边缘可能露出残影；底图含 iPhone 模拟器状态栏与调试文字行（原型 Tweaks 痕迹）。
-2. p1 天空渐变为 8 锚点色卡的晚霞段 4 锚点节选（#2A3450→#8A4068→#C84858→#E0A060→#0a0a0d），非全 8 锚点插值。
-3. p1 显示"19:08 峰值 · 还有 86 分钟"（checklist canonical 示例态），p2 底图为 18:40 已过峰值演示态——两帧代表两个演示时刻，非同一瞬间。
-4. 峰值行中文字符在 JetBrains Mono 下走系统回退渲染（原型同款行为，非新失真）。
-5. 城市剪影为 8 个矢量楼块的示意重建，非原型 canvas 剪影逐像素还原。
+1. 首版走"AI 手搓矢量重建"（路线 A），**决策者否决**（观感不达标，且没理由不用原型现成渲染）→ 重做为路线 B：Playwright 把原型开到高分深圳态 → 注入 `mcp.figma.com/mcp/html-to-design/capture.js` → 捕获提交（脚本逻辑同 `capture_feed_pages.mjs`，浏览器走本机代理）。
+2. **p2 追·光地图退出 Figma 路线**（决策者裁定）：GL 3D 场景平台横竖要自己渲染（或 ripcord 2D），Figma 中转一张截图没有意义。p2 的平台侧参照物 = `screenshots/p2.png` + `../motion/media/` 录屏，不再产 Figma 稿。
+3. 文件内残留首版手搓两帧（页面「feed 两页定稿 (R-0724-B)」node 2:2 / 4:9）：**弃用待删**——Figma MCP Starter 额度恰在捕获完成后用尽，AI 删不了，请决策者在 Figma UI 里手动删除该页（或留作对照）。
+4. 同因（额度用尽），捕获结果未出 AI 侧验收截图——请决策者打开上方链接肉眼验收：应与本地原型 `http://127.0.0.1:5174/`（Tweaks：高分87+南科大）所见一致。
 
 ## 用途（平台测绘 #19）
 
-平台 Figma 导入**未试**——拿本链接（开分享后）去 douyin-ai.bytedance.net 试导入，能/不能的结论回填 issue #19。即使导不了，本稿也作为"给平台 AI 看的高保真参照"使用（配 `fidelity_checklist.md` 逐条口述）。
+平台 Figma 导入**未试**——拿正式版链接（开分享后）去 douyin-ai.bytedance.net 试导入，能/不能的结论回填 issue #19。即使导不了，本稿也作为"给平台 AI 看的高保真参照"使用（配 `fidelity_checklist.md` 逐条口述）。
 
-- 转换路线：A=AI 经 Figma MCP 生成 ✅（本次采用）/ B=html.to.design 插件像素捕获（未动用）
-- 扩展判定：平台能导入且效果好 → 再扩 5 个状态帧（素材 `../motion/media/` 详情卡/筛选/发布/时间流/定位降级截图）
-- 删教学浮层图层（HERMES-06/#21 裁定）：本稿从零生成，无历史浮层图层
+- 扩展判定：平台能导入且效果好 → 同法捕获更多真实状态页（Playwright 摆状态 → 新 captureId 再捕获；每个 captureId 单次有效）
+- 复跑方式：`npm run dev:preview` 起服务 → 经 Figma MCP `generate_figma_design` 领新 captureId → 参照本次脚本（临时脚本已按约定删除，逻辑=capture_feed_pages.mjs 的状态设置 + 注入 capture.js 提交）

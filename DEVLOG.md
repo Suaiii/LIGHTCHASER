@@ -4,12 +4,12 @@
 
 ---
 
-## 2026-07-25 · B-Figma 子项交付：Figma MCP 生成 feed 两页稿（09 包补完）
+## 2026-07-25 · B-Figma 子项交付（重做版）：真原型像素捕获进 Figma
 
-- 背景：#19 测绘发现平台能吃 zip 简单组装但完成度差 → 决策者拍板补 Figma 稿走导入路线（范围=核心 2 页，顺利再扩）。
-- 交付：Figma 文件 `LlblsSeYUHAPfiXdUBH0C7`（决策者草稿箱），页面「feed 两页定稿 (R-0724-B)」两帧 402×874——p1 封面卡**矢量重建**（评分 96px Fraunces/等级 pill/峰值 mono/天空渐变晚霞段/剪影/两页页点），p2 地图=截图底图+HUD 真实图层（含 F6"演示数据"可见标注）；三款字体 Figma 全可用零降级；图层按 fidelity_checklist 条目编号命名。
-- 已知失真 5 条如实记录于 `agents_output/09/design/figma_link.md`（p2 底图烙 HUD 残影/状态栏、渐变 4 锚点节选、两帧时刻不同、mono 中文回退、剪影示意）。
-- 人工两步：Figma UI 开 Share 链接权限 → 平台试导入，结论回填 #19；能导且效果好再扩 5 状态帧。
+- 背景：#19 测绘发现平台吃 zip 只能简单组装、完成度差 → 补 Figma 稿走导入路线。**首版 AI 手搓矢量重建被决策者否决**（观感不达标；原型有现成渲染没理由不用）——路线更正为真原型像素捕获。
+- 交付：Playwright 把原型开到「高分87 · 南科大 · 深圳」态 → 注入 html-to-design capture.js（浏览器走本机代理）→ 捕获进 Figma `LlblsSeYUHAPfiXdUBH0C7?node-id=9-2`，像素级还原原型封面本尊。
+- **p2 追·光地图退出 Figma 路线**（决策者裁定：GL 场景平台横竖自渲染，Figma 中转截图无意义）；p2 参照物=截图+录屏。
+- 遗留（figma_link.md §路线更正 3/4 条）：手搓旧两帧待决策者在 Figma UI 手删；Figma MCP Starter 额度恰在捕获完成后用尽，AI 侧验收截图未出，请决策者开链接肉眼验收。人工两步不变：开 Share 权限 → 平台试导入回填 #19。
 
 ---
 
