@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-07-24 · R-0724-B 落地：feed 两页化
+
+- `public/app.jsx` Row1 摘除 SceneQuickShoot 挂载、colLabels 收为「封面 / 追·光地图」，feed 定稿两页（封面钩子卡 + 追·光地图，拍摄页出局；组件定义留 subpanels.jsx 不删，`publishedVideoMode` 成死变量仅注释暂留）。
+- 口径连锁：HERMES-09 任务书 B 包全部改两页口径（feed/p1/p2，D-b 开关落定 R-0724-B，四页/三页作废）；看板 06 行清相机（R-0724-A，PR #29 已关）。
+- 本分支基于 `feat/hermes-11-f6-badge-tails` 叠放，合并顺序：先合 #39。
+
+---
+
 ## 2026-07-24 · 负责人三连裁定：相机挂死 / feed 定稿两页 / GL 不承诺（master-plan-0723 §7）
 
 - **R-0724-A** 追光相机动不了、不回装（7.18 P-3 终局确认）；**R-0724-B** feed 最终样式=两页（封面钩子卡+追·光地图），拍摄页出局，B 包截图/Figma 口径随改（四页→三页→**两页**定稿）；**R-0724-C** GL 3D=尽力而为不承诺，判定点=#19 测绘真机，跑不动则 ripcord 回装 2D ScenePhotoMap，叙事以 2D 也成立为底。
