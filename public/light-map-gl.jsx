@@ -76,9 +76,12 @@ function zgPhotoSignature(posts) {
 function zgPhotoBubbleHtml(post) {
   const label = zgEscapeHtml(post.place);
   const caption = zgEscapeHtml(post.caption || post.place);
+  // F6/bubble_spec §7：垫图与演示记录必须有始终可见的"示例"标注，不得只靠 hover/title 披露。
+  // 文案与 2D photo-map 同规：live=「刚发布 · 演示」；垫图种子=「示例 · X小时前」（时间为次要信息，放"示例"之后）。
+  const badge = post.is_live ? "刚发布 · 演示" : `示例 · ${zgEscapeHtml(zgPhotoTime(post.age_hours))}`;
   return `<button type="button" class="zg-photo-bubble ${post.is_live ? "is-live" : ""}" aria-label="打开 ${label}" title="${caption}" style="--tone:${post.tone};--size:${post.size}px">
     <span class="zg-photo-thumb"></span>
-    <span class="zg-photo-badge">${post.is_live ? "刚发布" : zgEscapeHtml(zgPhotoTime(post.age_hours))}</span>
+    <span class="zg-photo-badge">${badge}</span>
     <span class="zg-photo-label">${label}</span>
   </button>`;
 }
@@ -520,6 +523,12 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
     const pullPhotos = async () => {
       if (disposed) return;
+      // 为什么：后台标签页没人看，省请求；且切回时才补拉可避免瞬间批量 pop（与 2D photo-map 同规）。
+      // hidden 只跳过本次 fetch，但必须继续排程下一 tick——否则回前台后轮询永不恢复。
+      if (document.hidden) {
+        photoPollTimer = setTimeout(pullPhotos, 3000);
+        return;
+      }
       try {
         const response = await fetch("/api/photos", { cache: "no-store" });
         if (!response.ok) throw new Error(`photos_api_${response.status}`);
@@ -866,7 +875,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
         .zg-photo-bubble.is-exiting{pointer-events:none;animation:zgPhotoOut .24s ease-in forwards}
         .zg-photo-thumb{display:block;width:100%;height:100%;border-radius:5px;background:var(--tone)}
         .zg-photo-thumb:after{content:"";display:block;width:54%;height:21%;margin:48% auto 0;border-radius:99px;background:rgba(255,255,255,.34);filter:blur(3px)}
-        .zg-photo-badge{position:absolute;right:-5px;top:-10px;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(255,255,255,.82);border-radius:99px;background:#303848;color:#fff;padding:2px 6px;font:800 8px/1.1 var(--font-cn),sans-serif}
+        .zg-photo-badge{position:absolute;right:-5px;top:-10px;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(255,255,255,.82);border-radius:99px;background:#303848;color:#fff;padding:2px 6px;font:800 8px/1.1 var(--font-cn),sans-serif}
         .zg-photo-label{position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:999px;background:rgba(14,17,26,.86);border:1px solid rgba(255,255,255,.14);color:#f2f3f5;padding:4px 8px;font:800 9px/1 var(--font-cn),sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35)}
       `}</style>
 
@@ -881,12 +890,14 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
         </div>
       </div>
 
-      {/* 快导航缩略图 */}
-      <button type="button" onClick={() => onSwitchClassic?.()} aria-label="切换到快导航"
-        style={{ position: "absolute", top: 136, right: 14, zIndex: 6, padding: 4, borderRadius: 16, cursor: "pointer", background: "rgba(14,17,26,0.72)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,138,61,0.4)", boxShadow: "0 0 16px rgba(255,138,61,0.18)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-        {typeof MiniRouteThumbnail === "function" ? <MiniRouteThumbnail routeData={routeData} sunsetPayload={sunsetPayload} /> : <span style={{ fontSize: 20 }}>🗺</span>}
-        <span style={{ fontSize: 8.5, color: "#ffb26f", letterSpacing: 1 }}>快导航</span>
-      </button>
+      {/* 快导航缩略图 —— 仅当宿主真的提供了切换 handler 才渲染（feed 内不传即不显示，避免死键） */}
+      {typeof onSwitchClassic === "function" && (
+        <button type="button" onClick={() => onSwitchClassic()} aria-label="切换到快导航"
+          style={{ position: "absolute", top: 136, right: 14, zIndex: 6, padding: 4, borderRadius: 16, cursor: "pointer", background: "rgba(14,17,26,0.72)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,138,61,0.4)", boxShadow: "0 0 16px rgba(255,138,61,0.18)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+          {typeof MiniRouteThumbnail === "function" ? <MiniRouteThumbnail routeData={routeData} sunsetPayload={sunsetPayload} /> : <span style={{ fontSize: 20 }}>🗺</span>}
+          <span style={{ fontSize: 8.5, color: "#ffb26f", letterSpacing: 1 }}>快导航</span>
+        </button>
+      )}
 
       {/* 真实性徽标 */}
       <div style={{ position: "absolute", top: 140, left: 14, pointerEvents: "none", display: "flex", flexDirection: "column", gap: 5 }}>

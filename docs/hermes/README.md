@@ -119,7 +119,7 @@ F6 真实性（不编造数据，不确定标"待核"+置信度）等按任务�
 | [HERMES-08 历史爆发日回测](HERMES-08-history-backtest.md) | 混合（H2 日期 + AI 回测） | **🗄️归档（7.19）** | — | **🗄️归档；🔒 issue #23 已于 7.20 关闭**（证晚霞预测准＝为降级功能背书，不划算） | [#23](https://github.com/Suaiii/LIGHTCHASER/issues/23) | agents_output/02/burst_days.v1.json, checks/backtest_history.* （新增，引擎零改动） |
 | [HERMES-09 迁移资产包（五包，开箱即传）](HERMES-09-migration-kit.md) | 混合 | **P0**（7.23 Gate 0 硬截止） | 7.20–7.22 | **待领（Gate 0 唯一硬截止交付物）**；🔻**7.20 降 DoD**：A 六表全保 / B 截图只 1x＋**Figma 恢复高优（平台可导入）** / C 录屏降级 / D·E 保；§2c 全部开关已由裁定书取代 | [#25](https://github.com/Suaiii/LIGHTCHASER/issues/25) | agents_output/09/*（全新增） |
 | [★HERMES-10 轴二：地图气泡实时社区（唯一招牌关键路径 + 实时冒泡）](HERMES-10-photo-map-community.md) | AI | **P0 招牌关键路径** | p1 ✅ 完成 / p2: 7.20–7.23 | **p1 已交付 → PR #32 待 merge**；**p2 实时冒泡＝当前唯一 P0 开发面（闸门 PR #29 已关，死锁解除）** | [#31](https://github.com/Suaiii/LIGHTCHASER/issues/31) | p1: agents_output/10/*；p2: public/subpanels.jsx(SceneCommunity/地图区段), app.jsx（06a-P1→本任务 rebase） |
-| HERMES-11 轴二 GL 上探：3D 光影地图上移植气泡层 | AI | **🔻P1 差异化上探（7.19）**：2D 招牌打底、GL 稳了就加 | 赛前不启动 | **🚫 不承诺（7.20 G-4）**：前置（10-p2 / 07）均非活跃，赛前不可能启动。**任何叙事不得出现「3D 光影 + 气泡同屏」＝超售** | 待开 | public/light-map-gl.jsx |
+| [HERMES-11 轴二 GL：3D 光影地图上移植气泡层（补票任务书）](HERMES-11-gl-bubble-community.md) | AI | **P1 上探（R-0724-C：对外仍不承诺，叙事以 2D 也成立为底）** | 7.24 直入 main + 同日补票 | ✅ **已交付（补票，check_report_11）**：5358349 决策者指示直入 main，F6 角标/hidden 守卫/死键由 PR #39 修复；**真机可行性判定挂 #19（跑不动则 ripcord 回装 2D ScenePhotoMap）** | 待开 | public/light-map-gl.jsx, public/app.jsx（Row1 接线） |
 
 > 状态由 Hermes 维护；工作者只改任务书内自己的"状态"行 + issue 评论。
 
