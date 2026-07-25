@@ -5,7 +5,7 @@
 - `fidelity_checklist.md`：feed/p1/p2 三视角像素级保真元素清单（①）
 - `screenshots/feed.png` `screenshots/p1.png` `screenshots/p2.png`：**1x 一套**（Gate 0 裁定书 G-3：2x 砍）（②）
 - `capture_feed_pages.mjs`：产出上述截图的可复跑脚本
-- `figma_link.md`：Figma 转换/整理产出的可访问链接（B-Figma 子项，人工+AI 经 MCP，另一 session 补齐，见下）
+- `figma_link.md`：Figma 转换/整理产出的可访问链接（B-Figma 子项，**✅ 0725 已交付**：AI 经 Figma MCP 生成两帧 402×874，p1 矢量重建 + p2 截图底图+HUD 真实图层；链接与已知失真清单见该文件；对外分享需人工在 Figma UI 开权限）
 
 ## 截图命名口径
 

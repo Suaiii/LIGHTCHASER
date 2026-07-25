@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-07-25 · B-Figma 子项交付：Figma MCP 生成 feed 两页稿（09 包补完）
+
+- 背景：#19 测绘发现平台能吃 zip 简单组装但完成度差 → 决策者拍板补 Figma 稿走导入路线（范围=核心 2 页，顺利再扩）。
+- 交付：Figma 文件 `LlblsSeYUHAPfiXdUBH0C7`（决策者草稿箱），页面「feed 两页定稿 (R-0724-B)」两帧 402×874——p1 封面卡**矢量重建**（评分 96px Fraunces/等级 pill/峰值 mono/天空渐变晚霞段/剪影/两页页点），p2 地图=截图底图+HUD 真实图层（含 F6"演示数据"可见标注）；三款字体 Figma 全可用零降级；图层按 fidelity_checklist 条目编号命名。
+- 已知失真 5 条如实记录于 `agents_output/09/design/figma_link.md`（p2 底图烙 HUD 残影/状态栏、渐变 4 锚点节选、两帧时刻不同、mono 中文回退、剪影示意）。
+- 人工两步：Figma UI 开 Share 链接权限 → 平台试导入，结论回填 #19；能导且效果好再扩 5 状态帧。
+
+---
+
 ## 2026-07-24 · R-0724-B 落地：feed 两页化
 
 - `public/app.jsx` Row1 摘除 SceneQuickShoot 挂载、colLabels 收为「封面 / 追·光地图」，feed 定稿两页（封面钩子卡 + 追·光地图，拍摄页出局；组件定义留 subpanels.jsx 不删，`publishedVideoMode` 成死变量仅注释暂留）。
