@@ -1,0 +1,164 @@
+[
+  {
+    "scene": "sunset",
+    "bucket": "high",
+    "weather": "clear",
+    "hook": "今晚的天值得你跑一趟，往西走"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "high",
+    "weather": "cloudy",
+    "hook": "云正好，晚霞大概率开染，出发"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "high",
+    "weather": "rain",
+    "hook": "雨要停了，赌一把雨后的火烧云"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "mid",
+    "weather": "clear",
+    "hook": "今晚中规中矩，顺路可以看看"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "mid",
+    "weather": "cloudy",
+    "hook": "云有点厚，顺路瞄一眼就好"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "mid",
+    "weather": "rain",
+    "hook": "雨里别跑了，湿地面倒影也行"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "low",
+    "weather": "clear",
+    "hook": "今晚天太素，歇着，明晚再看"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "low",
+    "weather": "cloudy",
+    "hook": "云盖住了，今晚歇着，明晚有戏"
+  },
+  {
+    "scene": "sunset",
+    "bucket": "low",
+    "weather": "rain",
+    "hook": "今晚看雨，明晚把霞补回来"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "high",
+    "weather": "clear",
+    "hook": "下午光正好，创意园现在人少"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "high",
+    "weather": "cloudy",
+    "hook": "阴天光最匀，看展拍片正合适"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "high",
+    "weather": "rain",
+    "hook": "下雨天，正好躲进展馆拍一下午"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "mid",
+    "weather": "clear",
+    "hook": "顺路的话，创意园值得绕一下"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "mid",
+    "weather": "cloudy",
+    "hook": "光线平，适合拍安静的室内片"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "mid",
+    "weather": "rain",
+    "hook": "雨天展馆人少，顺路可以进去"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "low",
+    "weather": "clear",
+    "hook": "今天闭馆日多，先收藏明天去"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "low",
+    "weather": "cloudy",
+    "hook": "今天不巧，把想拍的先收藏好"
+  },
+  {
+    "scene": "exhibition",
+    "bucket": "low",
+    "weather": "rain",
+    "hook": "雨太大就改天，展不会跑"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "high",
+    "weather": "clear",
+    "hook": "午后窗光最好的两小时，去坐坐"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "high",
+    "weather": "cloudy",
+    "hook": "阴天的窗边，光软得刚好"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "high",
+    "weather": "rain",
+    "hook": "雨点打在窗上，正是出片的时候"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "mid",
+    "weather": "clear",
+    "hook": "找个西向窗位，等光斜进来"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "mid",
+    "weather": "cloudy",
+    "hook": "光一般，拍咖啡和手部特写稳"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "mid",
+    "weather": "rain",
+    "hook": "雨天靠窗，拍雾玻璃和热气"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "low",
+    "weather": "clear",
+    "hook": "这会儿光太硬，晚点再去"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "low",
+    "weather": "cloudy",
+    "hook": "今天光不给力，改拍人和故事"
+  },
+  {
+    "scene": "cafe",
+    "bucket": "low",
+    "weather": "rain",
+    "hook": "雨太大，今天先把机位收藏好"
+  }
+]
