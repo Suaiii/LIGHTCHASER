@@ -492,10 +492,20 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
       photoMarkers.clear();
     };
 
-    // ── 屏幕空间聚合（Apple 相册地图式）────────────────────────────
+    // ── 地面距离聚合（Apple 相册地图式）────────────────────────────
     // 为什么不用 MapLibre 原生 cluster source：气泡是 DOM Marker（带角标/标签/动效），
     // 走 GeoJSON symbol 层会丢掉整套 F6 标注与冒泡动效；20 条数据贪心聚合 O(n²) 足够便宜。
-    const CLUSTER_PX = 58; // 两泡屏幕距离小于此值即视为压叠（泡宽≈44-64px）
+    // 为什么不用 map.project 的屏幕距离：本图 pitch 62°，靠近地平线处几公里被压成几像素，
+    // 会把相隔十几公里的照片误并成一簇、簇心落在无意义的位置（0726 真机实测缺陷）。
+    // 改为：把"58px 压叠"按当前 zoom 换算成地面米数，判距离用真实地面距离——与俯角无关。
+    const CLUSTER_PX = 72; // 泡宽≈44-64px + 下方地名标签≈88px，间距小于此值视为压叠（0726 真机调）
+    const PHOTO_MAX_KM = 60; // 超出视野中心 60km 的照片不渲染：否则会糊在地平线上"飘在天上"
+    const metersPerPixel = (zoom, lat) => 40075016.686 * Math.cos((lat * Math.PI) / 180) / (512 * Math.pow(2, zoom));
+    const groundMeters = (aLat, aLng, bLat, bLng) => {
+      const mPerDegLat = 111320;
+      const mPerDegLng = mPerDegLat * Math.cos(((aLat + bLat) / 2 * Math.PI) / 180);
+      return Math.hypot((aLat - bLat) * mPerDegLat, (aLng - bLng) * mPerDegLng);
+    };
     let lastPhotoPosts = [];
     let photoLayoutTimer = 0;
 
@@ -508,19 +518,38 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
     const renderPhotoMarkers = (posts) => {
       if (!map || disposed) return;
       lastPhotoPosts = posts;
-      const valid = posts.filter((post) => Number.isFinite(post.lat) && Number.isFinite(post.lng)).slice(0, 20);
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      const canvasH = map.getCanvas().clientHeight || 874;
+      // 气泡必须真的落在"看得见的地面"上。pitch 62° 下，视野外的远处地点会被压进画面顶部的
+      // 地平线带（0726 真机：20 个气泡全挤在顶部 150px 内 = 飘在天上），投影甚至会在地平线外翻折。
+      // 判定：投影点低于地平线带 + project→unproject 往返一致（未翻折）。
+      const onVisibleGround = (lat, lng) => {
+        const pt = map.project([lng, lat]);
+        if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return false;
+        if (pt.y < canvasH * 0.16) return false; // 顶部地平线压缩带不放气泡
+        const rt = map.unproject(pt);
+        return groundMeters(rt.lat, rt.lng, lat, lng) < 60; // 往返 >60m = 投影已翻折，非真实地面点
+      };
+      // ① 剔除：远景（如地图落在上海兜底 payload 而照片全在深圳）+ 地平线带/视野外
+      const valid = posts
+        .filter((post) => Number.isFinite(post.lat) && Number.isFinite(post.lng))
+        .filter((post) => groundMeters(center.lat, center.lng, post.lat, post.lng) < PHOTO_MAX_KM * 1000)
+        .filter((post) => onVisibleGround(post.lat, post.lng))
+        .slice(0, 20);
 
-      // 贪心聚合：新点并入 58px 内最近的簇质心，否则自立一簇；zoom 放大后距离拉开自然散簇
+      // ② 贪心聚合：把"58px 压叠"换算成当前 zoom 下的地面米数，用真实地面距离判并簇（与 pitch 无关）
+      const mergeM = CLUSTER_PX * metersPerPixel(zoom, center.lat);
       const clusters = [];
       valid.forEach((post) => {
-        const pt = map.project([post.lng, post.lat]);
         let best = null, bestD = Infinity;
         clusters.forEach((c) => {
-          const d = Math.hypot(c.sx / c.members.length - pt.x, c.sy / c.members.length - pt.y);
-          if (d < CLUSTER_PX && d < bestD) { best = c; bestD = d; }
+          const n = c.members.length;
+          const d = groundMeters(c.slat / n, c.slng / n, post.lat, post.lng);
+          if (d < mergeM && d < bestD) { best = c; bestD = d; }
         });
-        if (best) { best.members.push(post); best.sx += pt.x; best.sy += pt.y; }
-        else clusters.push({ members: [post], sx: pt.x, sy: pt.y });
+        if (best) { best.members.push(post); best.slat += post.lat; best.slng += post.lng; }
+        else clusters.push({ members: [post], slat: post.lat, slng: post.lng });
       });
 
       const nextKeys = new Set();
@@ -558,7 +587,14 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
             // 聚合泡：像苹果一样"点了就放大到能散开"，散簇由 moveend 重排完成
             : { center: [lng, lat], zoom: Math.min(map.getZoom() + 1.6, 17), duration: 420 });
         });
-        const marker = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat([lng, lat]).addTo(map);
+        // ⚠️ 定位与动画必须分层：气泡入场动画是 `animation: ... both`，带 transform 关键帧，
+        // 若把气泡本体直接交给 Marker，动画的 transform 会永久覆盖 MapLibre 写的定位 transform
+        // ——0726 真机实测：全部气泡叠在地图左上角，从未落到真实坐标（HERMES-11 移植以来的隐性缺陷）。
+        // 外层 holder 只承定位（无动画），内层按钮只承动画。
+        const holder = document.createElement("div");
+        holder.className = "zg-photo-holder";
+        holder.appendChild(el);
+        const marker = new maplibregl.Marker({ element: holder, anchor: "bottom" }).setLngLat([lng, lat]).addTo(map);
         photoMarkers.set(key, { marker, el });
       });
 
@@ -928,6 +964,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
         @keyframes zgPhotoPop{0%{transform:translateY(16px) scale(.2);opacity:0;filter:blur(3px) saturate(.72)}64%{transform:translateY(-7px) scale(1.16);opacity:1;filter:blur(0) saturate(1.15)}100%{transform:translateY(0) scale(1);opacity:1;filter:blur(0) saturate(1)}}
         @keyframes zgPhotoOut{0%{transform:translateY(0) scale(1);opacity:1;filter:blur(0)}100%{transform:translateY(8px) scale(.72);opacity:0;filter:blur(2px)}}
         .zg-chaser{animation:zgChaserPulse 2.2s ease-in-out infinite}
+        .zg-photo-holder{position:relative;display:block;line-height:0}
         .zg-photo-bubble{position:relative;display:block;width:var(--size);height:var(--size);padding:4px;border:3px solid rgba(255,255,255,.96);border-radius:10px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.42),0 0 0 1px rgba(255,138,61,.18);cursor:pointer;transform-origin:50% 100%;overflow:visible;animation:zgPhotoIn .4s cubic-bezier(.16,.85,.25,1.12) both;animation-delay:var(--pop-delay,0ms)}
         .zg-photo-bubble.is-live{animation:zgPhotoPop .68s cubic-bezier(.16,.85,.25,1.25) both;box-shadow:0 0 0 8px rgba(255,138,61,.22),0 10px 28px rgba(0,0,0,.44)}
         .zg-photo-bubble.is-exiting{pointer-events:none;animation:zgPhotoOut .24s ease-in forwards}
