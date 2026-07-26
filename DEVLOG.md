@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-07-25 · 真封面纠偏：p1-cover 三件套 + 背景图素材入包
+
+- 决策者二次纠偏：Figma 捕获的仍是 Row0 抖音壳首屏，**真封面=下刷一条的打分+背景图卡（SceneSunsetCard，静安寺底图+87徽章+大标语）**。
+- 交付（`agents_output/09/design/`）：`p1-cover.png` 干净版 / `p1-cover-annotated.png` **元素自动圈注版**（9 标注：评分徽章/等级标签/AI标语/峰值行/机位名/距离/左滑引导/导航按钮/背景图区）/ `p1-cover-annotations.json` 坐标 / `p1-cover-annotation.md` 逐元素数据绑定清单 / `assets/jingansi-card-bg.jpeg` 背景图素材（平台缺此素材，需单独上传）。
+- 定位：平台 Figma 导入路线之外的主参照——标注图+清单直接发平台 AI 照着搭；Figma 真封面重捕获待 MCP 额度恢复（figma_link.md 现版本仍为 Row0 壳，已知偏差）。
+
+---
+
+## 2026-07-25 · B-Figma 子项交付（重做版）：真原型像素捕获进 Figma
+
+- 背景：#19 测绘发现平台吃 zip 只能简单组装、完成度差 → 补 Figma 稿走导入路线。**首版 AI 手搓矢量重建被决策者否决**（观感不达标；原型有现成渲染没理由不用）——路线更正为真原型像素捕获。
+- 交付：Playwright 把原型开到「高分87 · 南科大 · 深圳」态 → 注入 html-to-design capture.js（浏览器走本机代理）→ 捕获进 Figma `LlblsSeYUHAPfiXdUBH0C7?node-id=9-2`，像素级还原原型封面本尊。
+- **p2 追·光地图退出 Figma 路线**（决策者裁定：GL 场景平台横竖自渲染，Figma 中转截图无意义）；p2 参照物=截图+录屏。
+- 遗留（figma_link.md §路线更正 3/4 条）：手搓旧两帧待决策者在 Figma UI 手删；Figma MCP Starter 额度恰在捕获完成后用尽，AI 侧验收截图未出，请决策者开链接肉眼验收。人工两步不变：开 Share 权限 → 平台试导入回填 #19。
+
+---
+
 ## 2026-07-24 · R-0724-B 落地：feed 两页化
 
 - `public/app.jsx` Row1 摘除 SceneQuickShoot 挂载、colLabels 收为「封面 / 追·光地图」，feed 定稿两页（封面钩子卡 + 追·光地图，拍摄页出局；组件定义留 subpanels.jsx 不删，`publishedVideoMode` 成死变量仅注释暂留）。

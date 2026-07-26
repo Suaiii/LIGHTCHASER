@@ -1,0 +1,1027 @@
+[
+  {
+    "id": "szw-001",
+    "name": "深圳湾公园 · 日出剧场看台",
+    "scene": "sunset",
+    "lat": 22.4703,
+    "lng": 113.944,
+    "stand_desc": "日出剧场弧形看台最高一级台阶中段，正对开阔湾面，避开右侧棕榈树冠",
+    "bearing": 250,
+    "best_window": [
+      "18:30",
+      "19:20"
+    ],
+    "focal": "24mm 广角收弧形看台前景 / 70mm 压缩湾面对岸香港轮廓",
+    "compose_template": "leading",
+    "filters": [
+      "dusk_warm",
+      "film_fade",
+      "teal_orange"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/9号线红树湾南站D口出",
+      "沿滨海大道辅路穿人行天桥到海一侧",
+      "向西南沿栈道走约300m见弧形看台",
+      "登到最高台阶中段即机位"
+    ],
+    "copy_slots": {
+      "hook": "往西南走，深圳湾还来得及",
+      "tip1": "把弧形台阶引到画面里",
+      "tip2": "等一只飞鸟压住天空",
+      "tip3": "对岸亮灯前按下快门"
+    },
+    "tags": [
+      "免费",
+      "地铁2/9号线",
+      "机位宽",
+      "亲子友好"
+    ]
+  },
+  {
+    "id": "szw-002",
+    "name": "深圳湾公园 · 北湾鹭港观景平台",
+    "scene": "sunset",
+    "lat": 22.482,
+    "lng": 113.9585,
+    "stand_desc": "北湾鹭港木栈平台伸出段栏杆处，退潮时滩涂反光最长",
+    "bearing": 255,
+    "best_window": [
+      "18:35",
+      "19:25"
+    ],
+    "focal": "35mm 带滩涂前景 / 50mm 收白鹭与反光",
+    "compose_template": "thirds",
+    "filters": [
+      "dusk_warm",
+      "soft_matte",
+      "film_fade"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁9号线深圳湾公园站E口出",
+      "沿滨海栈道向北湾方向走约500m",
+      "进入鹭港木栈道走到伸出平台",
+      "靠栏杆面向滩涂即机位"
+    ],
+    "copy_slots": {
+      "hook": "退潮的滩涂，会把晚霞拉长",
+      "tip1": "把反光留在下三分之一",
+      "tip2": "低角度贴近水面",
+      "tip3": "白鹭起飞时连拍"
+    },
+    "tags": [
+      "免费",
+      "地铁9号线",
+      "退潮更佳",
+      "人少侧"
+    ]
+  },
+  {
+    "id": "szw-003",
+    "name": "深圳湾公园 · 流花山观海坡",
+    "scene": "sunset",
+    "lat": 22.476,
+    "lng": 113.949,
+    "stand_desc": "流花山草坡向海一侧顶部，高出栈道约6m，可俯拍栈道人流与海面",
+    "bearing": 250,
+    "best_window": [
+      "18:30",
+      "19:15"
+    ],
+    "focal": "28mm 俯拍草坡引导线 / 85mm 压缩人流剪影",
+    "compose_template": "leading",
+    "filters": [
+      "dusk_warm",
+      "mono_city",
+      "teal_orange"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/9号线红树湾南站C口出",
+      "沿深圳湾公园主道向流花山指示牌走",
+      "登草坡步道至向海一侧坡顶",
+      "面向海面居高即机位"
+    ],
+    "copy_slots": {
+      "hook": "站高一点，晚霞和人流一起收",
+      "tip1": "用草坡边缘做引导线",
+      "tip2": "等栈道有人经过",
+      "tip3": "压暗前景留住天色"
+    },
+    "tags": [
+      "免费",
+      "地铁2/9号线",
+      "居高视野",
+      "可俯拍"
+    ]
+  },
+  {
+    "id": "szw-004",
+    "name": "人才公园 · 求贤阁湖景平台",
+    "scene": "sunset",
+    "lat": 22.493,
+    "lng": 113.947,
+    "stand_desc": "求贤阁前亲水平台西南角，隔镜湖正对后海天际线，湖面无风时倒影完整",
+    "bearing": 260,
+    "best_window": [
+      "18:35",
+      "19:20"
+    ],
+    "focal": "24mm 收湖面倒影全景 / 50mm 压缩楼群与阁",
+    "compose_template": "thirds",
+    "filters": [
+      "blue_glass",
+      "dusk_warm",
+      "gold_rim"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁9号线深圳湾公园站A口出",
+      "沿科苑南路进人才公园北门",
+      "绕镜湖西岸走到求贤阁前平台",
+      "站西南角面向湖与楼群即机位"
+    ],
+    "copy_slots": {
+      "hook": "无风的湖面，会多给你一片天空",
+      "tip1": "让倒影占下一半",
+      "tip2": "等湖面完全静下",
+      "tip3": "楼亮灯时是最佳一分钟"
+    },
+    "tags": [
+      "免费",
+      "地铁9号线",
+      "倒影机位",
+      "夜景衔接"
+    ]
+  },
+  {
+    "id": "szw-005",
+    "name": "前海石公园 · 前海石观景台",
+    "scene": "sunset",
+    "lat": 22.527,
+    "lng": 113.887,
+    "stand_desc": "前海石石碑左前方亲水台阶第二级，正对前海湾与妈湾方向开阔水面",
+    "bearing": 265,
+    "best_window": [
+      "18:40",
+      "19:25"
+    ],
+    "focal": "20mm 广角收石碑与海 / 70mm 压缩塔吊与货轮剪影",
+    "compose_template": "frame",
+    "filters": [
+      "teal_orange",
+      "dusk_warm",
+      "mono_city"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁5号线桂湾站或1号线鲤鱼门方向换乘至前海湾",
+      "沿听海大道向海一侧步行约600m",
+      "进前海石公园走到石碑亲水台阶",
+      "站石碑左前第二级面海即机位"
+    ],
+    "copy_slots": {
+      "hook": "前海的海，正在被染成金红",
+      "tip1": "用石碑做前景框",
+      "tip2": "等一艘货轮进画",
+      "tip3": "塔吊剪影别切头"
+    },
+    "tags": [
+      "免费",
+      "地铁5号线",
+      "工业剪影",
+      "开阔海面"
+    ]
+  },
+  {
+    "id": "szw-006",
+    "name": "蛇口海上世界 · 女娲广场滨海栈道",
+    "scene": "sunset",
+    "lat": 22.479,
+    "lng": 113.918,
+    "stand_desc": "女娲广场向海一侧栈道中段，明华轮左侧留出开阔海面，避开右侧游船码头",
+    "bearing": 250,
+    "best_window": [
+      "18:30",
+      "19:15"
+    ],
+    "focal": "28mm 收明华轮与霞光 / 50mm 人物加海面",
+    "compose_template": "thirds",
+    "filters": [
+      "dusk_warm",
+      "film_fade",
+      "gold_rim"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/12号线海上世界站A口出",
+      "沿望海路向海上世界广场方向走",
+      "穿广场到明华轮前滨海栈道",
+      "站栈道中段面海即机位"
+    ],
+    "copy_slots": {
+      "hook": "海上世界的夜，从这片霞开始",
+      "tip1": "把明华轮放一侧",
+      "tip2": "留一个人当剪影",
+      "tip3": "亮灯与霞光重叠时拍"
+    },
+    "tags": [
+      "免费",
+      "地铁2/12号线",
+      "地标同框",
+      "餐饮聚集"
+    ]
+  },
+  {
+    "id": "szw-007",
+    "name": "海上世界文化艺术中心 · 滨海海堤",
+    "scene": "sunset",
+    "lat": 22.477,
+    "lng": 113.921,
+    "stand_desc": "文化艺术中心海堤大台阶西端，背靠建筑几何面，正对深圳湾口开阔海面",
+    "bearing": 255,
+    "best_window": [
+      "18:35",
+      "19:20"
+    ],
+    "focal": "24mm 收台阶几何与海 / 35mm 人物坐台阶",
+    "compose_template": "leading",
+    "filters": [
+      "soft_matte",
+      "dusk_warm",
+      "blue_glass"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/12号线海上世界站C口出",
+      "沿海上世界向文化艺术中心方向走约400m",
+      "绕到建筑海侧大台阶",
+      "站台阶西端面海即机位"
+    ],
+    "copy_slots": {
+      "hook": "坐在这级台阶上，等海把天点亮",
+      "tip1": "让台阶线条向海延伸",
+      "tip2": "人物坐低留出天空",
+      "tip3": "侧光时拍建筑边缘"
+    },
+    "tags": [
+      "免费",
+      "地铁2/12号线",
+      "建筑几何",
+      "文艺"
+    ]
+  },
+  {
+    "id": "szw-008",
+    "name": "宝安欢乐港湾 · 湾区之光摩天轮海侧",
+    "scene": "sunset",
+    "lat": 22.534,
+    "lng": 113.877,
+    "stand_desc": "欢乐港湾滨海文化公园海堤，摩天轮右前方约120m，可同框摩天轮与晚霞海面",
+    "bearing": 250,
+    "best_window": [
+      "18:40",
+      "19:30"
+    ],
+    "focal": "24mm 收摩天轮与海 / 50mm 压缩灯轮细节",
+    "compose_template": "frame",
+    "filters": [
+      "teal_orange",
+      "dusk_warm",
+      "gold_rim"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁12号线宝田一路站或1号线宝安中心换乘",
+      "沿宝华路向欢乐港湾滨海方向走",
+      "过滨海文化公园到海堤步道",
+      "行至摩天轮右前海侧即机位"
+    ],
+    "copy_slots": {
+      "hook": "摩天轮亮之前，先拍这片海霞",
+      "tip1": "摩天轮放黄金分割点",
+      "tip2": "等灯轮点亮那刻",
+      "tip3": "低机位带海堤线"
+    },
+    "tags": [
+      "免费",
+      "地铁12号线",
+      "地标摩天轮",
+      "夜景衔接"
+    ]
+  },
+  {
+    "id": "szw-009",
+    "name": "宝安西湾红树林公园 · 观海栈道",
+    "scene": "sunset",
+    "lat": 22.545,
+    "lng": 113.865,
+    "stand_desc": "西湾红树林伸海木栈道尽端观景台，正对珠江口开阔水面，视野无遮挡",
+    "bearing": 260,
+    "best_window": [
+      "18:40",
+      "19:30"
+    ],
+    "focal": "20mm 收栈道引导线 / 85mm 压缩远岸货轮",
+    "compose_template": "leading",
+    "filters": [
+      "dusk_warm",
+      "film_fade",
+      "mono_city"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁1号线坪洲站或宝安中心方向",
+      "转公交至西湾红树林公园",
+      "进园沿主道到伸海木栈道",
+      "走到栈道尽端观景台即机位"
+    ],
+    "copy_slots": {
+      "hook": "珠江口最开阔的一片晚霞",
+      "tip1": "栈道做纵深引导",
+      "tip2": "留天多留地少",
+      "tip3": "远处货轮当锚点"
+    },
+    "tags": [
+      "免费",
+      "地铁1号线接驳",
+      "超开阔",
+      "人少侧"
+    ]
+  },
+  {
+    "id": "szw-010",
+    "name": "福田红树林生态公园 · 观鸟平台",
+    "scene": "sunset",
+    "lat": 22.523,
+    "lng": 114.01,
+    "stand_desc": "生态公园西区观鸟平台，隔滩涂正对深圳湾与红树林剪影，需预约入园",
+    "bearing": 250,
+    "best_window": [
+      "18:30",
+      "19:15"
+    ],
+    "focal": "35mm 收红树林剪影 / 100mm 压缩飞鸟",
+    "compose_template": "silhouette",
+    "filters": [
+      "mono_city",
+      "dusk_warm",
+      "soft_matte"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁9号线下沙站或红树湾方向",
+      "至福田红树林生态公园预约入口",
+      "入园沿西区木栈道走到观鸟平台",
+      "面向滩涂与红树林即机位"
+    ],
+    "copy_slots": {
+      "hook": "红树林的剪影，是深圳的私藏",
+      "tip1": "树线压在下三分",
+      "tip2": "逆光拍纯剪影",
+      "tip3": "候鸟季飞鸟成群"
+    },
+    "tags": [
+      "需预约",
+      "地铁9号线",
+      "生态保护区",
+      "剪影"
+    ]
+  },
+  {
+    "id": "szw-011",
+    "name": "华侨城湿地 · 湿地观景栈道",
+    "scene": "sunset",
+    "lat": 22.523,
+    "lng": 113.993,
+    "stand_desc": "华侨城湿地南区栈道转角，水面与芦苇前景，背后为欢乐海岸楼群，需预约",
+    "bearing": 255,
+    "best_window": [
+      "18:30",
+      "19:15"
+    ],
+    "focal": "28mm 芦苇水面前景 / 50mm 楼群与霞",
+    "compose_template": "thirds",
+    "filters": [
+      "dusk_warm",
+      "gold_rim",
+      "film_fade"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2号线侨城东站或9号线",
+      "至华侨城湿地预约入口领证",
+      "沿南区栈道走到水面转角",
+      "以芦苇为前景面向水面即机位"
+    ],
+    "copy_slots": {
+      "hook": "闹市里藏着一片会发光的湿地",
+      "tip1": "芦苇留作前景",
+      "tip2": "水面收进倒影",
+      "tip3": "低机位贴近水"
+    },
+    "tags": [
+      "需预约",
+      "地铁2号线",
+      "都市湿地",
+      "免费"
+    ]
+  },
+  {
+    "id": "szw-012",
+    "name": "深圳湾体育中心 · 春茧滨海连廊",
+    "scene": "sunset",
+    "lat": 22.5213,
+    "lng": 113.9448,
+    "stand_desc": "春茧场馆向海一侧二层连廊西段，可俯拍滨海栈道与海面，钢结构做前景框",
+    "bearing": 250,
+    "best_window": [
+      "18:35",
+      "19:20"
+    ],
+    "focal": "24mm 收钢结构框海 / 50mm 压缩栈道人流",
+    "compose_template": "frame",
+    "filters": [
+      "mono_city",
+      "dusk_warm",
+      "blue_glass"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/9号线红树湾南站B口出",
+      "向深圳湾体育中心春茧方向走",
+      "上二层滨海连廊向西段走",
+      "以钢结构为框面海即机位"
+    ],
+    "copy_slots": {
+      "hook": "透过春茧的钢骨，看海边的黄昏",
+      "tip1": "钢架做前景框",
+      "tip2": "对齐栈道纵深",
+      "tip3": "等人流形成线条"
+    },
+    "tags": [
+      "免费",
+      "地铁2/9号线",
+      "建筑框景",
+      "可俯拍"
+    ]
+  },
+  {
+    "id": "szw-013",
+    "name": "欢乐海岸 · 曲水湾水岸",
+    "scene": "sunset",
+    "lat": 22.515,
+    "lng": 113.986,
+    "stand_desc": "曲水湾拱桥东侧水岸，隔内湖正对西侧楼群与天空，水面倒影稳定",
+    "bearing": 255,
+    "best_window": [
+      "18:35",
+      "19:25"
+    ],
+    "focal": "35mm 拱桥与倒影 / 50mm 压缩楼群",
+    "compose_template": "thirds",
+    "filters": [
+      "blue_glass",
+      "dusk_warm",
+      "gold_rim"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁9号线侨城东站D口出",
+      "沿欢乐海岸商街向曲水湾方向走",
+      "到拱桥东侧水岸步道",
+      "面向内湖与西侧天空即机位"
+    ],
+    "copy_slots": {
+      "hook": "商圈里也能拍到一片好天色",
+      "tip1": "拱桥入镜做对称",
+      "tip2": "倒影占下半",
+      "tip3": "亮灯后再补一张"
+    },
+    "tags": [
+      "免费",
+      "地铁9号线",
+      "商圈近",
+      "夜景衔接"
+    ]
+  },
+  {
+    "id": "szw-014",
+    "name": "大沙河生态长廊 · 入海口栈桥",
+    "scene": "sunset",
+    "lat": 22.49,
+    "lng": 113.956,
+    "stand_desc": "大沙河入海口人行栈桥中段，河道向西南通深圳湾，两岸绿廊做纵深",
+    "bearing": 260,
+    "best_window": [
+      "18:35",
+      "19:20"
+    ],
+    "focal": "24mm 收河道纵深 / 70mm 压缩入海口",
+    "compose_template": "leading",
+    "filters": [
+      "dusk_warm",
+      "teal_orange",
+      "film_fade"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/9号线红树湾南站方向",
+      "至大沙河生态长廊入海口段",
+      "上人行栈桥走到中段",
+      "面向西南河道即机位"
+    ],
+    "copy_slots": {
+      "hook": "顺着大沙河，一直看到海口的霞",
+      "tip1": "河道居中做纵深",
+      "tip2": "两岸绿廊压边",
+      "tip3": "等桨板或皮划艇入画"
+    },
+    "tags": [
+      "免费",
+      "地铁2/9号线",
+      "河道纵深",
+      "运动场景"
+    ]
+  },
+  {
+    "id": "szs-001",
+    "name": "莲花山公园 · 山顶广场",
+    "scene": "skyline",
+    "lat": 22.556,
+    "lng": 114.058,
+    "stand_desc": "山顶广场邓小平像南侧观景带中段，正对福田CBD中轴与平安中心，蓝调时楼群齐亮",
+    "bearing": 200,
+    "best_window": [
+      "19:05",
+      "19:45"
+    ],
+    "focal": "35mm 收CBD中轴 / 100mm 压缩平安与市民中心",
+    "compose_template": "thirds",
+    "filters": [
+      "blue_glass",
+      "mono_city",
+      "teal_orange"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁3/4号线少年宫站或莲花村站",
+      "进莲花山公园从东南登山道上行",
+      "约15分钟到山顶广场",
+      "站邓小平像南侧观景带即机位"
+    ],
+    "copy_slots": {
+      "hook": "深圳的天际线，蓝调里最好看",
+      "tip1": "楼群亮灯前架好",
+      "tip2": "中轴对称构图",
+      "tip3": "长曝抹平车流"
+    },
+    "tags": [
+      "免费",
+      "地铁3/4号线",
+      "登山15min",
+      "城市地标"
+    ]
+  },
+  {
+    "id": "szs-002",
+    "name": "笔架山公园 · 主峰观景台",
+    "scene": "skyline",
+    "lat": 22.559,
+    "lng": 114.073,
+    "stand_desc": "笔架山主峰观景台西南侧栏杆，俯瞰福田CBD与滨河大道车流，视野比莲花山更高",
+    "bearing": 210,
+    "best_window": [
+      "19:05",
+      "19:45"
+    ],
+    "focal": "24mm 俯瞰全景 / 135mm 压缩楼群密度",
+    "compose_template": "leading",
+    "filters": [
+      "mono_city",
+      "blue_glass",
+      "gold_rim"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁3号线华新站或莲花村站",
+      "进笔架山公园沿主峰登山道上行",
+      "约25分钟到主峰观景台",
+      "站西南侧栏杆俯瞰CBD即机位"
+    ],
+    "copy_slots": {
+      "hook": "爬上笔架山，把整个CBD收进来",
+      "tip1": "找车流做引导线",
+      "tip2": "俯角压低天空",
+      "tip3": "长曝10-20秒"
+    },
+    "tags": [
+      "免费",
+      "地铁3号线",
+      "登山25min",
+      "俯瞰CBD"
+    ]
+  },
+  {
+    "id": "szs-003",
+    "name": "香蜜公园 · 空中栈桥",
+    "scene": "skyline",
+    "lat": 22.546,
+    "lng": 114.035,
+    "stand_desc": "香蜜公园空中栈桥最高弧段，栈桥曲线做前景，背景为香蜜湖与远处楼群",
+    "bearing": 180,
+    "best_window": [
+      "18:50",
+      "19:35"
+    ],
+    "focal": "24mm 收栈桥弧线 / 50mm 人物在桥上",
+    "compose_template": "leading",
+    "filters": [
+      "soft_matte",
+      "blue_glass",
+      "film_fade"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁1号线香蜜湖站或7号线农林站",
+      "进香蜜公园往空中栈桥指示牌走",
+      "登栈桥到最高弧段",
+      "以栈桥曲线为前景即机位"
+    ],
+    "copy_slots": {
+      "hook": "这座会拐弯的桥，很上镜",
+      "tip1": "曲线引到远处",
+      "tip2": "留一个人当比例",
+      "tip3": "暖灯亮起再拍一张"
+    },
+    "tags": [
+      "免费",
+      "地铁1/7号线",
+      "网红栈桥",
+      "亲子友好"
+    ]
+  },
+  {
+    "id": "szs-004",
+    "name": "塘朗山郊野公园 · 观景平台",
+    "scene": "skyline",
+    "lat": 22.586,
+    "lng": 113.956,
+    "stand_desc": "塘朗山半山观景平台，俯瞰南山科技园与后海双子塔，晴天可见深圳湾",
+    "bearing": 160,
+    "best_window": [
+      "19:00",
+      "19:45"
+    ],
+    "focal": "35mm 收科技园全景 / 135mm 压缩后海双塔",
+    "compose_template": "thirds",
+    "filters": [
+      "mono_city",
+      "teal_orange",
+      "blue_glass"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁5号线塘朗站A口出",
+      "沿塘朗山绿道登山口上行",
+      "约30分钟到半山观景平台",
+      "站平台南侧俯瞰南山CBD即机位"
+    ],
+    "copy_slots": {
+      "hook": "南山的夜景，从这座山看最全",
+      "tip1": "双塔放三分点",
+      "tip2": "留出深圳湾余地",
+      "tip3": "蓝调15分钟内拍完"
+    },
+    "tags": [
+      "免费",
+      "地铁5号线",
+      "登山30min",
+      "俯瞰南山"
+    ]
+  },
+  {
+    "id": "sze-001",
+    "name": "OCT-LOFT 华侨城创意园 · 北区红砖巷",
+    "scene": "exhibition",
+    "lat": 22.547,
+    "lng": 113.988,
+    "stand_desc": "北区旧厂房红砖巷交叉口，两侧爬藤与工业管线，午后侧光时墙面质感最强",
+    "bearing": 180,
+    "best_window": [
+      "15:30",
+      "17:30"
+    ],
+    "focal": "35mm 收巷道纵深 / 50mm 人物贴墙",
+    "compose_template": "leading",
+    "filters": [
+      "film_fade",
+      "gallery_clean",
+      "soft_matte"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁1号线侨城东站A口出",
+      "沿恩平街进OCT-LOFT北区",
+      "走到旧厂房红砖巷交叉口",
+      "选侧光一侧巷道即机位"
+    ],
+    "copy_slots": {
+      "hook": "旧厂房的红砖，最出复古片",
+      "tip1": "巷道做纵深引导",
+      "tip2": "人物穿亮色衣",
+      "tip3": "侧光拍墙面肌理"
+    },
+    "tags": [
+      "免费",
+      "地铁1号线",
+      "工业风",
+      "全天可拍"
+    ]
+  },
+  {
+    "id": "sze-002",
+    "name": "深圳当代艺术与城市规划馆（两馆）· 中庭",
+    "scene": "exhibition",
+    "lat": 22.547,
+    "lng": 114.068,
+    "stand_desc": "两馆建筑体块间的下沉连廊，几何斜面与金属幕墙形成强线条，阴天更均匀",
+    "bearing": 200,
+    "best_window": [
+      "15:00",
+      "18:00"
+    ],
+    "focal": "20mm 收几何斜面 / 35mm 人物比例",
+    "compose_template": "frame",
+    "filters": [
+      "gallery_clean",
+      "mono_city",
+      "soft_matte"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁4号线市民中心站或少年宫站",
+      "到福田市民中心西侧两馆",
+      "进建筑体块间下沉连廊",
+      "对齐几何斜面即机位"
+    ],
+    "copy_slots": {
+      "hook": "这栋楼本身，就是一张构图",
+      "tip1": "找对称几何线",
+      "tip2": "留一个人破空间",
+      "tip3": "低机位仰拍斜面"
+    },
+    "tags": [
+      "免费",
+      "地铁4号线",
+      "建筑几何",
+      "需看开放日"
+    ]
+  },
+  {
+    "id": "sze-003",
+    "name": "海上世界文化艺术中心 · 屋顶花园",
+    "scene": "exhibition",
+    "lat": 22.4772,
+    "lng": 113.9205,
+    "stand_desc": "文化艺术中心屋顶花园平台，白色阶梯与海景同框，是建筑与滨海的复合机位",
+    "bearing": 240,
+    "best_window": [
+      "16:30",
+      "19:00"
+    ],
+    "focal": "24mm 收白阶与海 / 50mm 人物坐阶",
+    "compose_template": "leading",
+    "filters": [
+      "gallery_clean",
+      "dusk_warm",
+      "soft_matte"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/12号线海上世界站C口出",
+      "到海上世界文化艺术中心正门",
+      "沿室外阶梯或电梯上屋顶花园",
+      "选白色阶梯向海一侧即机位"
+    ],
+    "copy_slots": {
+      "hook": "白色阶梯尽头，是一整片海",
+      "tip1": "阶梯线条引向海",
+      "tip2": "人物点缀留白",
+      "tip3": "临近黄昏光更柔"
+    },
+    "tags": [
+      "免费开放段",
+      "地铁2/12号线",
+      "建筑+海景",
+      "文艺"
+    ]
+  },
+  {
+    "id": "sze-004",
+    "name": "南头古城 · 主街牌坊街区",
+    "scene": "exhibition",
+    "lat": 22.541,
+    "lng": 113.925,
+    "stand_desc": "南头古城主街南门牌坊内约50m，青砖骑楼与招牌层叠，人流做街拍节奏",
+    "bearing": 90,
+    "best_window": [
+      "16:00",
+      "18:30"
+    ],
+    "focal": "35mm 街道纵深 / 85mm 抓拍人物",
+    "compose_template": "leading",
+    "filters": [
+      "film_fade",
+      "teal_orange",
+      "soft_matte"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁12号线南头古城站或1号线桃园站",
+      "步行至南头古城南门牌坊",
+      "进主街向内走约50m",
+      "选骑楼一侧背光位即机位"
+    ],
+    "copy_slots": {
+      "hook": "老城的烟火气，随手一拍都是片",
+      "tip1": "招牌层叠做背景",
+      "tip2": "等人物走进光斑",
+      "tip3": "压低机位拍纵深"
+    },
+    "tags": [
+      "免费",
+      "地铁12号线",
+      "古城街拍",
+      "全天可拍"
+    ]
+  },
+  {
+    "id": "sze-005",
+    "name": "深圳美术馆新馆 · 外立面广场",
+    "scene": "exhibition",
+    "lat": 22.687,
+    "lng": 114.029,
+    "stand_desc": "美术馆新馆西广场，金属编织表皮外立面，斜阳时表皮反光形成韵律线",
+    "bearing": 250,
+    "best_window": [
+      "16:30",
+      "18:30"
+    ],
+    "focal": "24mm 收立面韵律 / 70mm 压缩表皮细节",
+    "compose_template": "thirds",
+    "filters": [
+      "gallery_clean",
+      "gold_rim",
+      "mono_city"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁4号线红山站方向至龙华文化中心",
+      "步行至深圳美术馆新馆西广场",
+      "面向金属编织立面",
+      "斜阳侧照时即机位"
+    ],
+    "copy_slots": {
+      "hook": "斜阳打在这面墙上，会流动",
+      "tip1": "对齐立面韵律线",
+      "tip2": "留一个人做比例",
+      "tip3": "侧光45度最出质感"
+    },
+    "tags": [
+      "免费开放段",
+      "地铁4号线",
+      "新地标建筑",
+      "龙华"
+    ]
+  },
+  {
+    "id": "szc-001",
+    "name": "南海意库 · 天台窗光咖啡",
+    "scene": "cafe",
+    "lat": 22.482,
+    "lng": 113.916,
+    "stand_desc": "南海意库旧厂改造楼栋临窗座，大玻璃窗西向进光，午后逆光窗边出剪影",
+    "bearing": 250,
+    "best_window": [
+      "15:00",
+      "17:30"
+    ],
+    "focal": "35mm 窗边人物 / 50mm 咖啡与手部特写",
+    "compose_template": "silhouette",
+    "filters": [
+      "window_soft",
+      "film_fade",
+      "dusk_warm"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁2/12号线海上世界站方向",
+      "步行至南海意库创意园区",
+      "进临海一侧楼栋咖啡馆",
+      "选西向大窗临窗座即机位"
+    ],
+    "copy_slots": {
+      "hook": "午后靠窗，光会自己来找你",
+      "tip1": "人物贴窗逆光",
+      "tip2": "留咖啡热气特写",
+      "tip3": "压暗背景留窗光"
+    },
+    "tags": [
+      "消费机位",
+      "地铁2/12号线",
+      "窗光",
+      "工业改造"
+    ]
+  },
+  {
+    "id": "szc-002",
+    "name": "深业上城 LOFT · 小镇街区",
+    "scene": "cafe",
+    "lat": 22.547,
+    "lng": 114.057,
+    "stand_desc": "深业上城LOFT小镇欧陆街区台阶转角，暖色店招与绿植，傍晚亮灯后氛围最佳",
+    "bearing": 200,
+    "best_window": [
+      "16:30",
+      "19:00"
+    ],
+    "focal": "35mm 街区纵深 / 50mm 人物坐台阶",
+    "compose_template": "frame",
+    "filters": [
+      "dusk_warm",
+      "film_fade",
+      "window_soft"
+    ],
+    "sample_img": "",
+    "sample_credit": "",
+    "consent_ref": "",
+    "walk_steps": [
+      "地铁10号线冬瓜岭站或3号线通新岭站",
+      "步行至深业上城LOFT小镇",
+      "进欧陆风街区到台阶转角",
+      "选暖色店招背景即机位"
+    ],
+    "copy_slots": {
+      "hook": "像在欧洲小镇，其实在深圳",
+      "tip1": "店招暖光做背景",
+      "tip2": "台阶坐姿留纵深",
+      "tip3": "亮灯后拍氛围"
+    },
+    "tags": [
+      "消费机位",
+      "地铁10号线",
+      "欧陆街区",
+      "夜景氛围"
+    ]
+  }
+]

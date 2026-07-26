@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lightchaser.local/schemas/user_prefs.v1.schema.json",
+  "title": "LIGHTCHASER user_prefs.v1（空表 · 草案）",
+  "description": "个性化偏好表结构草案，零行数据。用途：未来记录用户收藏机位/偏好场景/提醒窗口，供推荐与提醒逻辑消费。字段为占位设计，非已拍板正式 schema——真实接入前如需改动无需走 HERMES-05 R2（此表尚无消费方，不构成'既有 schema 改动'）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "user_prefs"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "agent", "status", "count"],
+      "properties": {
+        "schema_version": { "type": "string", "const": "1.0" },
+        "agent": { "type": "string", "const": "AGENT_09" },
+        "status": { "type": "string", "const": "空表草案，零行数据，未接入任何读写逻辑" },
+        "count": { "type": "integer", "const": 0 }
+      }
+    },
+    "user_prefs": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["user_id", "favorite_spot_ids", "favorite_scene", "notify_window_start", "notify_window_end", "updated_at"],
+        "properties": {
+          "user_id": { "type": "string", "description": "平台侧用户标识（扫码授权后回填，非本产品自建账号体系）" },
+          "favorite_spot_ids": { "type": "array", "items": { "type": "string" }, "description": "关联 spots.id" },
+          "favorite_scene": { "type": ["string", "null"], "enum": ["sunset", "skyline", "exhibition", "cafe", null], "description": "关联 spots.scene 枚举" },
+          "notify_window_start": { "type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$", "description": "偏好提醒时段起（HH:MM，本地时区）" },
+          "notify_window_end": { "type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$", "description": "偏好提醒时段止（HH:MM，本地时区）" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
