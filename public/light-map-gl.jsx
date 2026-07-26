@@ -86,6 +86,22 @@ function zgPhotoBubbleHtml(post) {
   </button>`;
 }
 
+// 聚合泡（Apple 相册地图式）：缩小后互相压叠的气泡合成一个"照片叠+计数"，点击放大自动散开。
+// F6：聚合不消灭"示例/演示"标注——聚合泡代表的仍是垫图/演示内容，角标必须保留可见。
+function zgPhotoClusterHtml(members) {
+  const top = members[0];
+  const n = members.length;
+  const anyLive = members.some((p) => p.is_live);
+  const badge = anyLive ? `演示 · ${n} 张` : `示例 · ${n} 张`;
+  const size = Math.min(64, Math.max.apply(null, members.map((p) => p.size)) + 4 + n * 2);
+  return `<button type="button" class="zg-photo-bubble is-cluster ${anyLive ? "is-live" : ""}" aria-label="放大展开 ${n} 张照片" title="${n} 张照片 · 点击放大展开" style="--tone:${top.tone};--size:${size}px">
+    <span class="zg-photo-thumb"></span>
+    <span class="zg-photo-count">${n}</span>
+    <span class="zg-photo-badge">${badge}</span>
+    <span class="zg-photo-label">${n} 张照片</span>
+  </button>`;
+}
+
 // 逐层暗化 liberty 样式 → 追光夜幕调。核心原则：**确定性调色板**——每类图层给死颜色，
 // 不做任何原色换算（通用混色公式曾把绿地混成深青/品红混成紫，已废除）。
 function zgDarkenStyle(style) {
@@ -476,46 +492,79 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
       photoMarkers.clear();
     };
 
+    // ── 屏幕空间聚合（Apple 相册地图式）────────────────────────────
+    // 为什么不用 MapLibre 原生 cluster source：气泡是 DOM Marker（带角标/标签/动效），
+    // 走 GeoJSON symbol 层会丢掉整套 F6 标注与冒泡动效；20 条数据贪心聚合 O(n²) 足够便宜。
+    const CLUSTER_PX = 58; // 两泡屏幕距离小于此值即视为压叠（泡宽≈44-64px）
+    let lastPhotoPosts = [];
+    let photoLayoutTimer = 0;
+
+    const schedulePhotoLayout = () => {
+      if (disposed) return;
+      clearTimeout(photoLayoutTimer);
+      photoLayoutTimer = setTimeout(() => renderPhotoMarkers(lastPhotoPosts), 90);
+    };
+
     const renderPhotoMarkers = (posts) => {
       if (!map || disposed) return;
-      const nextIds = new Set();
-      posts
-        .filter((post) => Number.isFinite(post.lat) && Number.isFinite(post.lng))
-        .slice(0, 20)
-        .forEach((post, index) => {
-          nextIds.add(post.id);
-          const existing = photoMarkers.get(post.id);
-          if (existing) {
-            existing.marker.setLngLat([post.lng, post.lat]);
+      lastPhotoPosts = posts;
+      const valid = posts.filter((post) => Number.isFinite(post.lat) && Number.isFinite(post.lng)).slice(0, 20);
+
+      // 贪心聚合：新点并入 58px 内最近的簇质心，否则自立一簇；zoom 放大后距离拉开自然散簇
+      const clusters = [];
+      valid.forEach((post) => {
+        const pt = map.project([post.lng, post.lat]);
+        let best = null, bestD = Infinity;
+        clusters.forEach((c) => {
+          const d = Math.hypot(c.sx / c.members.length - pt.x, c.sy / c.members.length - pt.y);
+          if (d < CLUSTER_PX && d < bestD) { best = c; bestD = d; }
+        });
+        if (best) { best.members.push(post); best.sx += pt.x; best.sy += pt.y; }
+        else clusters.push({ members: [post], sx: pt.x, sy: pt.y });
+      });
+
+      const nextKeys = new Set();
+      clusters.forEach((cluster, index) => {
+        const members = cluster.members;
+        const single = members.length === 1;
+        const post = members[0];
+        const key = single ? post.id : "c:" + members.map((m) => m.id).sort().join("+");
+        const lng = members.reduce((s, m) => s + m.lng, 0) / members.length;
+        const lat = members.reduce((s, m) => s + m.lat, 0) / members.length;
+        nextKeys.add(key);
+
+        const existing = photoMarkers.get(key);
+        if (existing) {
+          existing.marker.setLngLat([lng, lat]);
+          if (single) {
             existing.el.classList.toggle("is-live", post.is_live);
             existing.el.style.setProperty("--tone", post.tone);
             existing.el.style.setProperty("--size", `${post.size}px`);
-            return;
           }
+          return;
+        }
 
-          const wrap = document.createElement("div");
-          wrap.innerHTML = zgPhotoBubbleHtml(post);
-          const el = wrap.firstElementChild;
-          el.style.setProperty("--pop-delay", `${Math.min(index * 24, 180)}ms`);
-          el.addEventListener("click", (event) => {
-            event.stopPropagation();
-            rotating = false;
-            clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => { rotating = true; }, 4000);
-            map.easeTo({
-              center: [post.lng, post.lat],
-              zoom: Math.max(map.getZoom(), 15.2),
-              pitch: 62,
-              duration: 420,
-            });
-          });
-          const marker = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat([post.lng, post.lat]).addTo(map);
-          photoMarkers.set(post.id, { marker, el });
+        const wrap = document.createElement("div");
+        wrap.innerHTML = single ? zgPhotoBubbleHtml(post) : zgPhotoClusterHtml(members);
+        const el = wrap.firstElementChild;
+        el.style.setProperty("--pop-delay", `${Math.min(index * 24, 180)}ms`);
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          rotating = false;
+          clearTimeout(idleTimer);
+          idleTimer = setTimeout(() => { rotating = true; }, 4000);
+          map.easeTo(single
+            ? { center: [post.lng, post.lat], zoom: Math.max(map.getZoom(), 15.2), pitch: 62, duration: 420 }
+            // 聚合泡：像苹果一样"点了就放大到能散开"，散簇由 moveend 重排完成
+            : { center: [lng, lat], zoom: Math.min(map.getZoom() + 1.6, 17), duration: 420 });
         });
+        const marker = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat([lng, lat]).addTo(map);
+        photoMarkers.set(key, { marker, el });
+      });
 
-      photoMarkers.forEach(({ marker, el }, id) => {
-        if (nextIds.has(id)) return;
-        photoMarkers.delete(id);
+      photoMarkers.forEach(({ marker, el }, key) => {
+        if (nextKeys.has(key)) return;
+        photoMarkers.delete(key);
         el.classList.add("is-exiting");
         setTimeout(() => marker.remove(), 260);
       });
@@ -577,6 +626,15 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
         mapRef.current = map;
         window.__zgMap = map; // 测试钩子：旋转不变性自动化验证用（Playwright 精确控制 bearing）
         map.touchPitch.enable();
+
+        // 照片聚合重排：中心/缩放变了才算（闲置自转 setBearing 每帧发 moveend，但旋转不改屏幕相对距离，过滤掉）
+        let phLayoutCenter = null, phLayoutZoom = null;
+        map.on("moveend", () => {
+          const c = map.getCenter(), z = map.getZoom();
+          if (phLayoutCenter && Math.abs(c.lat - phLayoutCenter.lat) < 1e-6 && Math.abs(c.lng - phLayoutCenter.lng) < 1e-6 && Math.abs(z - phLayoutZoom) < 1e-6) return;
+          phLayoutCenter = c; phLayoutZoom = z;
+          schedulePhotoLayout();
+        });
 
         map.on("load", () => {
           if (disposed) return;
@@ -846,7 +904,7 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
 
     return () => {
       disposed = true;
-      clearTimeout(failTimer); clearTimeout(idleTimer); clearTimeout(photoPollTimer);
+      clearTimeout(failTimer); clearTimeout(idleTimer); clearTimeout(photoPollTimer); clearTimeout(photoLayoutTimer);
       cancelAnimationFrame(raf);
       clearPhotoMarkers();
       markers.forEach((m) => m.remove());
@@ -877,6 +935,11 @@ function SceneLightMapGL({ sunsetPayload, routeData, routeLoading = false, selec
         .zg-photo-thumb:after{content:"";display:block;width:54%;height:21%;margin:48% auto 0;border-radius:99px;background:rgba(255,255,255,.34);filter:blur(3px)}
         .zg-photo-badge{position:absolute;right:-5px;top:-10px;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(255,255,255,.82);border-radius:99px;background:#303848;color:#fff;padding:2px 6px;font:800 8px/1.1 var(--font-cn),sans-serif}
         .zg-photo-label{position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:999px;background:rgba(14,17,26,.86);border:1px solid rgba(255,255,255,.14);color:#f2f3f5;padding:4px 8px;font:800 9px/1 var(--font-cn),sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+        /* 聚合泡：白卡照片叠(两张错角垫底) + 追光橘计数角标 */
+        .zg-photo-bubble.is-cluster:before,.zg-photo-bubble.is-cluster:after{content:"";position:absolute;inset:0;z-index:-1;border-radius:10px;background:#fff;border:3px solid rgba(255,255,255,.96);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+        .zg-photo-bubble.is-cluster:before{transform:rotate(-7deg) translate(-4px,3px)}
+        .zg-photo-bubble.is-cluster:after{transform:rotate(5deg) translate(4px,2px)}
+        .zg-photo-count{position:absolute;left:-8px;top:-10px;min-width:20px;height:20px;border-radius:999px;background:#ff8a3d;color:#1a1108;border:2px solid #fff;padding:0 4px;font:800 11px/16px var(--font-cn),sans-serif;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.4)}
       `}</style>
 
       {/* 顶部 HUD */}
