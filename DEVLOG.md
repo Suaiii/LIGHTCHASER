@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-07-29 · GL 3D 地图完全迁移包（round5）+ 六场景包并入 platform-prompts
+
+- **素材包归位**：六场景封面卡包从 `agents_output/09/design/` **整体迁到 `platform-prompts/materials/feed-six/`**（git rename 识别，无重复副本），R2-07 提示词路径同步。理由：平台上传件应集中在 platform-prompts 下，agents_output 留给交付物本体。
+- **GL 全量迁移包**（新）：`platform-prompts/round5-GL全量迁移/` 总纲 + 6 步提示词（01 地图上机 / 02 夜幕调色板 / 03 3D楼群与太阳光 / 04 照片气泡与聚合 / 05 路线金线与终点 / 06 HUD与真实性徽标），每步带时间盒、验收二元表、失败分支与掉档动作。
+- **迁移规格**（`materials/gl/gl-migration-spec.md`，新）：四档目标（A Three真光影 / **A− fill-extrusion 招牌线** / B 平台地图 / C 录屏）+ 相机与 LOD + 确定性调色板全表 + 太阳几何与 7 锚点光色 + 3D 两条路线 + 气泡聚合 + 路线层 + HUD + **16 条真机坑清单** + 实测基线。坑清单是全包最值钱的部分——全部来自源码注释里记录的真实故障，不是预防性猜测。
+- **真源码进包**：`materials/gl/source/light-map-gl.jsx`（1038 行 v4.9）+ 抽出的依赖 `zg-sun-helpers.js`（太阳几何 + 光色插值）。打法定为"**能传源码就先传源码**"——注释里写满了每个数值为什么是这个数。
+- **真机四态截图**（`materials/gl/screenshots/`）：Playwright 抓本地原型真实渲染（开场 z14.65 / 拉远 z12.6 剪影 / 拉近 z15.3 立体楼群受光背光分明 / 高俯角 pitch70 天际光晕），相机参数逐张记入规格 §11 供平台对照。非合成图。
+- **打包** `gl-migration-kit.zip`（2.1MB，21 件，含目录映射说明 README.txt；包内文件名改英文避免压缩包乱码）。
+- 定调写进总纲：**招牌线是 A−，不是 A**。Three 自定义层的风险全在共享 WebGL 上下文（坑 4–10），做不动立刻停手，别为 A 赌掉已经成立的 A−。
+
+---
+
 ## 2026-07-29 · PR#45 六场景封面卡 → 平台素材包 + R2-07 提示词
 
 - **PR 归并**：#45（队友六种城市光线首页稿）合入 main；合前扫过那个 2.38MB SVG（`<script`/`foreignObject`/`javascript:`/`onload=`/外链 href 全 0 命中）。顺手发现 #43 合于 `b46804b`、**`6ccde07`（聚合搬平台三件套）从未进 main**——另开 #46 补合。两个 PR 均已合，open 清零。

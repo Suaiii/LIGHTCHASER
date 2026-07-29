@@ -6,7 +6,7 @@
 ## 包里有什么
 
 ```
-feed-six-scenes/
+feed-six/
 ├── README.md          ← 你在看的这份：上传顺序 + 怎么说
 ├── card_spec.md       ← 版式规格（坐标/色值/字号全表 + 数据绑定 + 已知偏差）
 ├── scenes.json        ← 6 个场景的文案槽位结构化数据（平台建表直接照抄）
