@@ -1,0 +1,131 @@
+{
+  "source_pr": 45,
+  "source_svg": "assets/figma/lightchaser-six-photo-scenes.svg",
+  "viewport": {
+    "w": 430,
+    "h": 860
+  },
+  "scenes": [
+    {
+      "scene_no": "01",
+      "caption": "蓝调仅剩18分钟",
+      "status_time": "9:41",
+      "headline": "蓝调仅剩18分钟",
+      "headline_lines": [
+        "蓝调仅剩",
+        "18分钟"
+      ],
+      "score_label": "BLUE HOUR",
+      "score": 91,
+      "score_tail": "/100",
+      "verdict": "正是时候",
+      "spot_name": "湖岸蓝调 · 灯影机位",
+      "spot_meta": "1.4km　步行 11 分钟　最佳 19:18",
+      "reason_line": "←　沿着雪地脚印，等天空慢慢变蓝",
+      "cta": "▶ 导航前往",
+      "photo": "photos/01.jpg",
+      "photo_bytes": 84624,
+      "consent_ref": null
+    },
+    {
+      "scene_no": "02",
+      "caption": "云开见光",
+      "status_time": "9:41",
+      "headline": "云开见光",
+      "headline_lines": [
+        "云开见光"
+      ],
+      "score_label": "SUNRAY",
+      "score": 88,
+      "score_tail": "/100",
+      "verdict": "值得出门",
+      "spot_name": "云隙光 · 城市西望",
+      "spot_meta": "2.1km　步行 16 分钟　峰值 18:06",
+      "reason_line": "←　云隙会在 9 分钟后最大",
+      "cta": "▶ 导航前往",
+      "photo": "photos/02.jpg",
+      "photo_bytes": 139080,
+      "consent_ref": null
+    },
+    {
+      "scene_no": "03",
+      "caption": "日出将至",
+      "status_time": "5:06",
+      "headline": "日出将至",
+      "headline_lines": [
+        "日出将至"
+      ],
+      "score_label": "SUNRISE",
+      "score": 93,
+      "score_tail": "/100",
+      "verdict": "早起值得",
+      "spot_name": "海岸线 · 日出机位",
+      "spot_meta": "1.8km　步行 14 分钟　日出 05:18",
+      "reason_line": "←　把太阳留在风车之间",
+      "cta": "▶ 导航前往",
+      "photo": "photos/03.jpg",
+      "photo_bytes": 172518,
+      "consent_ref": null
+    },
+    {
+      "scene_no": "04",
+      "caption": "树影正好",
+      "status_time": "18:21",
+      "headline": "树影正好",
+      "headline_lines": [
+        "树影正好"
+      ],
+      "score_label": "WALK LIGHT",
+      "score": 86,
+      "score_tail": "/100",
+      "verdict": "适合出门",
+      "spot_name": "绿荫公园 · 慢行线",
+      "spot_meta": "0.8km　步行 9 分钟　舒适至 19:05",
+      "reason_line": "←　穿过树荫，让风把一天吹轻",
+      "cta": "▶ 导航前往",
+      "photo": "photos/04.jpg",
+      "photo_bytes": 423512,
+      "consent_ref": null
+    },
+    {
+      "scene_no": "05",
+      "caption": "林下宜围炉",
+      "status_time": "14:06",
+      "headline": "林下宜围炉",
+      "headline_lines": [
+        "林下宜围炉"
+      ],
+      "score_label": "CAMP PICNIC",
+      "score": 89,
+      "score_tail": "/100",
+      "verdict": "光线舒适",
+      "spot_name": "松林营地 · 围炉机位",
+      "spot_meta": "2.3km　骑行 12 分钟　宜停留 2 小时",
+      "reason_line": "←　等灯亮起，把晚餐搬到森林里",
+      "cta": "▶ 导航前往",
+      "photo": "photos/05.jpg",
+      "photo_bytes": 508605,
+      "consent_ref": null
+    },
+    {
+      "scene_no": "06",
+      "caption": "去吃点热的",
+      "status_time": "19:08",
+      "headline": "去吃点热的",
+      "headline_lines": [
+        "去吃点热的"
+      ],
+      "score_label": "NIGHT GLOW",
+      "score": 90,
+      "score_tail": "/100",
+      "verdict": "正在开场",
+      "spot_name": "夜市入口 · 烟火机位",
+      "spot_meta": "1.1km　步行 13 分钟　蓝调至 19:26",
+      "reason_line": "←　顺着蒸汽和霓虹，去吃第一口热的",
+      "cta": "▶ 导航前往",
+      "photo": "photos/06.jpg",
+      "photo_bytes": 446749,
+      "consent_ref": null
+    }
+  ]
+}
